@@ -1,4 +1,5 @@
-import express from "express";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import type {
   DeviceInfo,
   PrepareUploadRequest,
@@ -11,13 +12,12 @@ import {
   PrepareUploadRequestSchema,
   UploadRequestQuerySchema,
 } from "./models";
-import { z } from "zod";
 import fs from "fs";
 import path from "path";
 import * as v from "valibot";
 
 export class HttpServer {
-  private app: express.Application;
+  private app: Hono;
   private deviceInfo: DeviceInfo;
   private activeSessions: Map<
     string,
@@ -30,138 +30,110 @@ export class HttpServer {
 
   constructor(deviceInfo: DeviceInfo) {
     this.deviceInfo = deviceInfo;
-    this.app = express();
-    this.app.use(express.json());
-    this.app.use(express.raw({ type: "*/*", limit: "1000mb" }));
+    this.app = new Hono();
     this.setupRoutes();
   }
 
   private setupRoutes(): void {
     // Info endpoint
-    this.app.get("/api/localsend/v2/info", (req, res) => {
-      res.json(this.deviceInfo);
+    this.app.get("/api/localsend/v2/info", (c) => {
+      return c.json(this.deviceInfo);
     });
 
     // Register endpoint
-    this.app.post(
-      "/api/localsend/v2/register",
-      (req: express.Request, res: express.Response) => {
-        try {
-          const registerRequest = v.parse(RegisterRequestSchema, req.body);
-          console.log("register", registerRequest);
+    this.app.post("/api/localsend/v2/register", async (c) => {
+      try {
+        const body = await c.req.json();
+        const registerRequest = v.parse(RegisterRequestSchema, body);
+        console.log("register", registerRequest);
 
-          // Respond with device info
-          res.json({
-            alias: this.deviceInfo.alias,
-            version: this.deviceInfo.version,
-            deviceModel: this.deviceInfo.deviceModel,
-            deviceType: this.deviceInfo.deviceType,
-            fingerprint: this.deviceInfo.fingerprint,
-            download: this.deviceInfo.download,
-          });
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            res.status(400).json({
-              message: "Invalid registration request",
-              errors: error.errors,
-            });
-            return;
-          }
-          res.status(500).json({ message: "Internal server error" });
-        }
+        return c.json({
+          alias: this.deviceInfo.alias,
+          version: this.deviceInfo.version,
+          deviceModel: this.deviceInfo.deviceModel,
+          deviceType: this.deviceInfo.deviceType,
+          fingerprint: this.deviceInfo.fingerprint,
+          download: this.deviceInfo.download,
+        });
+      } catch (error) {
+        console.error("Registration error:", error);
+        return c.json({ message: "Invalid registration request" }, 400);
       }
-    );
+    });
 
     // Prepare upload endpoint
-    this.app.post(
-      "/api/localsend/v2/prepare-upload",
-      (req: express.Request, res: express.Response) => {
-        console.log("prepare-upload", req.body);
+    this.app.post("/api/localsend/v2/prepare-upload", async (c) => {
+      try {
+        const body = await c.req.json();
+        const prepareRequest = v.parse(PrepareUploadRequestSchema, body);
+        console.log("prepare-upload", prepareRequest);
+        const clientIp =
+          c.req.header("x-forwarded-for") || c.req.header("remote-addr") || "";
 
-        try {
-          const prepareRequest = v.parse(PrepareUploadRequestSchema, req.body);
-          console.log("prepare-upload", prepareRequest);
-          const clientIp = z.string().parse(req.ip);
-
-          // Check if PIN is required and validate it
-          const pin = req.query.pin as string;
-          if (this.requiresPin() && !this.validatePin(pin)) {
-            res.status(401).json({ message: "PIN required or invalid" });
-            return;
-          }
-
-          // Check if there's an active session blocking
-          if (this.hasActiveBlockingSession(clientIp)) {
-            res.status(409).json({ message: "Blocked by another session" });
-          }
-
-          // Generate session and tokens
-          const sessionId = this.generateSessionId();
-          const fileTokens: Record<string, string> = {};
-
-          // Generate tokens for each file
-          Object.keys(prepareRequest.files).forEach((fileId) => {
-            fileTokens[fileId] = this.generateFileToken();
-          });
-
-          // Store session
-          this.activeSessions.set(sessionId, {
-            files: fileTokens,
-            clientIp,
-            prepareRequest,
-          });
-
-          // Return session info
-          const response: PrepareUploadResponse = {
-            sessionId,
-            files: fileTokens,
-          };
-
-          res.json(response);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            res.status(400).json({
-              message: "Invalid prepare-upload request",
-              errors: error.errors,
-            });
-            return;
-          }
-          res.status(500).json({ message: "Internal server error" });
+        // Check if PIN is required and validate it
+        if (
+          this.requiresPin() &&
+          !this.validatePin(v.parse(v.string(), c.req.query("pin")))
+        ) {
+          return c.json({ message: "PIN required or invalid" }, 401);
         }
+
+        // Check if there's an active session blocking
+        if (this.hasActiveBlockingSession(clientIp)) {
+          return c.json({ message: "Blocked by another session" }, 409);
+        }
+
+        // Generate session and tokens
+        const sessionId = this.generateSessionId();
+        const fileTokens: Record<string, string> = {};
+
+        // Generate tokens for each file
+        Object.keys(prepareRequest.files).forEach((fileId) => {
+          fileTokens[fileId] = this.generateFileToken();
+        });
+
+        // Store session
+        this.activeSessions.set(sessionId, {
+          files: fileTokens,
+          clientIp,
+          prepareRequest,
+        });
+
+        const response: PrepareUploadResponse = {
+          sessionId,
+          files: fileTokens,
+        };
+
+        return c.json(response);
+      } catch (error) {
+        console.error("Prepare upload error:", error);
+        return c.json({ message: "Invalid prepare-upload request" }, 400);
       }
-    );
+    });
 
     // Upload endpoint
-    this.app.post("/api/localsend/v2/upload", (req, res) => {
-      console.log("upload");
+    this.app.post("/api/localsend/v2/upload", async (c) => {
       try {
+        const query = c.req.query();
         const { sessionId, fileId, token } = v.parse(
           UploadRequestQuerySchema,
-          req.query
+          query
         );
         console.log("upload", sessionId, fileId, token);
-        const clientIp = z.string().parse(req.ip);
+        const clientIp =
+          c.req.header("x-forwarded-for") || c.req.header("remote-addr") || "";
 
         // Validate session and token
-        const session = this.activeSessions.get(sessionId as string);
-        if (
-          !this.validateFileTransfer(
-            sessionId as string,
-            fileId as string,
-            token as string,
-            clientIp
-          )
-        ) {
-          res.status(403).json({ message: "Invalid token or IP address" });
-          return;
+        const session = this.activeSessions.get(sessionId);
+        if (!this.validateFileTransfer(sessionId, fileId, token, clientIp)) {
+          return c.json({ message: "Invalid token or IP address" }, 403);
         }
 
         // Get file info from prepare request
         const prepareRequest = session?.prepareRequest;
-        const fileInfo = prepareRequest?.files[fileId as string];
+        const fileInfo = prepareRequest?.files[fileId];
         if (!fileInfo) {
-          res.status(404).json({ message: "File info not found" });
-          return;
+          return c.json({ message: "File info not found" }, 404);
         }
 
         // Create downloads directory if it doesn't exist
@@ -178,27 +150,28 @@ export class HttpServer {
           fs.mkdirSync(fileDir, { recursive: true });
         }
 
-        fs.writeFileSync(filePath, req.body);
+        const arrayBuffer = await c.req.arrayBuffer();
+        fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
 
-        res.status(200).send();
+        return c.json(null, 200);
       } catch (error) {
         console.error("Upload error:", error);
-        res.status(500).json({ message: "Internal server error" });
+        return c.json({ message: "Internal server error" }, 500);
       }
     });
 
     // Cancel endpoint
-    this.app.post("/api/localsend/v2/cancel", (req, res) => {
+    this.app.post("/api/localsend/v2/cancel", (c) => {
       try {
-        const { sessionId } = req.query;
+        const sessionId = c.req.query("sessionId");
         console.log("cancel", sessionId);
         if (typeof sessionId === "string") {
           this.activeSessions.delete(sessionId);
         }
 
-        res.status(200).send();
+        return c.json(null, 200);
       } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+        return c.json({ message: "Internal server error" }, 500);
       }
     });
   }
@@ -241,8 +214,10 @@ export class HttpServer {
   }
 
   async start(): Promise<void> {
-    this.app.listen(this.deviceInfo.port, () => {
-      console.log(`Server is running on port ${this.deviceInfo.port}`);
+    serve({
+      fetch: this.app.fetch,
+      port: this.deviceInfo.port,
     });
+    console.log(`Server is running on port ${this.deviceInfo.port}`);
   }
 }
