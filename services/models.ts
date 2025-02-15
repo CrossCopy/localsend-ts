@@ -14,7 +14,9 @@ export const DeviceInfoSchema = v.object({
 });
 
 export type DeviceInfo = v.InferOutput<typeof DeviceInfoSchema>;
-
+export interface MulticastMessage extends DeviceInfo {
+  announce: boolean;
+}
 export const RegisterRequestSchema = v.object({
   ...DeviceInfoSchema.entries,
   port: v.number(),

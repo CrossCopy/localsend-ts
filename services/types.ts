@@ -25,10 +25,6 @@ export enum Protocol {
 //   download?: boolean;
 // }
 
-// export interface MulticastMessage extends DeviceInfo {
-//   announce: boolean;
-// }
-
 // // File Transfer Interfaces
 // export interface FileMetadata {
 //   modified?: string;

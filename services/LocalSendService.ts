@@ -1,14 +1,12 @@
-import {
-  Protocol,
-  type DeviceInfo,
-  type DeviceType,
-  type FileInfo,
-  type MulticastMessage,
-  type PrepareUploadRequest,
-  type PrepareUploadResponse,
-} from "./types";
+import { Protocol, type DeviceType } from "./types";
 import { HttpServer } from "./HttpServer";
 import { MulticastClient } from "./MulticastClient";
+import type {
+  DeviceInfo,
+  MulticastMessage,
+  PrepareUploadRequest,
+  PrepareUploadResponse,
+} from "./models";
 
 export class LocalSendService {
   private deviceInfo: DeviceInfo;
@@ -18,7 +16,7 @@ export class LocalSendService {
   constructor(config: {
     alias: string;
     deviceModel?: string;
-    deviceType?: DeviceType;
+    deviceType: DeviceType;
     port?: number;
     protocol?: Protocol;
   }) {
