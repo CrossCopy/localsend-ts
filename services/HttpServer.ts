@@ -177,9 +177,23 @@ export class HttpServer {
         if (!fs.existsSync(fileDir)) {
           fs.mkdirSync(fileDir, { recursive: true });
         }
+        const readStream = c.req.raw.body;
+        if (!readStream) {
+          return c.json({ message: "No file data provided" }, 400);
+        }
 
-        const arrayBuffer = await c.req.arrayBuffer();
-        fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+        const writeStream = fs.createWriteStream(filePath);
+        await readStream.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              writeStream.write(chunk);
+            },
+          })
+        );
+        writeStream.end();
+
+        // const arrayBuffer = await c.req.arrayBuffer();
+        // fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
 
         const endTime = Date.now();
         const totalTime = endTime - startTime;
