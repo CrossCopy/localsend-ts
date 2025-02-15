@@ -15,6 +15,8 @@ import {
 import fs from "fs";
 import path from "path";
 import * as v from "valibot";
+import { describeRoute } from "hono-openapi";
+import { resolver, validator } from "hono-openapi/valibot";
 
 export class HttpServer {
   private app: Hono;
@@ -41,25 +43,50 @@ export class HttpServer {
     });
 
     // Register endpoint
-    this.app.post("/api/localsend/v2/register", async (c) => {
-      try {
-        const body = await c.req.json();
-        const registerRequest = v.parse(RegisterRequestSchema, body);
-        console.log("register", registerRequest);
+    this.app.post(
+      "/api/localsend/v2/register",
+      describeRoute({
+        description: "Say hello to the user",
+        responses: {
+          200: {
+            description: "Successful response",
+            content: {
+              "text/plain": {
+                schema: resolver(
+                  v.object({
+                    alias: v.string(),
+                    version: v.string(),
+                    deviceModel: v.optional(v.string()),
+                    deviceType: v.string(),
+                    fingerprint: v.string(),
+                    download: v.optional(v.boolean()),
+                  })
+                ),
+              },
+            },
+          },
+        },
+      }),
+      validator("json", RegisterRequestSchema),
+      async (c) => {
+        try {
+          const body = await c.req.valid("json");
+          console.log("register", body);
 
-        return c.json({
-          alias: this.deviceInfo.alias,
-          version: this.deviceInfo.version,
-          deviceModel: this.deviceInfo.deviceModel,
-          deviceType: this.deviceInfo.deviceType,
-          fingerprint: this.deviceInfo.fingerprint,
-          download: this.deviceInfo.download,
-        });
-      } catch (error) {
-        console.error("Registration error:", error);
-        return c.json({ message: "Invalid registration request" }, 400);
+          return c.json({
+            alias: this.deviceInfo.alias,
+            version: this.deviceInfo.version,
+            deviceModel: this.deviceInfo.deviceModel,
+            deviceType: this.deviceInfo.deviceType,
+            fingerprint: this.deviceInfo.fingerprint,
+            download: this.deviceInfo.download,
+          });
+        } catch (error) {
+          console.error("Registration error:", error);
+          return c.json({ message: "Invalid registration request" }, 400);
+        }
       }
-    });
+    );
 
     // Prepare upload endpoint
     this.app.post("/api/localsend/v2/prepare-upload", async (c) => {
@@ -114,6 +141,7 @@ export class HttpServer {
     // Upload endpoint
     this.app.post("/api/localsend/v2/upload", async (c) => {
       try {
+        const startTime = Date.now();
         const query = c.req.query();
         const { sessionId, fileId, token } = v.parse(
           UploadRequestQuerySchema,
@@ -152,6 +180,16 @@ export class HttpServer {
 
         const arrayBuffer = await c.req.arrayBuffer();
         fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+
+        const endTime = Date.now();
+        const totalTime = endTime - startTime;
+        const speed = fileInfo.size / 1024 / 1024 / (totalTime / 1000); // MB/s
+
+        console.log(`Upload completed:
+          File: ${fileInfo.fileName}
+          Size: ${fileInfo.size} bytes
+          Time: ${totalTime}ms
+          Speed: ${speed.toFixed(2)} MB/s`);
 
         return c.json(null, 200);
       } catch (error) {
