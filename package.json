@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build dev.ts --target=node --outdir=dist",
+    "build": "bun build dev.ts --target=node --outdir=dist --minify",
     "dev": "bun run --watch dev.ts"
   },
   "devDependencies": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@hono/node-server": "^1.13.8",
     "@hono/valibot-validator": "^0.5.2",
+    "@scalar/hono-api-reference": "^0.5.173",
     "@valibot/to-json-schema": "^1.0.0-rc.0",
     "hono": "^4.7.1",
     "hono-openapi": "^0.4.4",

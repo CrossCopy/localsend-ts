@@ -1,56 +1,71 @@
-import {
-  object,
-  string,
-  number,
-  boolean,
-  optional,
-  enum_,
-  record,
-} from "valibot";
+import * as v from "valibot";
 import { DeviceType, Protocol } from "./types";
+import { object } from "valibot";
 
-export const RegisterRequestSchema = object({
-  alias: string(),
-  version: string(),
-  deviceModel: optional(string()),
-  deviceType: enum_(DeviceType),
-  fingerprint: string(),
-  port: number(),
-  protocol: enum_(Protocol),
-  download: optional(boolean()),
+export const DeviceInfoSchema = v.object({
+  alias: v.string(),
+  version: v.string(),
+  deviceModel: v.optional(v.string()),
+  deviceType: v.enum_(DeviceType),
+  fingerprint: v.string(),
+  download: v.boolean(),
+  port: v.number(),
+  protocol: v.enum_(Protocol),
 });
 
-const FileMetadataSchema = object({
-  modified: optional(string()),
-  accessed: optional(string()),
+export type DeviceInfo = v.InferOutput<typeof DeviceInfoSchema>;
+
+export const RegisterRequestSchema = v.object({
+  ...DeviceInfoSchema.entries,
+  port: v.number(),
+  protocol: v.enum_(Protocol),
 });
 
-const FileInfoSchema = object({
-  id: string(),
-  fileName: string(),
-  size: number(),
-  fileType: string(),
-  sha256: optional(string()),
-  preview: optional(string()),
-  metadata: optional(FileMetadataSchema),
+export type RegisterRequest = v.InferOutput<typeof RegisterRequestSchema>;
+
+const FileMetadataSchema = v.object({
+  modified: v.optional(v.string()),
+  accessed: v.optional(v.string()),
+});
+
+const FileInfoSchema = v.object({
+  id: v.string(),
+  fileName: v.string(),
+  size: v.number(),
+  fileType: v.string(),
+  sha256: v.optional(v.string()),
+  preview: v.optional(v.string()),
+  metadata: v.optional(FileMetadataSchema),
 });
 
 export const PrepareUploadRequestSchema = object({
-  info: object({
-    alias: string(),
-    version: string(),
-    deviceModel: optional(string()),
-    deviceType: enum_(DeviceType),
-    fingerprint: string(),
-    port: number(),
-    protocol: enum_(Protocol),
-    download: optional(boolean()),
+  info: v.object({
+    alias: v.string(),
+    version: v.string(),
+    deviceModel: v.optional(v.string()),
+    deviceType: v.enum_(DeviceType),
+    fingerprint: v.string(),
+    port: v.number(),
+    protocol: v.enum_(Protocol),
+    download: v.optional(v.boolean()),
   }),
-  files: record(string(), FileInfoSchema),
+  files: v.record(v.string(), FileInfoSchema),
+});
+export type PrepareUploadRequest = v.InferOutput<
+  typeof PrepareUploadRequestSchema
+>;
+
+export const PrepareUploadResponseSchema = v.object({
+  sessionId: v.string(),
+  files: v.record(v.string(), v.string()),
 });
 
-export const UploadRequestQuerySchema = object({
-  sessionId: string(),
-  fileId: string(),
-  token: string(),
+export type PrepareUploadResponse = v.InferOutput<
+  typeof PrepareUploadResponseSchema
+>;
+
+export const UploadRequestQuerySchema = v.object({
+  sessionId: v.string(),
+  fileId: v.string(),
+  token: v.string(),
 });
