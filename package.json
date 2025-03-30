@@ -13,12 +13,13 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.8",
+    "@hono/node-server": "^1.14.0",
     "@hono/valibot-validator": "^0.5.2",
-    "@scalar/hono-api-reference": "^0.5.173",
-    "@valibot/to-json-schema": "^1.0.0-rc.0",
-    "hono": "^4.7.1",
-    "hono-openapi": "^0.4.4",
-    "valibot": "^1.0.0-rc.0"
+    "@scalar/hono-api-reference": "^0.7.4",
+    "@valibot/to-json-schema": "^1.0.0",
+    "express": "^4.21.2",
+    "hono": "^4.7.5",
+    "hono-openapi": "^0.4.6",
+    "valibot": "^1.0.0"
   }
 }
