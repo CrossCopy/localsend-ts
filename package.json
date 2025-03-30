@@ -1,6 +1,7 @@
 {
   "name": "localsend",
-  "module": "index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "bun build dev.ts --target=node --outdir=dist --minify",
