@@ -12,7 +12,6 @@ console.log("Starting LocalSend receiver with Hono server:", deviceInfo)
 // Create and start the Hono server
 const server = new LocalSendHonoServer(deviceInfo, {
 	saveDirectory: "./received_files",
-	requirePin: true,
 	pin: "123456"
 })
 
