@@ -1,0 +1,39 @@
+{
+	"name": "localsend",
+	"module": "src/index.ts",
+	"types": "src/index.ts",
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"build": "bun build.ts",
+		"postbuild": "verify-package-export verify",
+		"dev": "bun run --watch dev.ts",
+		"format": "prettier --write ."
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./types": "./src/types.ts",
+		"./sdk": "./src/sdk/index.ts",
+		"./sdk/client": "./src/sdk/client.gen.ts"
+	},
+	"devDependencies": {
+		"@hey-api/openapi-ts": "^0.64.15",
+		"@types/bun": "latest",
+		"prettier": "^3.5.3",
+		"verify-package-export": "^0.0.3"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@hey-api/client-fetch": "^0.8.4",
+		"@hono/node-server": "^1.14.0",
+		"@hono/valibot-validator": "^0.5.2",
+		"@scalar/hono-api-reference": "^0.7.4",
+		"@valibot/to-json-schema": "^1.0.0",
+		"express": "^4.21.2",
+		"hono": "^4.7.5",
+		"hono-openapi": "^0.4.6",
+		"valibot": "^1.0.0"
+	}
+}
