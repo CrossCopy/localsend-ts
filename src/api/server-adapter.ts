@@ -12,7 +12,11 @@ export interface ServerAdapter {
  * Bun Server Adapter that uses Bun's native HTTP server
  */
 export class BunServerAdapter implements ServerAdapter {
-	async start(options: { port: number; fetch: Function; maxRequestBodySize?: number }): Promise<unknown> {
+	async start(options: {
+		port: number
+		fetch: Function
+		maxRequestBodySize?: number
+	}): Promise<unknown> {
 		try {
 			// @ts-ignore - Bun specific API
 			return Bun.serve({
@@ -20,7 +24,7 @@ export class BunServerAdapter implements ServerAdapter {
 				fetch: options.fetch as any,
 				// Set a high max request body size to handle large files
 				// Default to 1GB if not specified
-				maxRequestBodySize: options.maxRequestBodySize || 1024 * 1024 * 1024 
+				maxRequestBodySize: options.maxRequestBodySize || 1024 * 1024 * 1024
 			})
 		} catch (error) {
 			console.error("Error starting Bun server:", error)
@@ -39,11 +43,15 @@ export class BunServerAdapter implements ServerAdapter {
  * Node.js Server Adapter that uses @hono/node-server
  */
 export class NodeServerAdapter implements ServerAdapter {
-	async start(options: { port: number; fetch: Function; maxRequestBodySize?: number }): Promise<unknown> {
+	async start(options: {
+		port: number
+		fetch: Function
+		maxRequestBodySize?: number
+	}): Promise<unknown> {
 		try {
 			// Dynamically import to avoid issues when running in Bun or Deno
 			const { serve } = await import("@hono/node-server")
-			
+
 			// Note: maxRequestBodySize is not directly supported in the Node adapter,
 			// body size limits should be handled by Hono middleware instead
 			return serve({
@@ -67,7 +75,11 @@ export class NodeServerAdapter implements ServerAdapter {
  * Deno Server Adapter that uses Deno's Serve API
  */
 export class DenoServerAdapter implements ServerAdapter {
-	async start(options: { port: number; fetch: Function; maxRequestBodySize?: number }): Promise<unknown> {
+	async start(options: {
+		port: number
+		fetch: Function
+		maxRequestBodySize?: number
+	}): Promise<unknown> {
 		try {
 			// Check if we're running in Deno
 			// @ts-ignore - Deno global is not recognized in non-Deno environments
