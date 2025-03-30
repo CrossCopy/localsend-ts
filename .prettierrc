@@ -3,13 +3,5 @@
 	"tabWidth": 2,
 	"trailingComma": "none",
 	"semi": false,
-	"useTabs": true,
-	"overrides": [
-		{
-			"files": "*.svelte",
-			"options": {
-				"parser": "svelte"
-			}
-		}
-	]
+	"useTabs": true
 }
