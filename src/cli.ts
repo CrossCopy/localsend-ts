@@ -142,92 +142,98 @@ const main = defineCommand({
 				}
 
 				// Create progress bar for file upload
-				const progressBar = new cliProgress.SingleBar({
-					format: '{filename} [{bar}] {percentage}% | {sizeDisplay} | Speed: {speed} | ETA: {eta}',
-					barCompleteChar: '\u2588',
-					barIncompleteChar: '\u2591',
-					clearOnComplete: false,
-					hideCursor: true,
-				}, cliProgress.Presets.shades_classic);
-				
+				const progressBar = new cliProgress.SingleBar(
+					{
+						format:
+							"{filename} [{bar}] {percentage}% | {sizeDisplay} | Speed: {speed} | ETA: {eta}",
+						barCompleteChar: "\u2588",
+						barIncompleteChar: "\u2591",
+						clearOnComplete: false,
+						hideCursor: true
+					},
+					cliProgress.Presets.shades_classic
+				)
+
 				// Format size display based on file size
-				const sizeDisplay = fileSize > 1024 * 1024 * 1024 
-					? `0.00/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB` 
-					: `0.00/${(fileSize / (1024 * 1024)).toFixed(2)} MB`;
-				
+				const sizeDisplay =
+					fileSize > 1024 * 1024 * 1024
+						? `0.00/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
+						: `0.00/${(fileSize / (1024 * 1024)).toFixed(2)} MB`
+
 				// Initialize the progress bar
 				progressBar.start(fileSize, 0, {
-					filename: fileName.length > 25 ? fileName.substring(0, 22) + '...' : fileName.padEnd(25),
+					filename: fileName.length > 25 ? fileName.substring(0, 22) + "..." : fileName.padEnd(25),
 					sizeDisplay,
-					speed: '0 KB/s',
-					eta: '?',
-					percentage: '0.0'
-				});
-				
+					speed: "0 KB/s",
+					eta: "?",
+					percentage: "0.0"
+				})
+
 				// Set up progress tracking variables
-				const startTime = Date.now();
-				let lastBytes = 0;
-				let lastTime = startTime;
-				
+				const startTime = Date.now()
+				let lastBytes = 0
+				let lastTime = startTime
+
 				// Set up progress tracking callback for the client
 				client.setProgressCallback((bytesUploaded, totalBytes, finished) => {
 					// Calculate instantaneous speed
-					const now = Date.now();
-					const timeDiff = (now - lastTime) / 1000; // seconds
-					const bytesDiff = bytesUploaded - lastBytes;
-					const speed = bytesDiff / timeDiff; // bytes per second
-					
+					const now = Date.now()
+					const timeDiff = (now - lastTime) / 1000 // seconds
+					const bytesDiff = bytesUploaded - lastBytes
+					const speed = bytesDiff / timeDiff // bytes per second
+
 					// Format speed
-					let speedText;
+					let speedText
 					if (speed > 1024 * 1024) {
 						// MB/s
-						speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`;
+						speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`
 					} else {
 						// KB/s
-						speedText = `${(speed / 1024).toFixed(2)} KB/s`;
+						speedText = `${(speed / 1024).toFixed(2)} KB/s`
 					}
-					
+
 					// Format size display
-					const formattedSizeDisplay = fileSize > 1024 * 1024 * 1024 
-						? `${(bytesUploaded / (1024 * 1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
-						: `${(bytesUploaded / (1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024)).toFixed(2)} MB`;
-					
+					const formattedSizeDisplay =
+						fileSize > 1024 * 1024 * 1024
+							? `${(bytesUploaded / (1024 * 1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
+							: `${(bytesUploaded / (1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024)).toFixed(2)} MB`
+
 					// Calculate ETA
-					const bytesRemaining = totalBytes - bytesUploaded;
-					const eta = speed > 0 ? bytesRemaining / speed : 0; // seconds
-					
+					const bytesRemaining = totalBytes - bytesUploaded
+					const eta = speed > 0 ? bytesRemaining / speed : 0 // seconds
+
 					// Format ETA
-					let etaDisplay;
+					let etaDisplay
 					if (eta > 3600) {
-						etaDisplay = `${Math.floor(eta / 3600)}h ${Math.floor((eta % 3600) / 60)}m`;
+						etaDisplay = `${Math.floor(eta / 3600)}h ${Math.floor((eta % 3600) / 60)}m`
 					} else if (eta > 60) {
-						etaDisplay = `${Math.floor(eta / 60)}m ${Math.floor(eta % 60)}s`;
+						etaDisplay = `${Math.floor(eta / 60)}m ${Math.floor(eta % 60)}s`
 					} else {
-						etaDisplay = `${Math.floor(eta)}s`;
+						etaDisplay = `${Math.floor(eta)}s`
 					}
-					
+
 					// Update progress bar
 					progressBar.update(bytesUploaded, {
 						sizeDisplay: formattedSizeDisplay,
 						speed: speedText,
-						eta: eta > 0 ? etaDisplay : '?',
+						eta: eta > 0 ? etaDisplay : "?",
 						percentage: ((bytesUploaded / totalBytes) * 100).toFixed(1)
-					});
-					
+					})
+
 					// Update last values for next calculation
-					lastBytes = bytesUploaded;
-					lastTime = now;
-					
+					lastBytes = bytesUploaded
+					lastTime = now
+
 					// If finished, update one last time
 					if (finished) {
 						progressBar.update(totalBytes, {
 							sizeDisplay: formattedSizeDisplay,
 							speed: `✓ ${speedText}`,
-							eta: '0s'
-						});
-						progressBar.stop();
+							eta: "0s"
+						})
+						progressBar.stop()
 					}
-				});
+				})
 
 				// Upload file
 				console.log("Uploading file...")
@@ -331,135 +337,153 @@ const main = defineCommand({
 				}
 
 				// Create progress bar
-				const multiBar = new cliProgress.MultiBar({
-					clearOnComplete: false,
-					hideCursor: true,
-					format: '{filename} [{bar}] {percentage}% | {sizeDisplay} | Speed: {speed} | ETA: {eta}',
-					barCompleteChar: '\u2588',
-					barIncompleteChar: '\u2591',
-				}, cliProgress.Presets.shades_classic);
-				
+				const multiBar = new cliProgress.MultiBar(
+					{
+						clearOnComplete: false,
+						hideCursor: true,
+						format:
+							"{filename} [{bar}] {percentage}% | {sizeDisplay} | Speed: {speed} | ETA: {eta}",
+						barCompleteChar: "\u2588",
+						barIncompleteChar: "\u2591"
+					},
+					cliProgress.Presets.shades_classic
+				)
+
 				// Track active progress bars
-				const activeProgressBars = new Map();
-				
+				const activeProgressBars = new Map()
+
 				// Create and start the Hono server
 				const server = new LocalSendHonoServer(deviceInfo, {
 					saveDirectory: args.saveDir as string,
 					pin: args.pin as string,
 					maxRequestBodySize: maxRequestBodySize,
-					onTransferRequest: async (senderInfo: DeviceInfo, files: Record<string, FileMetadata>) => {
+					onTransferRequest: async (
+						senderInfo: DeviceInfo,
+						files: Record<string, FileMetadata>
+					) => {
 						// Format file info for display
 						const filesInfo = Object.values(files)
-							.map(file => `${file.fileName} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
-							.join(", ");
-						
+							.map((file) => `${file.fileName} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
+							.join(", ")
+
 						console.log(`\n📩 Incoming transfer request from ${senderInfo.alias}:`)
 						console.log(`Files: ${filesInfo}`)
-						
+
 						// Create readline interface for user input
 						const rl = readline.createInterface({
 							input: process.stdin,
 							output: process.stdout
-						});
-						
+						})
+
 						// Prompt for confirmation
 						try {
 							const accept = await new Promise<boolean>((resolve) => {
-								rl.question('Accept transfer? (y/N): ', (answer) => {
-									resolve(answer.toLowerCase() === 'y');
-									rl.close();
-								});
-							});
-							
+								rl.question("Accept transfer? (y/N): ", (answer) => {
+									resolve(answer.toLowerCase() === "y")
+									rl.close()
+								})
+							})
+
 							if (!accept) {
-								console.log("Transfer rejected");
-								return false;
+								console.log("Transfer rejected")
+								return false
 							}
-							
+
 							// Create progress bars for each file when transfer is accepted
 							Object.entries(files).forEach(([fileId, file]) => {
-								const totalMb = (file.size / (1024 * 1024)).toFixed(2);
-								
+								const totalMb = (file.size / (1024 * 1024)).toFixed(2)
+
 								// Format size display based on file size
-								const sizeDisplay = file.size > 1024 * 1024 * 1024 
-									? `0.00/${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB` 
-									: `0.00/${totalMb} MB`;
-								
+								const sizeDisplay =
+									file.size > 1024 * 1024 * 1024
+										? `0.00/${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+										: `0.00/${totalMb} MB`
+
 								const bar = multiBar.create(file.size, 0, {
-									filename: file.fileName.length > 25 ? file.fileName.substring(0, 22) + '...' : file.fileName.padEnd(25),
-									receivedMb: '0.00',
+									filename:
+										file.fileName.length > 25
+											? file.fileName.substring(0, 22) + "..."
+											: file.fileName.padEnd(25),
+									receivedMb: "0.00",
 									totalMb,
 									sizeDisplay,
-									speed: '0 KB/s',
-									eta: '?',
-									percentage: '0.0'
-								});
-								activeProgressBars.set(fileId, { bar, startTime: null });
-							});
-							
-							console.log("Transfer accepted, downloading...");
-							return true;
+									speed: "0 KB/s",
+									eta: "?",
+									percentage: "0.0"
+								})
+								activeProgressBars.set(fileId, { bar, startTime: null })
+							})
+
+							console.log("Transfer accepted, downloading...")
+							return true
 						} catch (error) {
-							console.error("Error getting user input:", error);
-							rl.close();
-							return false;
+							console.error("Error getting user input:", error)
+							rl.close()
+							return false
 						}
 					},
-					onTransferProgress: (fileId: string, fileName: string, received: number, total: number, speed: number) => {
-						const progressBar = activeProgressBars.get(fileId);
+					onTransferProgress: (
+						fileId: string,
+						fileName: string,
+						received: number,
+						total: number,
+						speed: number
+					) => {
+						const progressBar = activeProgressBars.get(fileId)
 						if (progressBar) {
-							const receivedMb = (received / (1024 * 1024)).toFixed(2);
-							const totalMb = (total / (1024 * 1024)).toFixed(2);
-							
+							const receivedMb = (received / (1024 * 1024)).toFixed(2)
+							const totalMb = (total / (1024 * 1024)).toFixed(2)
+
 							// For large files, show progress in GB if applicable
-							const sizeDisplay = total > 1024 * 1024 * 1024 
-								? `${(received / (1024 * 1024 * 1024)).toFixed(2)}/${(total / (1024 * 1024 * 1024)).toFixed(2)} GB`
-								: `${receivedMb}/${totalMb} MB`;
-							
+							const sizeDisplay =
+								total > 1024 * 1024 * 1024
+									? `${(received / (1024 * 1024 * 1024)).toFixed(2)}/${(total / (1024 * 1024 * 1024)).toFixed(2)} GB`
+									: `${receivedMb}/${totalMb} MB`
+
 							// Format speed with appropriate units
-							let speedText;
+							let speedText
 							if (speed > 1024 * 1024) {
 								// MB/s
-								speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`;
+								speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`
 							} else {
 								// KB/s
-								speedText = `${(speed / 1024).toFixed(2)} KB/s`;
+								speedText = `${(speed / 1024).toFixed(2)} KB/s`
 							}
-							
+
 							// Calculate ETA in seconds
-							const remaining = total - received;
-							const eta = speed > 0 ? Math.ceil(remaining / speed) : 0;
-							
+							const remaining = total - received
+							const eta = speed > 0 ? Math.ceil(remaining / speed) : 0
+
 							// Format ETA nicely for longer transfers
-							let etaDisplay;
+							let etaDisplay
 							if (eta > 3600) {
-								etaDisplay = `${Math.floor(eta / 3600)}h ${Math.floor((eta % 3600) / 60)}m`;
+								etaDisplay = `${Math.floor(eta / 3600)}h ${Math.floor((eta % 3600) / 60)}m`
 							} else if (eta > 60) {
-								etaDisplay = `${Math.floor(eta / 60)}m ${eta % 60}s`;
+								etaDisplay = `${Math.floor(eta / 60)}m ${eta % 60}s`
 							} else {
-								etaDisplay = `${eta}s`;
+								etaDisplay = `${eta}s`
 							}
-							
+
 							// Calculate percentage (handle division by zero)
-							const percentage = total > 0 ? Math.min(100, (received / total) * 100) : 0;
-							
+							const percentage = total > 0 ? Math.min(100, (received / total) * 100) : 0
+
 							// Update progress bar
 							progressBar.bar.update(received, {
 								receivedMb,
 								totalMb,
 								sizeDisplay,
 								speed: speedText,
-								eta: eta ? etaDisplay : '?',
+								eta: eta ? etaDisplay : "?",
 								percentage: percentage.toFixed(1)
-							});
-							
+							})
+
 							// When complete, mark with checkmark
 							if (received >= total) {
 								progressBar.bar.update(total, {
 									sizeDisplay,
 									speed: `✓ ${speedText}`,
-									eta: '0s'
-								});
+									eta: "0s"
+								})
 							}
 						}
 					}
@@ -512,10 +536,10 @@ const main = defineCommand({
 					try {
 						multicastDiscovery.stop()
 						await server.stop()
-						
+
 						// Stop progress bars
-						multiBar.stop();
-						
+						multiBar.stop()
+
 						console.log("Server stopped")
 					} catch (err) {
 						console.error("Error stopping server:", err)
