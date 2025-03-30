@@ -35,7 +35,13 @@ export type TransferProgressHandler = (
 	fileName: string,
 	received: number,
 	total: number,
-	speed: number
+	speed: number,
+	finished?: boolean,
+	transferInfo?: {
+		filePath: string
+		totalTimeSeconds: number
+		averageSpeed: number
+	}
 ) => void
 
 type SessionData = {
@@ -588,6 +594,30 @@ export class LocalSendHonoServer {
 
 								// Mark file as received
 								session.receivedFiles.add(fileId)
+
+								// Calculate total transfer time in seconds
+								const totalTimeSeconds = (Date.now() - session.transferStartTimes[fileId]) / 1000
+
+								// Calculate average speed in bytes per second
+								const avgSpeed =
+									totalTimeSeconds > 0 ? session.bytesReceived[fileId] / totalTimeSeconds : 0
+
+								// Call progress handler with finished flag and complete transfer info
+								if (this.transferProgressHandler) {
+									this.transferProgressHandler(
+										fileId,
+										fileMetadata.fileName,
+										session.bytesReceived[fileId],
+										fileMetadata.size,
+										avgSpeed,
+										true, // finished flag
+										{
+											filePath,
+											totalTimeSeconds,
+											averageSpeed: avgSpeed
+										}
+									)
+								}
 
 								// Check if all files have been received
 								if (session.receivedFiles.size === session.acceptedFiles.length) {

@@ -427,7 +427,13 @@ const main = defineCommand({
 						fileName: string,
 						received: number,
 						total: number,
-						speed: number
+						speed: number,
+						finished?: boolean,
+						transferInfo?: {
+							filePath: string
+							totalTimeSeconds: number
+							averageSpeed: number
+						}
 					) => {
 						const progressBar = activeProgressBars.get(fileId)
 						if (progressBar) {
@@ -484,6 +490,50 @@ const main = defineCommand({
 									speed: `✓ ${speedText}`,
 									eta: "0s"
 								})
+							}
+
+							// Print transfer summary if finished
+							if (finished && transferInfo) {
+								const { filePath, totalTimeSeconds, averageSpeed } = transferInfo
+
+								// Format size
+								let sizeStr = ""
+								if (total >= 1024 * 1024 * 1024) {
+									sizeStr = `${(total / (1024 * 1024 * 1024)).toFixed(2)} GB`
+								} else {
+									sizeStr = `${(total / (1024 * 1024)).toFixed(2)} MB`
+								}
+
+								// Format speed
+								let speedStr = ""
+								if (averageSpeed >= 1024 * 1024) {
+									speedStr = `${(averageSpeed / (1024 * 1024)).toFixed(2)} MB/s`
+								} else {
+									speedStr = `${(averageSpeed / 1024).toFixed(2)} KB/s`
+								}
+
+								// Format time
+								let timeStr = ""
+								if (totalTimeSeconds >= 3600) {
+									const hours = Math.floor(totalTimeSeconds / 3600)
+									const minutes = Math.floor((totalTimeSeconds % 3600) / 60)
+									const seconds = Math.floor(totalTimeSeconds % 60)
+									timeStr = `${hours}h ${minutes}m ${seconds}s`
+								} else if (totalTimeSeconds >= 60) {
+									const minutes = Math.floor(totalTimeSeconds / 60)
+									const seconds = Math.floor(totalTimeSeconds % 60)
+									timeStr = `${minutes}m ${seconds}s`
+								} else {
+									timeStr = `${Math.floor(totalTimeSeconds)}s`
+								}
+
+								// Print transfer summary
+								console.log("\n✅ Transfer complete:")
+								console.log(`File: ${fileName}`)
+								console.log(`Size: ${sizeStr} (${total.toLocaleString()} bytes)`)
+								console.log(`Saved to: ${filePath}`)
+								console.log(`Time: ${timeStr}`)
+								console.log(`Average speed: ${speedStr}`)
 							}
 						}
 					}
