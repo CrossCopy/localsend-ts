@@ -15,3 +15,33 @@ I've seen some implementations in rust
 I want to build a LocalSend integration extension for my project https://github.com/kunkunsh/kunkun
 
 So I decided to build a TypeScript implementation of the LocalSend protocol.
+
+## CLI
+
+```bash
+npx localsend
+
+# Please use a subcommand: send | receive | discover
+# Examples:
+#   localsend send 192.168.1.100 ./file.txt
+#   localsend receive --saveDir ./downloads
+#   localsend discover --timeout 10
+```
+
+## Library
+
+```ts
+import {
+	BunServerAdapter,
+	NodeServerAdapter,
+	DenoServerAdapter,
+	createServerAdapter,
+	LocalSendServer,
+	LocalSendHonoServer,
+	LocalSendClient,
+	MulticastDiscovery,
+	HttpDiscovery
+} from "localsend"
+
+// see ./examples and src/cli.ts for how to use them
+```

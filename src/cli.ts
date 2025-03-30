@@ -283,6 +283,11 @@ const main = defineCommand({
 					description: "PIN for authentication",
 					default: ""
 				},
+				autoAccept: {
+					type: "boolean",
+					description: "Automatically accept all incoming file transfers without prompting",
+					default: false
+				},
 				enableBrowser: {
 					type: "boolean",
 					description: "Enable browser download API for accessing received files",
@@ -357,6 +362,36 @@ const main = defineCommand({
 
 						console.log(`\n📩 Incoming transfer request from ${senderInfo.alias}:`)
 						console.log(`Files: ${filesInfo}`)
+
+						// If autoAccept is enabled, skip confirmation and accept transfer automatically
+						if (args.autoAccept as boolean) {
+							console.log("Auto-accepting transfer...")
+
+							// Create progress bars for each file
+							Object.entries(files).forEach(([fileId, file]) => {
+								const totalMb = (file.size / (1024 * 1024)).toFixed(2)
+
+								// Format size display using pretty-bytes
+								const sizeDisplay = `${prettyBytes(0)}/${prettyBytes(file.size)}`
+
+								const bar = multiBar.create(file.size, 0, {
+									filename:
+										file.fileName.length > 25
+											? file.fileName.substring(0, 22) + "..."
+											: file.fileName.padEnd(25),
+									receivedMb: "0.00",
+									totalMb,
+									sizeDisplay,
+									speed: "0 B/s",
+									eta: "?",
+									percentage: "0.0"
+								})
+								activeProgressBars.set(fileId, { bar, startTime: null })
+							})
+
+							console.log("Downloading...")
+							return true
+						}
 
 						// Create readline interface for user input
 						const rl = readline.createInterface({
