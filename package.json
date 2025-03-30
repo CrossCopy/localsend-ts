@@ -44,5 +44,8 @@
 		"hono-openapi": "^0.4.6",
 		"pretty-bytes": "^6.1.1",
 		"valibot": "^1.0.0"
-	}
+	},
+	"files": [
+		"dist"
+	]
 }
