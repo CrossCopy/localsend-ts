@@ -29,3 +29,6 @@ await Bun.build({
 	outdir: "./dist",
 	minify: true
 })
+// Make the CLI executable
+await $`chmod +x ./dist/cli.js`
+console.log("Made CLI executable: chmod +x ./dist/cli.js")

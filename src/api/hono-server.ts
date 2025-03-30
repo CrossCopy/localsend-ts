@@ -42,7 +42,7 @@ export type TransferProgressHandler = (
 		totalTimeSeconds: number
 		averageSpeed: number
 	}
-) => void
+) => Promise<void>
 
 type SessionData = {
 	info: DeviceInfo

@@ -5,6 +5,9 @@
 	"version": "0.0.2",
 	"type": "module",
 	"repository": "https://github.com/CrossCopy/localsend-ts.git",
+	"bin": {
+		"localsend": "./dist/cli.js"
+	},
 	"scripts": {
 		"build": "bun build.ts",
 		"postbuild": "verify-package-export verify",

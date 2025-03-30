@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { defineCommand, runMain } from "citty"
 import { version } from "../package.json"
 import {
@@ -367,6 +368,7 @@ const main = defineCommand({
 						try {
 							const accept = await new Promise<boolean>((resolve) => {
 								rl.question("Accept transfer? (y/N): ", (answer) => {
+									// Ensure the answer is displayed on the same line as the prompt
 									resolve(answer.toLowerCase() === "y")
 									rl.close()
 								})
@@ -494,6 +496,7 @@ const main = defineCommand({
 								process.stdout.write("\n")
 								await new Promise((resolve) => setTimeout(resolve, 100))
 								// Print transfer summary in table format
+								// Reset cursor position
 								console.log("\n✅ Transfer complete:")
 								console.table({
 									File: fileName,
