@@ -18,9 +18,8 @@ import path from "path"
 import fs from "fs"
 import { type ServerAdapter, createServerAdapter } from "./server-adapter"
 import * as v from "valibot"
-import { vValidator as validator } from "@hono/valibot-validator"
 import { describeRoute, openAPISpecs } from "hono-openapi"
-import { resolver } from "hono-openapi/valibot"
+import { resolver, validator } from "hono-openapi/valibot"
 import { apiReference } from "@scalar/hono-api-reference"
 
 type SessionData = {
@@ -120,11 +119,6 @@ export class LocalSendHonoServer {
 			describeRoute({
 				description: "Register device (for discovery)",
 				validateResponse: true,
-				requestBody: {
-					content: {
-						"application/json": { schema: resolver(deviceInfoSchema) }
-					}
-				},
 				responses: {
 					200: {
 						description: "Server device information",
@@ -158,11 +152,6 @@ export class LocalSendHonoServer {
 			describeRoute({
 				description: "Prepare file upload",
 				validateResponse: true,
-				requestBody: {
-					content: {
-						"application/json": { schema: resolver(prepareUploadRequestSchema) }
-					}
-				},
 				responses: {
 					200: {
 						description: "Upload preparation response",
@@ -185,6 +174,7 @@ export class LocalSendHonoServer {
 				}
 			}),
 			validator("json", prepareUploadRequestSchema),
+			validator("query", v.object({ pin: v.optional(v.string()) })),
 			async (c) => {
 				try {
 					const body = c.req.valid("json")
@@ -240,34 +230,6 @@ export class LocalSendHonoServer {
 			describeRoute({
 				description: "Upload a file",
 				validateResponse: true,
-				parameters: [
-					{
-						name: "sessionId",
-						in: "query",
-						required: true,
-						schema: { type: "string" }
-					},
-					{
-						name: "fileId",
-						in: "query",
-						required: true,
-						schema: { type: "string" }
-					},
-					{
-						name: "token",
-						in: "query",
-						required: true,
-						schema: { type: "string" }
-					}
-				],
-				requestBody: {
-					description: "File binary data",
-					content: {
-						"application/octet-stream": {
-							schema: { type: "string", format: "binary" }
-						}
-					}
-				},
 				responses: {
 					200: {
 						description: "File upload successful",
@@ -301,6 +263,10 @@ export class LocalSendHonoServer {
 					}
 				}
 			}),
+			validator(
+				"query",
+				v.object({ sessionId: v.string(), fileId: v.string(), token: v.string() })
+			),
 			async (c) => {
 				// Get query parameters
 				const sessionId = c.req.query("sessionId")
@@ -372,14 +338,6 @@ export class LocalSendHonoServer {
 			describeRoute({
 				description: "Cancel an upload session",
 				validateResponse: true,
-				parameters: [
-					{
-						name: "sessionId",
-						in: "query",
-						required: true,
-						schema: { type: "string" }
-					}
-				],
 				responses: {
 					200: {
 						description: "Session cancelled successfully",
@@ -395,6 +353,7 @@ export class LocalSendHonoServer {
 					}
 				}
 			}),
+			validator("query", v.object({ sessionId: v.string() })),
 			(c) => {
 				const sessionId = c.req.query("sessionId")
 

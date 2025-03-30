@@ -1,9 +1,11 @@
 import { createClient } from "@hey-api/openapi-ts"
 
+const port = 53317
+
 const proc = Bun.spawn(["bun", "./examples/hono-receiver.ts"], {
 	// cwd: ".",
 	env: {
-		PORT: "1566",
+		PORT: port.toString(),
 		...process.env
 	}
 })
@@ -11,7 +13,7 @@ const proc = Bun.spawn(["bun", "./examples/hono-receiver.ts"], {
 await new Promise((resolve) => setTimeout(resolve, 1000))
 try {
 	await createClient({
-		input: "http://localhost:1566/openapi",
+		input: `http://localhost:${port}/openapi`,
 		output: "src/sdk",
 		plugins: ["@hey-api/client-fetch"]
 	})
