@@ -46,10 +46,37 @@ export class HttpDiscovery {
 	}
 
 	/**
+	 * Check if a host is up by attempting a quick connection with timeout
+	 */
+	private async isHostUp(ip: string, port: number): Promise<boolean> {
+		try {
+			const controller = new AbortController()
+			const timeoutId = setTimeout(() => controller.abort(), 500) // 500ms timeout
+			
+			const response = await fetch(`http://${ip}:${port}/api/localsend/v2/info`, {
+				method: 'HEAD',
+				signal: controller.signal
+			})
+			
+			clearTimeout(timeoutId)
+			return response.ok
+		} catch (err) {
+			return false // Any error means the host is not reachable
+		}
+	}
+
+	/**
 	 * Scan a single target IP address
 	 */
 	private async scanTarget(ip: string): Promise<void> {
 		try {
+			// First check if the host is up before attempting to register
+			const isUp = await this.isHostUp(ip, this.deviceInfo.port)
+			
+			if (!isUp) {
+				return // Skip registration attempt if host is not up
+			}
+			
 			const device = await this.client.register({
 				ip,
 				port: this.deviceInfo.port

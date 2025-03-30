@@ -17,6 +17,7 @@
       "devDependencies": {
         "@hey-api/openapi-ts": "^0.64.15",
         "@types/bun": "latest",
+        "citty": "^0.1.6",
         "prettier": "^3.5.3",
         "verify-package-export": "^0.0.3",
       },
