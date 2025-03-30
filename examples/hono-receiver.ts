@@ -3,6 +3,7 @@ import { getDeviceInfo, LocalSendHonoServer, MulticastDiscovery, HttpDiscovery }
 // Get device info with a custom alias
 const deviceInfo = getDeviceInfo({
 	alias: "Hono Receiver",
+	port: process.env.PORT ? parseInt(process.env.PORT) : undefined,
 	enableDownloadApi: true // Enable download API for browser access
 })
 
