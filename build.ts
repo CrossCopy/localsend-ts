@@ -1,5 +1,5 @@
 import { createClient } from "@hey-api/openapi-ts"
-
+import { $ } from "bun"
 const port = 53317
 
 const proc = Bun.spawn(["bun", "./examples/hono-receiver.ts"], {
@@ -22,3 +22,10 @@ try {
 } finally {
 	await proc.kill()
 }
+await $`rm -rf ./dist`
+await Bun.build({
+	entrypoints: ["./src/cli.ts"],
+	target: "node",
+	outdir: "./dist",
+	minify: true
+})

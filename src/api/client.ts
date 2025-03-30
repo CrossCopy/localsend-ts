@@ -16,9 +16,17 @@ import { type ClientOptions, type Client, createClient, createConfig } from "@he
 
 export class LocalSendClient {
 	private client: Client | null = null
+	private progressCallback: ((bytesUploaded: number, totalBytes: number, finished: boolean) => void) | null = null
 
 	constructor(private deviceInfo: DeviceInfo) {
 		// Client will be created on-demand when making requests
+	}
+
+	/**
+	 * Set a callback to track upload progress
+	 */
+	setProgressCallback(callback: (bytesUploaded: number, totalBytes: number, finished: boolean) => void): void {
+		this.progressCallback = callback;
 	}
 
 	/**
@@ -112,37 +120,102 @@ export class LocalSendClient {
 		try {
 			// Get file size
 			const stats = await stat(filePath)
-			const fileStream = createReadStream(filePath)
-
-			// We need to manually implement the file upload since
-			// the SDK doesn't support NodeJS ReadStream as body
-			// Create a custom FormData-like object
-			const formData = new FormData()
-
-			// Convert the Node.js stream to a Blob
-			const chunks: Uint8Array[] = []
-			for await (const chunk of fileStream) {
-				chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk))
+			
+			// Create base URL for upload
+			const baseUrl = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
+			
+			// Initialize progress tracking
+			let totalBytesUploaded = 0;
+			
+			// For large files (>50MB), split into chunks
+			if (stats.size > 50 * 1024 * 1024) {
+				console.log(`File is large (${(stats.size / (1024 * 1024)).toFixed(2)} MB), uploading in chunks...`)
+				
+				// Set chunk size to 10MB
+				const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+				let offset = 0;
+				let success = true;
+				
+				while (offset < stats.size) {
+					const end = Math.min(offset + CHUNK_SIZE, stats.size);
+					const chunkSize = end - offset;
+					
+					if (this.progressCallback) {
+						this.progressCallback(totalBytesUploaded, stats.size, false);
+					}
+					
+					console.log(`Uploading chunk: ${(offset / (1024 * 1024)).toFixed(2)} - ${(end / (1024 * 1024)).toFixed(2)} MB`);
+					
+					// Create a read stream for just this chunk
+					const fileStream = createReadStream(filePath, { start: offset, end: end - 1 });
+					
+					// Read the chunk into a buffer
+					const chunks: Uint8Array[] = [];
+					for await (const chunk of fileStream) {
+						chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk));
+					}
+					
+					const blob = new Blob(chunks);
+					
+					// Upload the chunk
+					const response = await fetch(baseUrl, {
+						method: "POST",
+						headers: {
+							"Content-Length": chunkSize.toString(),
+							"X-Content-Range": `bytes ${offset}-${end - 1}/${stats.size}`
+						},
+						body: blob
+					});
+					
+					if (!response.ok) {
+						console.error(`Failed to upload chunk: ${offset}-${end - 1}, Status: ${response.status}`);
+						success = false;
+						break;
+					}
+					
+					// Update progress
+					totalBytesUploaded += chunkSize;
+					if (this.progressCallback) {
+						this.progressCallback(totalBytesUploaded, stats.size, offset + chunkSize >= stats.size);
+					}
+					
+					offset = end;
+				}
+				
+				return success;
+			} else {
+				// For smaller files, use a single request
+				const fileStream = createReadStream(filePath);
+				const chunks: Uint8Array[] = [];
+				for await (const chunk of fileStream) {
+					chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk));
+				}
+				
+				const blob = new Blob(chunks);
+				
+				// Call progress callback before upload
+				if (this.progressCallback) {
+					this.progressCallback(0, stats.size, false);
+				}
+				
+				const response = await fetch(baseUrl, {
+					method: "POST",
+					headers: {
+						"Content-Length": stats.size.toString()
+					},
+					body: blob
+				});
+				
+				// Call progress callback after upload
+				if (this.progressCallback) {
+					this.progressCallback(stats.size, stats.size, true);
+				}
+				
+				return response.ok;
 			}
-
-			const blob = new Blob(chunks)
-			formData.append("file", blob)
-
-			const client = this.createClientForTarget(targetDevice)
-			const url = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
-
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Length": stats.size.toString()
-				},
-				body: blob
-			})
-
-			return response.ok
 		} catch (err) {
-			console.error("Error uploading file:", err)
-			return false
+			console.error("Error uploading file:", err);
+			return false;
 		}
 	}
 
