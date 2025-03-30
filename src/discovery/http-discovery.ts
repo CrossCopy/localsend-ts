@@ -1,137 +1,137 @@
-import type { DeviceInfo } from '../types';
-import { LocalSendClient } from '../api/client';
-import { networkInterfaces } from 'os';
+import type { DeviceInfo } from "../types"
+import { LocalSendClient } from "../api/client"
+import { networkInterfaces } from "os"
 
 /**
  * HttpDiscovery is used to discover devices in the network using the HTTP method
  * when multicast fails or is not available.
  */
 export class HttpDiscovery {
-  private knownDevices: Map<string, DeviceInfo> = new Map();
-  private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void;
-  private client: LocalSendClient;
-  private isScanning = false;
+	private knownDevices: Map<string, DeviceInfo> = new Map()
+	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void
+	private client: LocalSendClient
+	private isScanning = false
 
-  constructor(private deviceInfo: DeviceInfo) {
-    this.client = new LocalSendClient(deviceInfo);
-  }
+	constructor(private deviceInfo: DeviceInfo) {
+		this.client = new LocalSendClient(deviceInfo)
+	}
 
-  /**
-   * Start scanning for devices in the network
-   */
-  async startScan(): Promise<void> {
-    if (this.isScanning) {
-      return;
-    }
-    
-    this.isScanning = true;
-    
-    try {
-      // Get all local IP addresses to scan the network
-      const localIps = this.getLocalIpAddresses();
-      
-      // Generate IP addresses in the same subnet
-      const targetIps = this.generateTargetIps(localIps);
-      
-      // Scan all targets concurrently
-      const promises = targetIps.map(ip => this.scanTarget(ip));
-      
-      // Wait for all promises to settle
-      await Promise.allSettled(promises);
-    } catch (err) {
-      console.error('Error during HTTP discovery:', err);
-    } finally {
-      this.isScanning = false;
-    }
-  }
+	/**
+	 * Start scanning for devices in the network
+	 */
+	async startScan(): Promise<void> {
+		if (this.isScanning) {
+			return
+		}
 
-  /**
-   * Scan a single target IP address
-   */
-  private async scanTarget(ip: string): Promise<void> {
-    try {
-      const device = await this.client.register({
-        ip,
-        port: this.deviceInfo.port
-      });
-      
-      if (device) {
-        // Ignore self
-        if (device.fingerprint === this.deviceInfo.fingerprint) {
-          return;
-        }
-        
-        // Add to known devices
-        this.knownDevices.set(device.fingerprint, device);
-        
-        // Notify new device
-        if (this.onDeviceDiscoveredCallback) {
-          this.onDeviceDiscoveredCallback(device);
-        }
-      }
-    } catch (err) {
-      // Ignore errors - just means the device is not available
-    }
-  }
+		this.isScanning = true
 
-  /**
-   * Get all local IP addresses
-   */
-  private getLocalIpAddresses(): string[] {
-    const interfaces = networkInterfaces();
-    const ips: string[] = [];
-    
-    for (const networkInterface of Object.values(interfaces)) {
-      if (networkInterface) {
-        for (const address of networkInterface) {
-          // Only use IPv4 addresses
-          if (address.family === 'IPv4' && !address.internal) {
-            ips.push(address.address);
-          }
-        }
-      }
-    }
-    
-    return ips;
-  }
+		try {
+			// Get all local IP addresses to scan the network
+			const localIps = this.getLocalIpAddresses()
 
-  /**
-   * Generate target IP addresses from local IP addresses
-   */
-  private generateTargetIps(localIps: string[]): string[] {
-    const targets: string[] = [];
-    
-    for (const localIp of localIps) {
-      // Get the network prefix (first 3 octets)
-      const parts = localIp.split('.');
-      if (parts.length === 4) {
-        const prefix = `${parts[0]}.${parts[1]}.${parts[2]}`;
-        
-        // Generate IPs in the same subnet (1-254)
-        for (let i = 1; i <= 254; i++) {
-          const targetIp = `${prefix}.${i}`;
-          // Don't scan our own IP
-          if (targetIp !== localIp) {
-            targets.push(targetIp);
-          }
-        }
-      }
-    }
-    
-    return targets;
-  }
+			// Generate IP addresses in the same subnet
+			const targetIps = this.generateTargetIps(localIps)
 
-  /**
-   * Set callback for when a new device is discovered
-   */
-  onDeviceDiscovered(callback: (device: DeviceInfo) => void): void {
-    this.onDeviceDiscoveredCallback = callback;
-  }
+			// Scan all targets concurrently
+			const promises = targetIps.map((ip) => this.scanTarget(ip))
 
-  /**
-   * Get all known devices
-   */
-  getKnownDevices(): DeviceInfo[] {
-    return Array.from(this.knownDevices.values());
-  }
-} 
+			// Wait for all promises to settle
+			await Promise.allSettled(promises)
+		} catch (err) {
+			console.error("Error during HTTP discovery:", err)
+		} finally {
+			this.isScanning = false
+		}
+	}
+
+	/**
+	 * Scan a single target IP address
+	 */
+	private async scanTarget(ip: string): Promise<void> {
+		try {
+			const device = await this.client.register({
+				ip,
+				port: this.deviceInfo.port
+			})
+
+			if (device) {
+				// Ignore self
+				if (device.fingerprint === this.deviceInfo.fingerprint) {
+					return
+				}
+
+				// Add to known devices
+				this.knownDevices.set(device.fingerprint, device)
+
+				// Notify new device
+				if (this.onDeviceDiscoveredCallback) {
+					this.onDeviceDiscoveredCallback(device)
+				}
+			}
+		} catch (err) {
+			// Ignore errors - just means the device is not available
+		}
+	}
+
+	/**
+	 * Get all local IP addresses
+	 */
+	private getLocalIpAddresses(): string[] {
+		const interfaces = networkInterfaces()
+		const ips: string[] = []
+
+		for (const networkInterface of Object.values(interfaces)) {
+			if (networkInterface) {
+				for (const address of networkInterface) {
+					// Only use IPv4 addresses
+					if (address.family === "IPv4" && !address.internal) {
+						ips.push(address.address)
+					}
+				}
+			}
+		}
+
+		return ips
+	}
+
+	/**
+	 * Generate target IP addresses from local IP addresses
+	 */
+	private generateTargetIps(localIps: string[]): string[] {
+		const targets: string[] = []
+
+		for (const localIp of localIps) {
+			// Get the network prefix (first 3 octets)
+			const parts = localIp.split(".")
+			if (parts.length === 4) {
+				const prefix = `${parts[0]}.${parts[1]}.${parts[2]}`
+
+				// Generate IPs in the same subnet (1-254)
+				for (let i = 1; i <= 254; i++) {
+					const targetIp = `${prefix}.${i}`
+					// Don't scan our own IP
+					if (targetIp !== localIp) {
+						targets.push(targetIp)
+					}
+				}
+			}
+		}
+
+		return targets
+	}
+
+	/**
+	 * Set callback for when a new device is discovered
+	 */
+	onDeviceDiscovered(callback: (device: DeviceInfo) => void): void {
+		this.onDeviceDiscoveredCallback = callback
+	}
+
+	/**
+	 * Get all known devices
+	 */
+	getKnownDevices(): DeviceInfo[] {
+		return Array.from(this.knownDevices.values())
+	}
+}
