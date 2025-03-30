@@ -1,5 +1,8 @@
 # localsend-ts
 
+[![NPM Version](https://img.shields.io/npm/v/localsend)](https://www.npmjs.com/package/localsend)
+[![JSR](https://jsr.io/badges/@crosscopy/localsend)](https://jsr.io/@crosscopy/localsend)
+
 > A TypeScirpt implementation of the LocalSend protocol
 
 LocalSend provides a documentation for their protocol at https://github.com/localsend/protocol
