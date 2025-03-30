@@ -1,21 +1,20 @@
 import * as v from "valibot"
 
-export type DeviceType = "mobile" | "desktop" | "web" | "headless" | "server"
+export const deviceType = v.union([
+	v.literal("mobile"),
+	v.literal("desktop"),
+	v.literal("web"),
+	v.literal("headless"),
+	v.literal("server")
+])
+export type DeviceType = v.InferOutput<typeof deviceType>
 
 // Define schemas using Valibot
 export const deviceInfoSchema = v.object({
 	alias: v.string(),
 	version: v.string(),
 	deviceModel: v.nullable(v.string()),
-	deviceType: v.nullable(
-		v.union([
-			v.literal("mobile"),
-			v.literal("desktop"),
-			v.literal("web"),
-			v.literal("headless"),
-			v.literal("server")
-		])
-	),
+	deviceType: v.nullable(deviceType),
 	fingerprint: v.string(),
 	port: v.number(),
 	protocol: v.union([v.literal("http"), v.literal("https")]),
