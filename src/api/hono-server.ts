@@ -3,7 +3,15 @@ import type {
 	DeviceInfo,
 	PrepareUploadRequest,
 	PrepareUploadResponse,
-	FileMetadata
+	FileMetadata,
+	MessageResponse
+} from "../types"
+import {
+	deviceInfoSchema,
+	fileMetadataSchema,
+	prepareUploadRequestSchema,
+	prepareUploadResponseSchema,
+	messageResponseSchema
 } from "../types"
 import { randomBytes } from "crypto"
 import path from "path"
@@ -14,51 +22,6 @@ import { vValidator as validator } from "@hono/valibot-validator"
 import { describeRoute, openAPISpecs } from "hono-openapi"
 import { resolver } from "hono-openapi/valibot"
 import { apiReference } from "@scalar/hono-api-reference"
-
-// Define schemas using Valibot
-const deviceInfoSchema = v.object({
-	alias: v.string(),
-	version: v.string(),
-	deviceModel: v.nullable(v.string()),
-	deviceType: v.nullable(v.union([
-		v.literal("mobile"),
-		v.literal("desktop"),
-		v.literal("web"),
-		v.literal("headless"),
-		v.literal("server")
-	])),
-	fingerprint: v.string(),
-	port: v.number(),
-	protocol: v.union([v.literal("http"), v.literal("https")]),
-	download: v.boolean()
-})
-
-const fileMetadataSchema = v.object({
-	id: v.string(),
-	fileName: v.string(),
-	size: v.number(),
-	fileType: v.string(),
-	sha256: v.optional(v.nullable(v.string())),
-	preview: v.optional(v.nullable(v.string())),
-	metadata: v.optional(v.nullable(v.object({
-		modified: v.optional(v.nullable(v.string())),
-		accessed: v.optional(v.nullable(v.string()))
-	})))
-})
-
-const prepareUploadRequestSchema = v.object({
-	info: deviceInfoSchema,
-	files: v.record(v.string(), fileMetadataSchema)
-})
-
-const prepareUploadResponseSchema = v.object({
-	sessionId: v.string(),
-	files: v.record(v.string(), v.string())
-})
-
-const messageResponseSchema = v.object({
-	message: v.string()
-})
 
 type SessionData = {
 	info: DeviceInfo

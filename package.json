@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build dev.ts --target=node --outdir=dist --minify",
-		"dev": "bun run --watch dev.ts"
+		"dev": "bun run --watch dev.ts",
+		"format": "prettier --write ."
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
