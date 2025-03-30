@@ -6,29 +6,37 @@ import type {
 } from "../types"
 import { createReadStream } from "fs"
 import { stat } from "fs/promises"
-import { request } from "http"
-import { IncomingMessage } from "http"
+import {
+	getApiLocalsendV2Info,
+	postApiLocalsendV2Register,
+	postApiLocalsendV2PrepareUpload,
+	postApiLocalsendV2Cancel
+} from "../sdk"
+import { type ClientOptions, type Client, createClient, createConfig } from "@hey-api/client-fetch"
 
 export class LocalSendClient {
-	constructor(private deviceInfo: DeviceInfo) {}
+	private client: Client | null = null
+
+	constructor(private deviceInfo: DeviceInfo) {
+		// Client will be created on-demand when making requests
+	}
 
 	/**
 	 * Register with another device (discovery)
 	 */
 	async register(targetDevice: { ip: string; port: number }): Promise<DeviceInfo | null> {
 		try {
-			const response = await this.sendRequest<DeviceInfo>({
-				method: "POST",
-				hostname: targetDevice.ip,
-				port: targetDevice.port,
-				path: "/api/localsend/v2/register",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: this.deviceInfo
+			const client = this.createClientForTarget(targetDevice)
+			const { data } = await postApiLocalsendV2Register({
+				client,
+				body: {
+					...this.deviceInfo,
+					deviceModel: this.deviceInfo.deviceModel || "",
+					deviceType: this.deviceInfo.deviceType || "desktop"
+				}
 			})
 
-			return response
+			return data as DeviceInfo
 		} catch (err) {
 			console.error("Error registering with device:", err)
 			return null
@@ -44,25 +52,47 @@ export class LocalSendClient {
 		pin?: string
 	): Promise<PrepareUploadResponse | null> {
 		try {
-			const path = "/api/localsend/v2/prepare-upload" + (pin ? `?pin=${pin}` : "")
+			const client = this.createClientForTarget(targetDevice)
 
-			const payload: PrepareUploadRequest = {
-				info: this.deviceInfo,
-				files
+			// Ensure the data conforms to the expected types
+			const deviceInfo = {
+				...this.deviceInfo,
+				deviceModel: this.deviceInfo.deviceModel || "",
+				deviceType: this.deviceInfo.deviceType || ("desktop" as const)
 			}
 
-			const response = await this.sendRequest<PrepareUploadResponse>({
-				method: "POST",
-				hostname: targetDevice.ip,
-				port: targetDevice.port,
-				path,
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: payload
+			// Convert files object to format expected by SDK
+			// by removing null values (replacing with undefined)
+			const convertedFiles: Record<string, any> = {}
+
+			Object.entries(files).forEach(([key, file]) => {
+				convertedFiles[key] = {
+					id: file.id,
+					fileName: file.fileName,
+					size: file.size,
+					fileType: file.fileType,
+					sha256: file.sha256 === null ? undefined : file.sha256,
+					preview: file.preview === null ? undefined : file.preview,
+					metadata:
+						file.metadata === null
+							? undefined
+							: {
+									modified: file.metadata?.modified === null ? undefined : file.metadata?.modified,
+									accessed: file.metadata?.accessed === null ? undefined : file.metadata?.accessed
+								}
+				}
 			})
 
-			return response
+			const { data } = await postApiLocalsendV2PrepareUpload({
+				client,
+				body: {
+					info: deviceInfo,
+					files: convertedFiles
+				},
+				query: pin ? { pin } : undefined
+			})
+
+			return data as PrepareUploadResponse
 		} catch (err) {
 			console.error("Error preparing upload:", err)
 			return null
@@ -82,47 +112,34 @@ export class LocalSendClient {
 		try {
 			// Get file size
 			const stats = await stat(filePath)
-
-			// Create URL
-			const path = `/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
-
-			// Create file read stream
 			const fileStream = createReadStream(filePath)
 
-			// Send the file
-			const success = await new Promise<boolean>((resolve) => {
-				const req = request(
-					{
-						method: "POST",
-						hostname: targetDevice.ip,
-						port: targetDevice.port,
-						path,
-						headers: {
-							"Content-Length": stats.size
-						}
-					},
-					(res) => {
-						if (res.statusCode === 200) {
-							resolve(true)
-						} else {
-							console.error(`Failed to upload file. Status: ${res.statusCode}`)
-							resolve(false)
-						}
+			// We need to manually implement the file upload since
+			// the SDK doesn't support NodeJS ReadStream as body
+			// Create a custom FormData-like object
+			const formData = new FormData()
 
-						// Consume response data to free up memory
-						res.resume()
-					}
-				)
+			// Convert the Node.js stream to a Blob
+			const chunks: Uint8Array[] = []
+			for await (const chunk of fileStream) {
+				chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk))
+			}
 
-				req.on("error", (err) => {
-					console.error("Error uploading file:", err)
-					resolve(false)
-				})
+			const blob = new Blob(chunks)
+			formData.append("file", blob)
 
-				fileStream.pipe(req)
+			const client = this.createClientForTarget(targetDevice)
+			const url = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
+
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Length": stats.size.toString()
+				},
+				body: blob
 			})
 
-			return success
+			return response.ok
 		} catch (err) {
 			console.error("Error uploading file:", err)
 			return false
@@ -137,16 +154,15 @@ export class LocalSendClient {
 		sessionId: string
 	): Promise<boolean> {
 		try {
-			const path = `/api/localsend/v2/cancel?sessionId=${sessionId}`
-
-			const response = await this.sendRequest({
-				method: "POST",
-				hostname: targetDevice.ip,
-				port: targetDevice.port,
-				path
+			const client = this.createClientForTarget(targetDevice)
+			const { data } = await postApiLocalsendV2Cancel({
+				client,
+				query: {
+					sessionId
+				}
 			})
 
-			return response !== null
+			return !!data
 		} catch (err) {
 			console.error("Error canceling session:", err)
 			return false
@@ -158,14 +174,12 @@ export class LocalSendClient {
 	 */
 	async getDeviceInfo(targetDevice: { ip: string; port: number }): Promise<DeviceInfo | null> {
 		try {
-			const response = await this.sendRequest<DeviceInfo>({
-				method: "GET",
-				hostname: targetDevice.ip,
-				port: targetDevice.port,
-				path: "/api/localsend/v2/info"
+			const client = this.createClientForTarget(targetDevice)
+			const { data } = await getApiLocalsendV2Info({
+				client
 			})
 
-			return response
+			return data as DeviceInfo
 		} catch (err) {
 			console.error("Error getting device info:", err)
 			return null
@@ -173,63 +187,20 @@ export class LocalSendClient {
 	}
 
 	/**
-	 * Generic method to send HTTP requests
+	 * Create a client for a specific target device
 	 */
-	private sendRequest<T>(options: {
-		method: string
-		hostname: string
+	private createClientForTarget(targetDevice: {
+		ip: string
 		port: number
-		path: string
-		headers?: Record<string, string | number>
-		body?: any
-	}): Promise<T | null> {
-		return new Promise((resolve) => {
-			const req = request(
-				{
-					method: options.method,
-					hostname: options.hostname,
-					port: options.port,
-					path: options.path,
-					headers: options.headers
-				},
-				(res: IncomingMessage) => {
-					let data = ""
+		protocol?: "http" | "https"
+	}): Client {
+		const protocol = targetDevice.protocol || "http"
+		const baseUrl = `${protocol}://${targetDevice.ip}:${targetDevice.port}`
 
-					res.on("data", (chunk) => {
-						data += chunk.toString()
-					})
-
-					res.on("end", () => {
-						if (res.statusCode === 200) {
-							try {
-								if (data) {
-									resolve(JSON.parse(data) as T)
-								} else {
-									resolve(null)
-								}
-							} catch (err) {
-								console.error("Error parsing response:", err)
-								resolve(null)
-							}
-						} else {
-							// console.error(`Request failed with status: ${res.statusCode}`);
-							resolve(null)
-						}
-					})
-				}
-			)
-
-			req.on("error", (err) => {
-				console.error("Request error:", err)
-				resolve(null)
+		return createClient(
+			createConfig<ClientOptions>({
+				baseUrl
 			})
-
-			if (options.body) {
-				const bodyData = JSON.stringify(options.body)
-				req.write(bodyData)
-			}
-
-			req.end()
-		})
+		)
 	}
 }
