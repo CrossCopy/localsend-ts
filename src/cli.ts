@@ -13,6 +13,7 @@ import { readFile } from "fs/promises"
 import path from "path"
 import readline from "readline"
 import cliProgress from "cli-progress"
+import prettyBytes from "pretty-bytes"
 
 const defaultName = `XC LocalSend CLI ${Math.floor(100 + Math.random() * 900)}`
 
@@ -155,16 +156,13 @@ const main = defineCommand({
 				)
 
 				// Format size display based on file size
-				const sizeDisplay =
-					fileSize > 1024 * 1024 * 1024
-						? `0.00/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
-						: `0.00/${(fileSize / (1024 * 1024)).toFixed(2)} MB`
+				const sizeDisplay = `${prettyBytes(0)}/${prettyBytes(fileSize)}`
 
 				// Initialize the progress bar
 				progressBar.start(fileSize, 0, {
 					filename: fileName.length > 25 ? fileName.substring(0, 22) + "..." : fileName.padEnd(25),
 					sizeDisplay,
-					speed: "0 KB/s",
+					speed: "0 B/s",
 					eta: "?",
 					percentage: "0.0"
 				})
@@ -183,20 +181,10 @@ const main = defineCommand({
 					const speed = bytesDiff / timeDiff // bytes per second
 
 					// Format speed
-					let speedText
-					if (speed > 1024 * 1024) {
-						// MB/s
-						speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`
-					} else {
-						// KB/s
-						speedText = `${(speed / 1024).toFixed(2)} KB/s`
-					}
+					const speedText = `${prettyBytes(speed)}/s`
 
 					// Format size display
-					const formattedSizeDisplay =
-						fileSize > 1024 * 1024 * 1024
-							? `${(bytesUploaded / (1024 * 1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
-							: `${(bytesUploaded / (1024 * 1024)).toFixed(2)}/${(fileSize / (1024 * 1024)).toFixed(2)} MB`
+					const formattedSizeDisplay = `${prettyBytes(bytesUploaded)}/${prettyBytes(fileSize)}`
 
 					// Calculate ETA
 					const bytesRemaining = totalBytes - bytesUploaded
@@ -363,7 +351,7 @@ const main = defineCommand({
 					) => {
 						// Format file info for display
 						const filesInfo = Object.values(files)
-							.map((file) => `${file.fileName} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
+							.map((file) => `${file.fileName} (${prettyBytes(file.size)})`)
 							.join(", ")
 
 						console.log(`\n📩 Incoming transfer request from ${senderInfo.alias}:`)
@@ -393,11 +381,8 @@ const main = defineCommand({
 							Object.entries(files).forEach(([fileId, file]) => {
 								const totalMb = (file.size / (1024 * 1024)).toFixed(2)
 
-								// Format size display based on file size
-								const sizeDisplay =
-									file.size > 1024 * 1024 * 1024
-										? `0.00/${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB`
-										: `0.00/${totalMb} MB`
+								// Format size display using pretty-bytes
+								const sizeDisplay = `${prettyBytes(0)}/${prettyBytes(file.size)}`
 
 								const bar = multiBar.create(file.size, 0, {
 									filename:
@@ -407,7 +392,7 @@ const main = defineCommand({
 									receivedMb: "0.00",
 									totalMb,
 									sizeDisplay,
-									speed: "0 KB/s",
+									speed: "0 B/s",
 									eta: "?",
 									percentage: "0.0"
 								})
@@ -422,7 +407,7 @@ const main = defineCommand({
 							return false
 						}
 					},
-					onTransferProgress: (
+					onTransferProgress: async (
 						fileId: string,
 						fileName: string,
 						received: number,
@@ -441,20 +426,10 @@ const main = defineCommand({
 							const totalMb = (total / (1024 * 1024)).toFixed(2)
 
 							// For large files, show progress in GB if applicable
-							const sizeDisplay =
-								total > 1024 * 1024 * 1024
-									? `${(received / (1024 * 1024 * 1024)).toFixed(2)}/${(total / (1024 * 1024 * 1024)).toFixed(2)} GB`
-									: `${receivedMb}/${totalMb} MB`
+							const sizeDisplay = `${prettyBytes(received)}/${prettyBytes(total)}`
 
 							// Format speed with appropriate units
-							let speedText
-							if (speed > 1024 * 1024) {
-								// MB/s
-								speedText = `${(speed / (1024 * 1024)).toFixed(2)} MB/s`
-							} else {
-								// KB/s
-								speedText = `${(speed / 1024).toFixed(2)} KB/s`
-							}
+							const speedText = `${prettyBytes(speed)}/s`
 
 							// Calculate ETA in seconds
 							const remaining = total - received
@@ -496,21 +471,9 @@ const main = defineCommand({
 							if (finished && transferInfo) {
 								const { filePath, totalTimeSeconds, averageSpeed } = transferInfo
 
-								// Format size
-								let sizeStr = ""
-								if (total >= 1024 * 1024 * 1024) {
-									sizeStr = `${(total / (1024 * 1024 * 1024)).toFixed(2)} GB`
-								} else {
-									sizeStr = `${(total / (1024 * 1024)).toFixed(2)} MB`
-								}
-
-								// Format speed
-								let speedStr = ""
-								if (averageSpeed >= 1024 * 1024) {
-									speedStr = `${(averageSpeed / (1024 * 1024)).toFixed(2)} MB/s`
-								} else {
-									speedStr = `${(averageSpeed / 1024).toFixed(2)} KB/s`
-								}
+								// Format size and speed using pretty-bytes
+								const sizeStr = prettyBytes(total)
+								const speedStr = `${prettyBytes(averageSpeed)}/s`
 
 								// Format time
 								let timeStr = ""
@@ -527,13 +490,18 @@ const main = defineCommand({
 									timeStr = `${Math.floor(totalTimeSeconds)}s`
 								}
 
-								// Print transfer summary
+								// flush stdout
+								process.stdout.write("\n")
+								await new Promise((resolve) => setTimeout(resolve, 100))
+								// Print transfer summary in table format
 								console.log("\n✅ Transfer complete:")
-								console.log(`File: ${fileName}`)
-								console.log(`Size: ${sizeStr} (${total.toLocaleString()} bytes)`)
-								console.log(`Saved to: ${filePath}`)
-								console.log(`Time: ${timeStr}`)
-								console.log(`Average speed: ${speedStr}`)
+								console.table({
+									File: fileName,
+									Size: `${sizeStr} (${total.toLocaleString()} bytes)`,
+									"Saved to": filePath,
+									Time: timeStr,
+									"Average speed": speedStr
+								})
 							}
 						}
 					}

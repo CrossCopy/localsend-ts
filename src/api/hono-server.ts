@@ -413,45 +413,86 @@ export class LocalSendHonoServer {
 
 					// Check if we're handling a multipart form-data request
 					const contentType = c.req.header("Content-Type") || ""
-					if (contentType.includes("multipart/form-data")) {
-						// Use parseBody for multipart form-data
-						const body = await c.req.parseBody()
-						const file = body["file"]
+					// Get the request as a stream - this is the expected format for LocalSend
+					const stream = c.req.raw.body
 
-						if (!file) {
-							return c.json({ message: "No file provided in the form-data" }, 400)
+					if (!stream) {
+						return c.json({ message: "Request body stream not available" }, 500)
+					}
+
+					// Make sure fileStreams object exists
+					if (!session.fileStreams) {
+						session.fileStreams = {}
+					}
+
+					const fileStream = session.fileStreams[fileId]
+
+					if (!fileStream) {
+						return c.json({ message: "File stream not found" }, 500)
+					}
+
+					// Process the incoming data in chunks
+					let totalChunkSize = 0
+					// For tracking progress updates
+					let lastProgressUpdate = Date.now()
+					const PROGRESS_UPDATE_INTERVAL = 100 // Update progress every 100ms
+
+					try {
+						const reader = stream.getReader()
+
+						// Read and process chunks
+						while (true) {
+							const { done, value } = await reader.read()
+
+							if (done) {
+								break
+							}
+
+							// Write chunk to file
+							if (value && value.length > 0) {
+								totalChunkSize += value.length
+								fileStream.write(Buffer.from(value))
+
+								// Update progress at regular intervals to avoid excessive updates
+								const now = Date.now()
+								if (now - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL) {
+									// Calculate speed in bytes per second
+									const elapsedSinceStart = (now - session.transferStartTimes[fileId]) / 1000
+									const speed =
+										elapsedSinceStart > 0
+											? (session.bytesReceived[fileId] + totalChunkSize) / elapsedSinceStart
+											: 0
+
+									// Calculate current progress
+									const currentReceived = session.bytesReceived[fileId] + totalChunkSize
+
+									// Call progress handler if provided
+									if (this.transferProgressHandler) {
+										this.transferProgressHandler(
+											fileId,
+											fileMetadata.fileName,
+											currentReceived,
+											fileMetadata.size,
+											speed
+										)
+									}
+
+									lastProgressUpdate = now
+								}
+							}
 						}
 
-						// Handle both string and File types as per Hono docs
-						if (typeof file === "string") {
-							return c.json({ message: "Received string instead of file" }, 400)
-						}
+						// Calculate actual bytes received including this chunk
+						const chunkReceivedBytes = isChunkedUpload ? rangeEnd - rangeStart + 1 : totalChunkSize
 
-						// Get file buffer
-						const fileBuffer = Buffer.from(await file.arrayBuffer())
-						const fileSize = fileBuffer.length
+						// Update bytes received for this file
+						session.bytesReceived[fileId] += chunkReceivedBytes
 
-						// Make sure fileStreams object exists
-						if (!session.fileStreams) {
-							session.fileStreams = {}
-						}
-
-						const fileStream = session.fileStreams[fileId]
-						if (!fileStream) {
-							return c.json({ message: "File stream not found" }, 500)
-						}
-
-						// Write the file to disk
-						fileStream.write(fileBuffer)
-
-						// Update bytes received
-						session.bytesReceived[fileId] = fileSize
-
-						// Calculate speed
+						// Calculate speed in bytes per second
 						const elapsedTime = (Date.now() - session.transferStartTimes[fileId]) / 1000
 						const speed = elapsedTime > 0 ? session.bytesReceived[fileId] / elapsedTime : 0
 
-						// Call progress handler if provided
+						// Call progress handler one last time with final progress
 						if (this.transferProgressHandler) {
 							this.transferProgressHandler(
 								fileId,
@@ -462,183 +503,63 @@ export class LocalSendHonoServer {
 							)
 						}
 
-						// Close the stream
-						fileStream.end()
-						delete session.fileStreams[fileId]
+						// For chunked uploads, only close the stream when we've received all bytes
+						const isLastChunk = isChunkedUpload
+							? rangeEnd + 1 >= totalSize
+							: session.bytesReceived[fileId] >= fileMetadata.size
 
-						// Mark file as received
-						session.receivedFiles.add(fileId)
+						// Check if transfer is complete
+						if (isLastChunk) {
+							// Close the file stream
+							fileStream.end()
+							delete session.fileStreams[fileId]
 
-						// Check if all files have been received
-						if (session.receivedFiles.size === session.acceptedFiles.length) {
-							// All files received, clean up the session
-							this.activeSessions.delete(sessionId)
-						}
+							// Mark file as received
+							session.receivedFiles.add(fileId)
 
-						return c.json({ message: "File received successfully" })
-					} else {
-						// Get the request as a stream - this is the expected format for LocalSend
-						const stream = c.req.raw.body
+							// Calculate total transfer time in seconds
+							const totalTimeSeconds = (Date.now() - session.transferStartTimes[fileId]) / 1000
 
-						if (!stream) {
-							return c.json({ message: "Request body stream not available" }, 500)
-						}
+							// Calculate average speed in bytes per second
+							const avgSpeed =
+								totalTimeSeconds > 0 ? session.bytesReceived[fileId] / totalTimeSeconds : 0
 
-						// Make sure fileStreams object exists
-						if (!session.fileStreams) {
-							session.fileStreams = {}
-						}
-
-						const fileStream = session.fileStreams[fileId]
-
-						if (!fileStream) {
-							return c.json({ message: "File stream not found" }, 500)
-						}
-
-						// Get Content-Length header for more accurate progress tracking
-						const contentLengthStr = c.req.header("Content-Length")
-						const contentLength = contentLengthStr ? parseInt(contentLengthStr, 10) : 0
-
-						// Calculate expected total size - for chunked uploads, use the range size,
-						// otherwise use content-length or fall back to file metadata size
-						const expectedChunkSize = isChunkedUpload
-							? rangeEnd - rangeStart + 1
-							: contentLength > 0
-								? contentLength
-								: fileMetadata.size
-
-						// Process the incoming data in chunks
-						let totalChunkSize = 0
-						// For tracking progress updates
-						let lastProgressUpdate = Date.now()
-						const PROGRESS_UPDATE_INTERVAL = 100 // Update progress every 100ms
-
-						try {
-							const reader = stream.getReader()
-
-							// Read and process chunks
-							while (true) {
-								const { done, value } = await reader.read()
-
-								if (done) {
-									break
-								}
-
-								// Write chunk to file
-								if (value && value.length > 0) {
-									totalChunkSize += value.length
-									fileStream.write(Buffer.from(value))
-
-									// Update progress at regular intervals to avoid excessive updates
-									const now = Date.now()
-									if (now - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL) {
-										// Calculate speed in bytes per second
-										const elapsedSinceStart = (now - session.transferStartTimes[fileId]) / 1000
-										const speed =
-											elapsedSinceStart > 0
-												? (session.bytesReceived[fileId] + totalChunkSize) / elapsedSinceStart
-												: 0
-
-										// Calculate current progress
-										const currentReceived = session.bytesReceived[fileId] + totalChunkSize
-
-										// Call progress handler if provided
-										if (this.transferProgressHandler) {
-											this.transferProgressHandler(
-												fileId,
-												fileMetadata.fileName,
-												currentReceived,
-												fileMetadata.size,
-												speed
-											)
-										}
-
-										lastProgressUpdate = now
-									}
-								}
-							}
-
-							// Calculate actual bytes received including this chunk
-							const chunkReceivedBytes = isChunkedUpload
-								? rangeEnd - rangeStart + 1
-								: totalChunkSize
-
-							// Update bytes received for this file
-							session.bytesReceived[fileId] += chunkReceivedBytes
-
-							// Calculate speed in bytes per second
-							const elapsedTime = (Date.now() - session.transferStartTimes[fileId]) / 1000
-							const speed = elapsedTime > 0 ? session.bytesReceived[fileId] / elapsedTime : 0
-
-							// Call progress handler one last time with final progress
+							// Call progress handler with finished flag and complete transfer info
 							if (this.transferProgressHandler) {
 								this.transferProgressHandler(
 									fileId,
 									fileMetadata.fileName,
 									session.bytesReceived[fileId],
 									fileMetadata.size,
-									speed
+									avgSpeed,
+									true, // finished flag
+									{
+										filePath,
+										totalTimeSeconds,
+										averageSpeed: avgSpeed
+									}
 								)
 							}
 
-							// For chunked uploads, only close the stream when we've received all bytes
-							const isLastChunk = isChunkedUpload
-								? rangeEnd + 1 >= totalSize
-								: session.bytesReceived[fileId] >= fileMetadata.size
-
-							// Check if transfer is complete
-							if (isLastChunk) {
-								// Close the file stream
-								fileStream.end()
-								delete session.fileStreams[fileId]
-
-								// Mark file as received
-								session.receivedFiles.add(fileId)
-
-								// Calculate total transfer time in seconds
-								const totalTimeSeconds = (Date.now() - session.transferStartTimes[fileId]) / 1000
-
-								// Calculate average speed in bytes per second
-								const avgSpeed =
-									totalTimeSeconds > 0 ? session.bytesReceived[fileId] / totalTimeSeconds : 0
-
-								// Call progress handler with finished flag and complete transfer info
-								if (this.transferProgressHandler) {
-									this.transferProgressHandler(
-										fileId,
-										fileMetadata.fileName,
-										session.bytesReceived[fileId],
-										fileMetadata.size,
-										avgSpeed,
-										true, // finished flag
-										{
-											filePath,
-											totalTimeSeconds,
-											averageSpeed: avgSpeed
-										}
-									)
-								}
-
-								// Check if all files have been received
-								if (session.receivedFiles.size === session.acceptedFiles.length) {
-									// All files received, clean up the session
-									this.activeSessions.delete(sessionId)
-								}
-
-								return c.json({ message: "File received successfully" })
+							// Check if all files have been received
+							if (session.receivedFiles.size === session.acceptedFiles.length) {
+								// All files received, clean up the session
+								this.activeSessions.delete(sessionId)
 							}
 
-							return c.json({
-								message: "Chunk received",
-								bytesReceived: session.bytesReceived[fileId],
-								totalBytes: fileMetadata.size
-							})
-						} catch (error) {
-							// Close the stream in case of error
-							fileStream.end()
-							console.error("Error processing file chunk:", error)
-							return c.json({ message: "Error processing file chunk" }, 500)
+							return c.json({ message: "File received successfully" })
 						}
+
+						return c.json({
+							message: "Chunk received",
+							bytesReceived: session.bytesReceived[fileId],
+							totalBytes: fileMetadata.size
+						})
+					} catch (error) {
+						// Close the stream in case of error
+						fileStream.end()
+						console.error("Error processing file chunk:", error)
+						return c.json({ message: "Error processing file chunk" }, 500)
 					}
 				} catch (err) {
 					console.error("Error handling file upload:", err)
