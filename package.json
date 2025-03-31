@@ -2,7 +2,7 @@
 	"name": "localsend",
 	"module": "src/index.ts",
 	"types": "src/index.ts",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"repository": "https://github.com/CrossCopy/localsend-ts.git",
 	"bin": {
