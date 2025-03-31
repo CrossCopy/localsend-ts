@@ -6,11 +6,18 @@ import type { Discovery } from "./types.ts"
 declare namespace Deno {
 	interface DatagramConn {
 		receive(): Promise<[Uint8Array, { hostname: string; port: number }]>
-		send(data: Uint8Array, options: { transport: "udp"; hostname: string; port: number }): Promise<void>
+		send(
+			data: Uint8Array,
+			options: { transport: "udp"; hostname: string; port: number }
+		): Promise<void>
 		close(): void
 	}
 
-	function listenDatagram(options: { transport: "udp"; hostname: string; port: number }): Promise<DatagramConn>
+	function listenDatagram(options: {
+		transport: "udp"
+		hostname: string
+		port: number
+	}): Promise<DatagramConn>
 }
 
 export class DenoMulticastDiscovery implements Discovery {
@@ -26,7 +33,7 @@ export class DenoMulticastDiscovery implements Discovery {
 			// Create UDP socket
 			this.socket = await Deno.listenDatagram({
 				transport: "udp",
-				hostname: "0.0.0.0",
+				hostname: DEFAULT_CONFIG.MULTICAST_ADDRESS,
 				port: DEFAULT_CONFIG.MULTICAST_PORT
 			})
 
@@ -40,14 +47,14 @@ export class DenoMulticastDiscovery implements Discovery {
 	}
 
 	private async listenForMessages() {
-		console.log("Listening for messages", this.socket)
+		console.log("Listening for messages on multicast address:", DEFAULT_CONFIG.MULTICAST_ADDRESS)
 		if (!this.socket) return
 
 		while (this.isListening) {
 			try {
 				const [data, addr] = await this.socket.receive()
 				const message = new TextDecoder().decode(data)
-				
+				console.log("Received UDP message from:", addr.hostname, message)
 				try {
 					const announcement = JSON.parse(message) as AnnouncementMessage
 
@@ -96,7 +103,10 @@ export class DenoMulticastDiscovery implements Discovery {
 		})
 	}
 
-	private async respondToAnnouncement(device: AnnouncementMessage, ipAddress: string): Promise<void> {
+	private async respondToAnnouncement(
+		device: AnnouncementMessage,
+		ipAddress: string
+	): Promise<void> {
 		if (!this.socket) return
 
 		const responseMessage: AnnouncementMessage = {
@@ -127,4 +137,4 @@ export class DenoMulticastDiscovery implements Discovery {
 			this.socket = null
 		}
 	}
-} 
+}

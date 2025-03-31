@@ -283,6 +283,7 @@ export class LocalSendClient {
 		const baseUrl = `${protocol}://${targetDevice.ip}:${targetDevice.port}`
 
 		// Use Deno client if running in Deno
+		// @ts-ignore - Deno exists in Deno environment
 		if (typeof Deno !== "undefined") {
 			return createDenoClient(baseUrl)
 		}

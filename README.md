@@ -45,3 +45,10 @@ import {
 
 // see ./examples and src/cli.ts for how to use them
 ```
+
+## Development
+
+```bash
+deno -A --unstable-sloppy-imports --unstable-net src/cli.ts receive -=alias deno-client
+bun run src/cli.ts receive
+```

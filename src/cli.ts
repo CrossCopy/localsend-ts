@@ -678,7 +678,7 @@ const main = defineCommand({
 
 				// Start scan
 				console.log("Scanning the network...")
-				await httpDiscovery.startScan()
+				await httpDiscovery.startScan?.()
 
 				// Wait for timeout
 				await new Promise((resolve) => setTimeout(resolve, timeout))
