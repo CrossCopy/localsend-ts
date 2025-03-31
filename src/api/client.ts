@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer"
 import type {
 	DeviceInfo,
 	PrepareUploadRequest,
@@ -13,6 +14,7 @@ import {
 	postApiLocalsendV2Cancel
 } from "../sdk/index.ts"
 import { type ClientOptions, type Client, createClient, createConfig } from "@hey-api/client-fetch"
+import { createDenoClient } from "./deno-client.ts"
 
 export class LocalSendClient {
 	private client: Client | null = null
@@ -279,6 +281,11 @@ export class LocalSendClient {
 	}): Client {
 		const protocol = targetDevice.protocol || "http"
 		const baseUrl = `${protocol}://${targetDevice.ip}:${targetDevice.port}`
+
+		// Use Deno client if running in Deno
+		if (typeof Deno !== "undefined") {
+			return createDenoClient(baseUrl)
+		}
 
 		return createClient(
 			createConfig<ClientOptions>({

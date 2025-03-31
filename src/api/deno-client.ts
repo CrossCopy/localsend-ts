@@ -1,82 +1,103 @@
+import { type Client, type ClientOptions, type Config, type RequestOptions, type RequestResult } from "@hey-api/client-fetch"
+
+type BuildUrlOptions = {
+  url: string
+  query?: Record<string, string>
+}
+
 /**
  * Simple Deno HTTP client adapter that uses Deno's native fetch API
  */
 export class DenoClient {
-  constructor(private baseUrl: string) {}
+  private config: Config<ClientOptions> = { baseUrl: "" }
 
-  async get<T = unknown>(url: string | { url: string }, options: { headers?: HeadersInit } = {}): Promise<T> {
-    const path = typeof url === 'string' ? url : url.url
-    const response = await fetch(this.baseUrl + path, {
-      method: "GET",
-      headers: options.headers
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return response.json()
+  constructor(private baseUrl: string) {
+    this.config.baseUrl = baseUrl
   }
 
-  async post<T = unknown>(
-    url: string | { url: string },
-    options: {
-      body?: unknown
-      headers?: HeadersInit
-      query?: Record<string, string>
-    } = {}
-  ): Promise<T> {
-    const path = typeof url === 'string' ? url : url.url
-    const urlObj = new URL(this.baseUrl + path)
-    if (options.query) {
-      Object.entries(options.query).forEach(([key, value]) => {
-        urlObj.searchParams.append(key, value)
-      })
-    }
+  async get<TData = unknown, TError = unknown, ThrowOnError extends boolean = boolean>(
+    options: RequestOptions<ThrowOnError, string>
+  ): Promise<RequestResult<TData, TError, ThrowOnError>> {
+    return this.request<TData, TError, ThrowOnError>({ ...options, method: 'GET' })
+  }
 
-    // Handle body from SDK format
-    let requestBody: string | undefined
-    if (options.body) {
-      // If body is an object with a 'body' property, use that
-      if (typeof options.body === 'object' && 'body' in options.body) {
-        // For Hono's validator, we need to send the body directly without wrapping
-        const body = (options.body as any).body
-        requestBody = JSON.stringify({
-          ...body,
-          deviceModel: body.deviceModel || "",
-          deviceType: body.deviceType || "desktop"
-        })
-      } else {
-        requestBody = JSON.stringify(options.body)
-      }
+  async post<TData = unknown, TError = unknown, ThrowOnError extends boolean = boolean>(
+    options: RequestOptions<ThrowOnError, string>
+  ): Promise<RequestResult<TData, TError, ThrowOnError>> {
+    return this.request<TData, TError, ThrowOnError>({ ...options, method: 'POST' })
+  }
+
+  async request<TData = unknown, TError = unknown, ThrowOnError extends boolean = boolean>(
+    options: RequestOptions<ThrowOnError, string>
+  ): Promise<RequestResult<TData, TError, ThrowOnError>> {
+    const { method = 'GET', url, body, headers, query } = options
+    const urlObj = new URL(this.baseUrl + String(url))
+    
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        urlObj.searchParams.append(key, String(value))
+      })
     }
 
     try {
       const response = await fetch(urlObj.toString(), {
-        method: "POST",
+        method,
         headers: {
           "Content-Type": "application/json",
-          ...options.headers
+          ...headers
         },
-        body: requestBody
+        body: body ? JSON.stringify(body) : undefined
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({ message: "Unknown error" }))
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorBody.message}`)
+        return {
+          data: undefined,
+          error: data as TError,
+          request: new Request(urlObj.toString()),
+          response
+        } as unknown as RequestResult<TData, TError, ThrowOnError>
       }
 
-      return response.json()
+      return {
+        data: data as TData,
+        request: new Request(urlObj.toString()),
+        response
+      } as unknown as RequestResult<TData, TError, ThrowOnError>
     } catch (error) {
-      console.error("Error making request:", error)
-      throw error
+      return {
+        data: undefined,
+        error: error as TError,
+        request: new Request(urlObj.toString()),
+        response: new Response()
+      } as unknown as RequestResult<TData, TError, ThrowOnError>
     }
+  }
+
+  buildUrl(options: any): string {
+    const urlObj = new URL(this.baseUrl + String(options.url))
+    if (options.query) {
+      Object.entries(options.query).forEach(([key, value]) => {
+        urlObj.searchParams.append(key, String(value))
+      })
+    }
+    return urlObj.toString()
+  }
+
+  getConfig(): Config<ClientOptions> {
+    return this.config
+  }
+
+  setConfig(config: Config<ClientOptions>): Config<ClientOptions> {
+    this.config = config
+    return config
   }
 }
 
 /**
  * Create a Deno-specific client
  */
-export function createDenoClient(baseUrl: string): DenoClient {
-  return new DenoClient(baseUrl)
+export function createDenoClient(baseUrl: string): Client {
+  return new DenoClient(baseUrl) as unknown as Client
 } 

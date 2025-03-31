@@ -3,7 +3,7 @@ import type { AnnouncementMessage, DeviceInfo } from "../types.ts"
 import { DEFAULT_CONFIG } from "../config.ts"
 import { getDeviceInfo } from "../utils/device.ts"
 import type { Discovery } from "./types.ts"
-
+import { Buffer } from "node:buffer"
 export class MulticastDiscovery implements Discovery {
 	private socket
 	private knownDevices: Map<string, DeviceInfo> = new Map()

@@ -561,23 +561,23 @@ const main = defineCommand({
 				console.log("Announced presence")
 
 				// Start HTTP discovery as fallback
-				// const httpDiscovery = new HttpDiscovery(deviceInfo)
-				// httpDiscovery.onDeviceDiscovered((device) => {
-				// 	if (args.verbose) {
-				// 		console.log("Device discovered via HTTP:", device.alias)
-				// 	}
-				// })
+				const httpDiscovery = new HttpDiscovery(deviceInfo)
+				httpDiscovery.onDeviceDiscovered((device) => {
+					if (args.verbose) {
+						console.log("Device discovered via HTTP:", device.alias)
+					}
+				})
 
-				// // Scan for devices periodically
-				// const scanInterval = setInterval(() => {
-				// 	if (args.verbose) {
-				// 		console.log("Scanning for devices via HTTP...")
-				// 	}
-				// 	httpDiscovery.startScan().catch(console.error)
-				// }, discoveryInterval)
+				// Scan for devices periodically
+				const scanInterval = setInterval(() => {
+					if (args.verbose) {
+						console.log("Scanning for devices via HTTP...")
+					}
+					httpDiscovery.startScan().catch(console.error)
+				}, discoveryInterval)
 
-				// // First scan immediately
-				// httpDiscovery.startScan().catch(console.error)
+				// First scan immediately
+				httpDiscovery.startScan().catch(console.error)
 
 				console.log("Receiver is running. Press Ctrl+C to stop.")
 
