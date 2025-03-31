@@ -2,8 +2,9 @@ import { createSocket } from "node:dgram"
 import type { AnnouncementMessage, DeviceInfo } from "../types.ts"
 import { DEFAULT_CONFIG } from "../config.ts"
 import { getDeviceInfo } from "../utils/device.ts"
+import type { Discovery } from "./types.ts"
 
-export class MulticastDiscovery {
+export class MulticastDiscovery implements Discovery {
 	private socket
 	private knownDevices: Map<string, DeviceInfo> = new Map()
 	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void

@@ -13,6 +13,7 @@ import {
 	prepareUploadResponseSchema,
 	messageResponseSchema
 } from "../types.ts"
+import { Buffer } from "node:buffer"
 import { randomBytes } from "node:crypto"
 import path from "node:path"
 import fs from "node:fs"
