@@ -1,15 +1,15 @@
-import { createServer, IncomingMessage, ServerResponse } from "http"
+import { createServer, IncomingMessage, ServerResponse } from "node:http"
 import type {
 	DeviceInfo,
 	PrepareUploadRequest,
 	PrepareUploadResponse,
 	PrepareDownloadResponse,
 	FileMetadata
-} from "../types"
-import { DEFAULT_CONFIG } from "../config"
-import { randomBytes } from "crypto"
-import path from "path"
-import fs from "fs"
+} from "../types.ts"
+import { DEFAULT_CONFIG } from "../config.ts"
+import { randomBytes } from "node:crypto"
+import path from "node:path"
+import fs from "node:fs"
 
 type RouteHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>
 type SessionData = {

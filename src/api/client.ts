@@ -3,15 +3,15 @@ import type {
 	PrepareUploadRequest,
 	PrepareUploadResponse,
 	FileMetadata
-} from "../types"
-import { createReadStream } from "fs"
-import { stat } from "fs/promises"
+} from "../types.ts"
+import { createReadStream } from "node:fs"
+import { stat } from "node:fs/promises"
 import {
 	getApiLocalsendV2Info,
 	postApiLocalsendV2Register,
 	postApiLocalsendV2PrepareUpload,
 	postApiLocalsendV2Cancel
-} from "../sdk"
+} from "../sdk/index.ts"
 import { type ClientOptions, type Client, createClient, createConfig } from "@hey-api/client-fetch"
 
 export class LocalSendClient {

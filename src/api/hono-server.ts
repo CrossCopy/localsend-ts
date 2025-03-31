@@ -5,18 +5,18 @@ import type {
 	PrepareUploadResponse,
 	FileMetadata,
 	MessageResponse
-} from "../types"
+} from "../types.ts"
 import {
 	deviceInfoSchema,
 	fileMetadataSchema,
 	prepareUploadRequestSchema,
 	prepareUploadResponseSchema,
 	messageResponseSchema
-} from "../types"
-import { randomBytes } from "crypto"
-import path from "path"
-import fs from "fs"
-import { type ServerAdapter, createServerAdapter } from "./server-adapter"
+} from "../types.ts"
+import { randomBytes } from "node:crypto"
+import path from "node:path"
+import fs from "node:fs"
+import { type ServerAdapter, createServerAdapter } from "./server-adapter.ts"
 import * as v from "valibot"
 import { describeRoute, openAPISpecs } from "hono-openapi"
 import { resolver, validator } from "hono-openapi/valibot"

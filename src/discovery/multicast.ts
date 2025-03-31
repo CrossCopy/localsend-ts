@@ -1,7 +1,7 @@
-import { createSocket } from "dgram"
-import type { AnnouncementMessage, DeviceInfo } from "../types"
-import { DEFAULT_CONFIG } from "../config"
-import { getDeviceInfo } from "../utils/device"
+import { createSocket } from "node:dgram"
+import type { AnnouncementMessage, DeviceInfo } from "../types.ts"
+import { DEFAULT_CONFIG } from "../config.ts"
+import { getDeviceInfo } from "../utils/device.ts"
 
 export class MulticastDiscovery {
 	private socket

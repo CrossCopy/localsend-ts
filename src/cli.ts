@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty"
-import { version } from "../package.json"
+// import { version } from "../package.json"
 import {
 	getDeviceInfo,
 	LocalSendClient,
 	LocalSendHonoServer,
 	MulticastDiscovery,
 	HttpDiscovery
-} from "."
-import type { FileMetadata, DeviceInfo } from "."
-import { createHash } from "crypto"
-import { readFile } from "fs/promises"
-import path from "path"
-import readline from "readline"
+} from "./index.ts"
+import type { FileMetadata, DeviceInfo } from "./index.ts"
+import { createHash } from "node:crypto"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
+import readline from "node:readline"
 import cliProgress from "cli-progress"
 import prettyBytes from "pretty-bytes"
 
@@ -21,7 +21,7 @@ const defaultName = `XC LocalSend CLI ${Math.floor(100 + Math.random() * 900)}`
 const main = defineCommand({
 	meta: {
 		name: "localsend",
-		version,
+		version: "0.1.0",
 		description: "LocalSend JS CLI"
 	},
 	subCommands: {

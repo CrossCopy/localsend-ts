@@ -1,6 +1,6 @@
-import type { DeviceInfo } from "../types"
-import { LocalSendClient } from "../api/client"
-import { networkInterfaces } from "os"
+import type { DeviceInfo } from "../types.ts"
+import { LocalSendClient } from "../api/client.ts"
+import { networkInterfaces } from "node:os"
 
 /**
  * HttpDiscovery is used to discover devices in the network using the HTTP method
