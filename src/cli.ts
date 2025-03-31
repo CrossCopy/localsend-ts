@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty"
-import { version } from "../package.json"
-import {
-	getDeviceInfo,
-	LocalSendClient,
-	LocalSendHonoServer,
-	MulticastDiscovery,
-	HttpDiscovery
-} from "."
-import type { FileMetadata, DeviceInfo } from "."
-import { createHash } from "crypto"
-import { readFile } from "fs/promises"
-import path from "path"
-import readline from "readline"
+// import { version } from "../package.json"
+import { getDeviceInfo, LocalSendClient, LocalSendHonoServer, HttpDiscovery } from "./index.ts"
+import { createDiscovery, createScanner } from "./discovery/runtime.ts"
+import type { FileMetadata, DeviceInfo } from "./index.ts"
+import { createHash } from "node:crypto"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
+import readline from "node:readline"
 import cliProgress from "cli-progress"
 import prettyBytes from "pretty-bytes"
 
@@ -21,7 +16,7 @@ const defaultName = `XC LocalSend CLI ${Math.floor(100 + Math.random() * 900)}`
 const main = defineCommand({
 	meta: {
 		name: "localsend",
-		version,
+		version: "0.1.0",
 		description: "LocalSend JS CLI"
 	},
 	subCommands: {
@@ -549,19 +544,21 @@ const main = defineCommand({
 				console.log(`Server started on port ${deviceInfo.port}`)
 
 				// Start multicast discovery
-				const multicastDiscovery = new MulticastDiscovery(deviceInfo)
-				multicastDiscovery.onDeviceDiscovered((device) => {
+				const discovery = createDiscovery(deviceInfo)
+				discovery.onDeviceDiscovered((device) => {
 					if (args.verbose) {
-						console.log("Device discovered via multicast:", device.alias)
+						console.log("Device discovered:", device.alias)
 					}
 				})
 
-				await multicastDiscovery.start()
-				console.log("Multicast discovery started")
+				await discovery.start()
+				if (args.verbose) {
+					console.log("Device discovery started")
+				}
 
 				// Announce our presence
-				multicastDiscovery.announcePresence()
-				console.log("Announced presence via multicast")
+				discovery.announcePresence?.()
+				console.log("Announced presence")
 
 				// Start HTTP discovery as fallback
 				const httpDiscovery = new HttpDiscovery(deviceInfo)
@@ -590,7 +587,7 @@ const main = defineCommand({
 					clearInterval(scanInterval)
 
 					try {
-						multicastDiscovery.stop()
+						discovery.stop()
 						await server.stop()
 
 						// Stop progress bars
@@ -656,22 +653,22 @@ const main = defineCommand({
 				// Keep track of discovered devices
 				const discoveredDevices = new Map<string, any>()
 
-				// Start multicast discovery
-				const multicastDiscovery = new MulticastDiscovery(deviceInfo)
-				multicastDiscovery.onDeviceDiscovered((device: any) => {
+				// Start device discovery
+				const discovery = createDiscovery(deviceInfo)
+				discovery.onDeviceDiscovered((device: any) => {
 					if (args.verbose) {
-						console.log("Device discovered via multicast:", device.alias)
+						console.log("Device discovered:", device.alias)
 					}
 					discoveredDevices.set(`${device.ip}:${device.port}`, device)
 				})
 
-				await multicastDiscovery.start()
+				await discovery.start()
 				if (args.verbose) {
-					console.log("Multicast discovery started")
+					console.log("Device discovery started")
 				}
 
 				// Start HTTP discovery
-				const httpDiscovery = new HttpDiscovery(deviceInfo)
+				const httpDiscovery = createScanner(deviceInfo)
 				httpDiscovery.onDeviceDiscovered((device: any) => {
 					if (args.verbose) {
 						console.log("Device discovered via HTTP:", device.alias)
@@ -681,13 +678,13 @@ const main = defineCommand({
 
 				// Start scan
 				console.log("Scanning the network...")
-				await httpDiscovery.startScan()
+				await httpDiscovery.startScan?.()
 
 				// Wait for timeout
 				await new Promise((resolve) => setTimeout(resolve, timeout))
 
 				// Stop discovery
-				multicastDiscovery.stop()
+				discovery.stop()
 
 				// Output results
 				const devices = Array.from(discoveredDevices.values())

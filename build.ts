@@ -27,7 +27,9 @@ await Bun.build({
 	entrypoints: ["./src/cli.ts"],
 	target: "node",
 	outdir: "./dist",
-	minify: true
+	minify: true,
+	format: "esm",
+	external: ["node:*"]
 })
 // Make the CLI executable
 await $`chmod +x ./dist/cli.js`

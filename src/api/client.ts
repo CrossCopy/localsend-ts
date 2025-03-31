@@ -1,18 +1,20 @@
+import { Buffer } from "node:buffer"
 import type {
 	DeviceInfo,
 	PrepareUploadRequest,
 	PrepareUploadResponse,
 	FileMetadata
-} from "../types"
-import { createReadStream } from "fs"
-import { stat } from "fs/promises"
+} from "../types.ts"
+import { createReadStream } from "node:fs"
+import { stat } from "node:fs/promises"
 import {
 	getApiLocalsendV2Info,
 	postApiLocalsendV2Register,
 	postApiLocalsendV2PrepareUpload,
 	postApiLocalsendV2Cancel
-} from "../sdk"
+} from "../sdk/index.ts"
 import { type ClientOptions, type Client, createClient, createConfig } from "@hey-api/client-fetch"
+import { createDenoClient } from "./deno-client.ts"
 
 export class LocalSendClient {
 	private client: Client | null = null
@@ -279,6 +281,12 @@ export class LocalSendClient {
 	}): Client {
 		const protocol = targetDevice.protocol || "http"
 		const baseUrl = `${protocol}://${targetDevice.ip}:${targetDevice.port}`
+
+		// Use Deno client if running in Deno
+		// @ts-ignore - Deno exists in Deno environment
+		if (typeof Deno !== "undefined") {
+			return createDenoClient(baseUrl)
+		}
 
 		return createClient(
 			createConfig<ClientOptions>({

@@ -1,17 +1,17 @@
 // Export types
-export * from "./types"
+export * from "./types.ts"
 
 // Export config
-export * from "./config"
+export * from "./config.ts"
 
 // Export discovery
-export { MulticastDiscovery } from "./discovery/multicast"
-export { HttpDiscovery } from "./discovery/http-discovery"
+export { MulticastDiscovery } from "./discovery/multicast.ts"
+export { HttpDiscovery } from "./discovery/http-discovery.ts"
 
 // Export API
-export { LocalSendServer } from "./api/server"
-export { LocalSendHonoServer } from "./api/hono-server"
-export { LocalSendClient } from "./api/client"
+export { LocalSendServer } from "./api/server.ts"
+export { LocalSendHonoServer } from "./api/hono-server.ts"
+export { LocalSendClient } from "./api/client.ts"
 
 // Export server adapters - fix by using explicit import and export
 import {

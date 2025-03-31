@@ -1,19 +1,38 @@
-import type { DeviceInfo } from "../types"
-import { LocalSendClient } from "../api/client"
-import { networkInterfaces } from "os"
+import type { DeviceInfo } from "../types.ts"
+import { LocalSendClient } from "../api/client.ts"
+import { networkInterfaces } from "node:os"
+import type { Discovery } from "./types.ts"
 
 /**
  * HttpDiscovery is used to discover devices in the network using the HTTP method
  * when multicast fails or is not available.
  */
-export class HttpDiscovery {
+export class HttpDiscovery implements Discovery {
 	private knownDevices: Map<string, DeviceInfo> = new Map()
 	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void
 	private client: LocalSendClient
 	private isScanning = false
+	private scanInterval?: NodeJS.Timeout
 
 	constructor(private deviceInfo: DeviceInfo) {
 		this.client = new LocalSendClient(deviceInfo)
+	}
+
+	async start(): Promise<void> {
+		// Start periodic scanning
+		this.scanInterval = setInterval(() => {
+			this.startScan().catch(console.error)
+		}, 30000) // Every 30 seconds
+
+		// First scan immediately
+		await this.startScan()
+	}
+
+	stop(): void {
+		if (this.scanInterval) {
+			clearInterval(this.scanInterval)
+			this.scanInterval = undefined
+		}
 	}
 
 	/**

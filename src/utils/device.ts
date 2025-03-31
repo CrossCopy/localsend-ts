@@ -1,7 +1,7 @@
-import { randomBytes } from "crypto"
-import type { DeviceInfo } from "../types"
-import { DEFAULT_CONFIG } from "../config"
-import os from "os"
+import { randomBytes } from "node:crypto"
+import type { DeviceInfo } from "../types.ts"
+import { DEFAULT_CONFIG } from "../config.ts"
+import os from "node:os"
 
 /**
  * Generate a random fingerprint
