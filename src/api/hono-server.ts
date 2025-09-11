@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { Scalar } from "@scalar/hono-api-reference"
 import type {
 	DeviceInfo,
 	PrepareUploadRequest,
@@ -19,8 +20,7 @@ import path from "node:path"
 import fs from "node:fs"
 import { type ServerAdapter, createServerAdapter } from "./server-adapter.ts"
 import * as v from "valibot"
-import { describeRoute, openAPISpecs } from "hono-openapi"
-import { resolver, validator } from "hono-openapi/valibot"
+import { describeRoute, openAPIRouteHandler, resolver, validator } from "hono-openapi"
 import { apiReference } from "@scalar/hono-api-reference"
 import { bodyLimit } from "hono/body-limit"
 
@@ -105,7 +105,7 @@ export class LocalSendHonoServer {
 		// OpenAPI documentation
 		this.app.get(
 			"/openapi",
-			openAPISpecs(this.app, {
+			openAPIRouteHandler(this.app, {
 				documentation: {
 					info: {
 						title: "LocalSend API",
@@ -120,20 +120,32 @@ export class LocalSendHonoServer {
 		)
 
 		// API Reference UI
+		// this.app.get(
+		// 	"/docs",
+		// 	apiReference({
+		// 		theme: "saturn",
+		// 		url: "/openapi"
+		// 	})
+		// )
 		this.app.get(
-			"/docs",
-			apiReference({
-				theme: "saturn",
-				url: "/openapi"
+			"/openapi.json",
+			openAPIRouteHandler(this.app, {
+				documentation: {
+					info: {
+						title: "Localsend Hono",
+						version: "1.0.0",
+						description: "Hono API for LocalSend"
+					}
+				}
 			})
 		)
+		this.app.get("/docs", Scalar({ url: "/openapi.json", theme: "elysiajs" }))
 
 		// Device info route
 		this.app.get(
 			"/api/localsend/v2/info",
 			describeRoute({
 				description: "Get device information",
-				validateResponse: true,
 				responses: {
 					200: {
 						description: "Device information",
@@ -153,7 +165,6 @@ export class LocalSendHonoServer {
 			"/api/localsend/v2/register",
 			describeRoute({
 				description: "Register device (for discovery)",
-				validateResponse: true,
 				responses: {
 					200: {
 						description: "Server device information",
@@ -186,7 +197,6 @@ export class LocalSendHonoServer {
 			"/api/localsend/v2/prepare-upload",
 			describeRoute({
 				description: "Prepare file upload",
-				validateResponse: true,
 				responses: {
 					200: {
 						description: "Upload preparation response",
@@ -274,7 +284,6 @@ export class LocalSendHonoServer {
 			}),
 			describeRoute({
 				description: "Upload a file",
-				validateResponse: true,
 				responses: {
 					200: {
 						description: "File upload successful",
@@ -573,7 +582,6 @@ export class LocalSendHonoServer {
 			"/api/localsend/v2/cancel",
 			describeRoute({
 				description: "Cancel an upload session",
-				validateResponse: true,
 				responses: {
 					200: {
 						description: "Session cancelled successfully",

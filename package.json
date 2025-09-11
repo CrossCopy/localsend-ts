@@ -32,17 +32,17 @@
 		"typescript": "^5.0.0"
 	},
 	"dependencies": {
-		"@hey-api/client-fetch": "^0.8.4",
-		"@hono/node-server": "^1.14.0",
-		"@hono/valibot-validator": "^0.5.2",
-		"@scalar/hono-api-reference": "^0.7.4",
+		"@hey-api/client-fetch": "^0.13.1",
+		"@hono/node-server": "^1.19.2",
+		"@hono/standard-validator": "^0.1.5",
+		"@hono/valibot-validator": "^0.5.3",
+		"@scalar/hono-api-reference": "^0.9.18",
 		"@types/cli-progress": "^3.11.6",
 		"@valibot/to-json-schema": "^1.0.0",
 		"cli-progress": "^3.12.0",
-		"express": "^4.21.2",
-		"hono": "^4.7.5",
-		"hono-openapi": "^0.4.6",
-		"pretty-bytes": "^6.1.1",
+		"hono": "^4.9.6",
+		"hono-openapi": "^1.0.4",
+		"pretty-bytes": "^7.0.1",
 		"valibot": "^1.0.0"
 	},
 	"files": [

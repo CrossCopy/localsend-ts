@@ -10,11 +10,12 @@ const deviceInfo = getDeviceInfo({
 console.log("Starting LocalSend receiver with Hono server:", deviceInfo)
 
 // Create and start the Hono server
+const pin = "123456"
 const server = new LocalSendHonoServer(deviceInfo, {
 	saveDirectory: "./received_files",
-	pin: "123456"
+	pin: pin
 })
-
+console.log(`Hono server created with pin: ${pin}`)
 await server.start()
 console.log(`Server started on port ${deviceInfo.port}`)
 
