@@ -1,5 +1,27 @@
 import { getDeviceInfo, LocalSendHonoServer, MulticastDiscovery, HttpDiscovery } from "../src"
 
+function formatFileSize(bytes: number): string {
+	if (bytes === 0) return '0 Bytes'
+	const k = 1024
+	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+	const i = Math.floor(Math.log(bytes) / Math.log(k))
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+function getFileType(fileName: string): string {
+	const ext = fileName.split('.').pop()?.toLowerCase() || ''
+	const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+	const videoExts = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm']
+	const audioExts = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma']
+	const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']
+	
+	if (imageExts.includes(ext)) return 'Image'
+	if (videoExts.includes(ext)) return 'Video'
+	if (audioExts.includes(ext)) return 'Audio'
+	if (docExts.includes(ext)) return 'Document'
+	return 'File'
+}
+
 // Get device info with a custom alias
 const deviceInfo = getDeviceInfo({
 	alias: "Hono Receiver",
@@ -10,11 +32,26 @@ const deviceInfo = getDeviceInfo({
 console.log("Starting LocalSend receiver with Hono server:", deviceInfo)
 
 // Create and start the Hono server
+const pin = "123456"
 const server = new LocalSendHonoServer(deviceInfo, {
 	saveDirectory: "./received_files",
-	pin: "123456"
+	pin: pin,
+	onTransferProgress: async (_fileId, fileName, _received, total, _speed, finished, transferInfo) => {
+		if (finished && transferInfo) {
+			const fileSize = formatFileSize(total)
+			const fileType = getFileType(fileName)
+			const avgSpeedFormatted = formatFileSize(transferInfo.averageSpeed) + '/s'
+			const timeSeconds = transferInfo.totalTimeSeconds.toFixed(1)
+			
+			console.log(`\n📁 RECEIVED: ${fileName}`)
+			console.log(`   Type: ${fileType}`)
+			console.log(`   Size: ${fileSize}`)
+			console.log(`   Time: ${timeSeconds}s (${avgSpeedFormatted})`)
+			console.log(`   Path: ${transferInfo.filePath}`)
+		}
+	}
 })
-
+console.log(`Hono server created with pin: ${pin}`)
 await server.start()
 console.log(`Server started on port ${deviceInfo.port}`)
 

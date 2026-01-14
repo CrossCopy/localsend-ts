@@ -63,18 +63,21 @@ export class DenoMulticastDiscovery implements Discovery {
 						continue
 					}
 
+					const device = this.normalizeAnnouncement(announcement, addr.hostname)
+					const isAnnouncement = this.isAnnouncementMessage(announcement)
+
 					// Handle announcement
-					if (announcement.announce) {
+					if (isAnnouncement) {
 						// Respond to announcement
-						await this.respondToAnnouncement(announcement, addr.hostname)
+						await this.respondToAnnouncement(device)
 					}
 
 					// Store device in known devices
-					this.knownDevices.set(announcement.fingerprint, announcement)
+					this.knownDevices.set(device.fingerprint, device)
 
 					// Notify new device
 					if (this.onDeviceDiscoveredCallback) {
-						this.onDeviceDiscoveredCallback(announcement)
+						this.onDeviceDiscoveredCallback(device)
 					}
 				} catch (err) {
 					console.error("Error parsing announcement message:", err)
@@ -90,10 +93,7 @@ export class DenoMulticastDiscovery implements Discovery {
 	async announcePresence(): Promise<void> {
 		if (!this.socket) return
 
-		const message: AnnouncementMessage = {
-			...this.deviceInfo,
-			announce: true
-		}
+		const message = this.buildAnnouncementMessage(true)
 
 		const buffer = new TextEncoder().encode(JSON.stringify(message))
 		await this.socket.send(buffer, {
@@ -103,16 +103,10 @@ export class DenoMulticastDiscovery implements Discovery {
 		})
 	}
 
-	private async respondToAnnouncement(
-		device: AnnouncementMessage,
-		ipAddress: string
-	): Promise<void> {
+	private async respondToAnnouncement(device: DeviceInfo): Promise<void> {
 		if (!this.socket) return
 
-		const responseMessage: AnnouncementMessage = {
-			...this.deviceInfo,
-			announce: false
-		}
+		const responseMessage = this.buildAnnouncementMessage(false)
 
 		const buffer = new TextEncoder().encode(JSON.stringify(responseMessage))
 		await this.socket.send(buffer, {
@@ -130,6 +124,40 @@ export class DenoMulticastDiscovery implements Discovery {
 		return Array.from(this.knownDevices.values())
 	}
 
+	private buildAnnouncementMessage(announce: boolean): AnnouncementMessage {
+		return {
+			...this.deviceInfo,
+			announce,
+			announcement: announce
+		}
+	}
+
+	private isAnnouncementMessage(message: AnnouncementMessage): boolean {
+		if (typeof message.announce === "boolean") {
+			return message.announce
+		}
+		if (typeof message.announcement === "boolean") {
+			return message.announcement
+		}
+		return false
+	}
+
+	private normalizeAnnouncement(message: AnnouncementMessage, ip: string): DeviceInfo {
+		const protocol = message.protocol ?? this.deviceInfo.protocol
+		const port = message.port ?? this.deviceInfo.port
+
+		return {
+			alias: message.alias,
+			version: message.version ?? DEFAULT_CONFIG.PROTOCOL_VERSION,
+			deviceModel: message.deviceModel ?? null,
+			deviceType: message.deviceType ?? null,
+			fingerprint: message.fingerprint,
+			port,
+			protocol,
+			download: message.download ?? false,
+			ip
+		}
+	}
 	stop(): void {
 		this.isListening = false
 		if (this.socket) {

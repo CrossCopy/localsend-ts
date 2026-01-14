@@ -6,13 +6,19 @@
 	"type": "module",
 	"repository": "https://github.com/CrossCopy/localsend-ts.git",
 	"bin": {
-		"localsend": "./dist/cli.js"
+		"localsend": "./dist/cli.js",
+		"localsend-interactive": "./dist/cli-interactive.js"
 	},
 	"scripts": {
 		"build": "bun build.ts",
 		"postbuild": "verify-package-export verify",
+		"check-types": "tsc --noEmit",
 		"dev": "bun run --watch dev.ts",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"cli": "bun src/cli-interactive.ts",
+		"cli:dev": "bun --watch src/cli-interactive.ts",
+		"tui": "bun src/cli-tui.tsx",
+		"tui:dev": "bun --watch src/cli-tui.tsx"
 	},
 	"exports": {
 		".": "./src/index.ts",
@@ -24,6 +30,7 @@
 		"@changesets/cli": "^2.28.1",
 		"@hey-api/openapi-ts": "^0.64.15",
 		"@types/bun": "latest",
+		"@types/react": "^19.1.12",
 		"citty": "^0.1.6",
 		"prettier": "^3.5.3",
 		"verify-package-export": "^0.0.3"
@@ -32,17 +39,20 @@
 		"typescript": "^5.0.0"
 	},
 	"dependencies": {
-		"@hey-api/client-fetch": "^0.8.4",
-		"@hono/node-server": "^1.14.0",
-		"@hono/valibot-validator": "^0.5.2",
-		"@scalar/hono-api-reference": "^0.7.4",
+		"@hey-api/client-fetch": "^0.13.1",
+		"@hono/node-server": "^1.19.2",
+		"@hono/standard-validator": "^0.1.5",
+		"@hono/valibot-validator": "^0.5.3",
+		"@scalar/hono-api-reference": "^0.9.18",
 		"@types/cli-progress": "^3.11.6",
 		"@valibot/to-json-schema": "^1.0.0",
 		"cli-progress": "^3.12.0",
-		"express": "^4.21.2",
-		"hono": "^4.7.5",
-		"hono-openapi": "^0.4.6",
-		"pretty-bytes": "^6.1.1",
+		"hono": "^4.9.6",
+		"hono-openapi": "^1.0.4",
+		"ink": "^6.3.0",
+		"pretty-bytes": "^7.0.1",
+		"react": "^19.1.1",
+		"undici": "^7.18.2",
 		"valibot": "^1.0.0"
 	},
 	"files": [
