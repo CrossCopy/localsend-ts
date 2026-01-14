@@ -158,7 +158,6 @@ export class DenoMulticastDiscovery implements Discovery {
 			ip
 		}
 	}
-
 	stop(): void {
 		this.isListening = false
 		if (this.socket) {

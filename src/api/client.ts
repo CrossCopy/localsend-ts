@@ -317,7 +317,6 @@ export class LocalSendClient {
 		}
 		return ["https", "http"]
 	}
-
 	private normalizeDeviceInfo(
 		device: DeviceInfo | null,
 		targetDevice: { port: number; protocol?: "http" | "https" }

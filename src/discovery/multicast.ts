@@ -29,7 +29,6 @@ function getInterfaceAddresses(): string[] {
 
 	return addresses
 }
-
 export class MulticastDiscovery implements Discovery {
 	private socket
 	private knownDevices: Map<string, DeviceInfo> = new Map()
