@@ -33,6 +33,7 @@ npm run tui -- --port 8080 --alias "My Device"
 ```
 
 The TUI provides a sophisticated interface built with **Ink (React for CLI)** featuring:
+
 - **Real-time device scanning** - Continuously discover LocalSend devices
 - **Device selection** - Navigate and select from discovered devices
 - **Send text messages** - Interactive text input and sending
@@ -46,11 +47,12 @@ The TUI provides a sophisticated interface built with **Ink (React for CLI)** fe
 # Run the basic menu-driven CLI
 npm run cli
 
-# With custom settings  
+# With custom settings
 npm run cli -- --port 8080 --alias "My Device"
 ```
 
 Basic menu interface with:
+
 - Device discovery and selection
 - Text and file sending
 - Receiver mode with graceful shutdown

@@ -50,6 +50,6 @@ bun run dev
 
 ## Development Conventions
 
-*   **Code Style:** The project uses Prettier for code formatting. To format the code, run `bun run format`.
-*   **Testing:** There are no explicit test commands in the `package.json` file. However, the `README.md` file mentions running the CLI with `deno` and `bun` for development purposes.
-*   **API Generation:** The project uses `@hey-api/openapi-ts` to generate a client SDK from an OpenAPI specification. The build process in `build.ts` handles this by starting a server, generating the client, and then stopping the server.
+- **Code Style:** The project uses Prettier for code formatting. To format the code, run `bun run format`.
+- **Testing:** There are no explicit test commands in the `package.json` file. However, the `README.md` file mentions running the CLI with `deno` and `bun` for development purposes.
+- **API Generation:** The project uses `@hey-api/openapi-ts` to generate a client SDK from an OpenAPI specification. The build process in `build.ts` handles this by starting a server, generating the client, and then stopping the server.

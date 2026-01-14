@@ -34,14 +34,18 @@ export class LocalSendClient {
 		protocol?: "http" | "https"
 	}): Promise<DeviceInfo | null> {
 		try {
-			const device = await this.requestJson<DeviceInfo>(targetDevice, "/api/localsend/v2/register", {
-				method: "POST",
-				body: {
-					...this.deviceInfo,
-					deviceModel: this.deviceInfo.deviceModel || "",
-					deviceType: this.deviceInfo.deviceType || "desktop"
+			const device = await this.requestJson<DeviceInfo>(
+				targetDevice,
+				"/api/localsend/v2/register",
+				{
+					method: "POST",
+					body: {
+						...this.deviceInfo,
+						deviceModel: this.deviceInfo.deviceModel || "",
+						deviceType: this.deviceInfo.deviceType || "desktop"
+					}
 				}
-			})
+			)
 
 			return this.normalizeDeviceInfo(device, targetDevice)
 		} catch (err) {
@@ -249,17 +253,13 @@ export class LocalSendClient {
 		sessionId: string
 	): Promise<boolean> {
 		try {
-			const response = await this.requestJson<unknown>(
-				targetDevice,
-				"/api/localsend/v2/cancel",
-				{
-					method: "POST",
-					query: {
-						sessionId
-					},
-					expectJson: false
-				}
-			)
+			const response = await this.requestJson<unknown>(targetDevice, "/api/localsend/v2/cancel", {
+				method: "POST",
+				query: {
+					sessionId
+				},
+				expectJson: false
+			})
 
 			return response !== null
 		} catch (err) {
@@ -306,9 +306,7 @@ export class LocalSendClient {
 		}
 	}
 
-	private getProtocolCandidates(
-		preferred?: "http" | "https"
-	): Array<"http" | "https"> {
+	private getProtocolCandidates(preferred?: "http" | "https"): Array<"http" | "https"> {
 		if (preferred === "https") {
 			return ["https", "http"]
 		}

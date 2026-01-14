@@ -18,22 +18,26 @@ The protocol description can be found at https://github.com/localsend/protocol/b
 ## Project Structure
 
 ### Core Architecture
+
 - **Multi-runtime support**: Abstracts server implementations through `ServerAdapter` interface (Bun, Node.js, Deno)
 - **Discovery mechanisms**: Two discovery approaches - multicast UDP and HTTP discovery with runtime-specific implementations
 - **Protocol implementation**: LocalSend protocol client and server with OpenAPI spec generation
 
 ### Key Directories
+
 - `src/api/` - Core server and client implementations, runtime adapters
 - `src/discovery/` - Device discovery (multicast UDP, HTTP, runtime detection)
 - `src/sdk/` - Auto-generated OpenAPI client (generated during build)
 - `examples/` - Usage examples for different runtimes
 
 ### Entry Points
+
 - `src/index.ts` - Main library exports
 - `src/cli.ts` - CLI implementation using citty
 - `build.ts` - Build script that generates SDK and bundles CLI
 
 ### Runtime Abstractions
+
 - Server adapters in `src/api/server-adapter.ts` handle Bun/Node/Deno differences
 - Discovery uses runtime detection in `src/discovery/runtime.ts` to choose appropriate UDP implementation
 - Deno-specific implementations in `src/discovery/deno-udp.ts` and `src/api/deno-client.ts`

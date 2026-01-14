@@ -17,17 +17,17 @@ function formatFileSize(bytes: number): string {
 }
 
 function getFileType(fileName: string): string {
-	const ext = fileName.split('.').pop()?.toLowerCase() || ''
-	const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
-	const videoExts = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm']
-	const audioExts = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma']
-	const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']
-	
-	if (imageExts.includes(ext)) return 'Image'
-	if (videoExts.includes(ext)) return 'Video'
-	if (audioExts.includes(ext)) return 'Audio'
-	if (docExts.includes(ext)) return 'Document'
-	return 'File'
+	const ext = fileName.split(".").pop()?.toLowerCase() || ""
+	const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"]
+	const videoExts = ["mp4", "avi", "mov", "mkv", "wmv", "flv", "webm"]
+	const audioExts = ["mp3", "wav", "flac", "aac", "ogg", "wma"]
+	const docExts = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt"]
+
+	if (imageExts.includes(ext)) return "Image"
+	if (videoExts.includes(ext)) return "Video"
+	if (audioExts.includes(ext)) return "Audio"
+	if (docExts.includes(ext)) return "Document"
+	return "File"
 }
 
 class InteractiveLocalSend {
@@ -52,7 +52,7 @@ class InteractiveLocalSend {
 		})
 
 		// Handle Ctrl+C gracefully
-		this.rl.on('SIGINT', () => {
+		this.rl.on("SIGINT", () => {
 			this.cleanup()
 			process.exit(0)
 		})
@@ -68,7 +68,7 @@ class InteractiveLocalSend {
 
 	private async cleanup() {
 		console.log("\nCleaning up...")
-		
+
 		if (this.scanInterval) {
 			clearInterval(this.scanInterval)
 		}
@@ -88,66 +88,66 @@ class InteractiveLocalSend {
 
 	async start() {
 		console.clear()
-		console.log('╔════════════════════════════════════════╗')
-		console.log('║          LocalSend Interactive CLI     ║')
-		console.log('╚════════════════════════════════════════╝')
+		console.log("╔════════════════════════════════════════╗")
+		console.log("║          LocalSend Interactive CLI     ║")
+		console.log("╚════════════════════════════════════════╝")
 		console.log(`Device: ${this.deviceInfo.alias}`)
 		console.log(`Port: ${this.deviceInfo.port}`)
-		console.log('')
+		console.log("")
 
 		while (true) {
 			try {
 				await this.showMainMenu()
 			} catch (error) {
-				console.error('An error occurred:', error)
-				console.log('Returning to main menu...\n')
+				console.error("An error occurred:", error)
+				console.log("Returning to main menu...\n")
 			}
 		}
 	}
 
 	private async showMainMenu() {
-		console.log('═══════════════════════════════════════════')
-		console.log('Main Menu:')
-		console.log('  1. Discover nearby devices')
-		console.log('  2. Send text message')
-		console.log('  3. Send file')
-		console.log('  4. Start receiver mode')
-		console.log('  5. Change settings')
-		console.log('  6. Exit')
-		console.log('═══════════════════════════════════════════')
+		console.log("═══════════════════════════════════════════")
+		console.log("Main Menu:")
+		console.log("  1. Discover nearby devices")
+		console.log("  2. Send text message")
+		console.log("  3. Send file")
+		console.log("  4. Start receiver mode")
+		console.log("  5. Change settings")
+		console.log("  6. Exit")
+		console.log("═══════════════════════════════════════════")
 
-		const choice = await this.question('Enter your choice (1-6): ')
+		const choice = await this.question("Enter your choice (1-6): ")
 
 		switch (choice.trim()) {
-			case '1':
+			case "1":
 				await this.discoverDevices()
 				break
-			case '2':
+			case "2":
 				await this.sendText()
 				break
-			case '3':
+			case "3":
 				await this.sendFile()
 				break
-			case '4':
+			case "4":
 				await this.startReceiver()
 				break
-			case '5':
+			case "5":
 				await this.changeSettings()
 				break
-			case '6':
-				console.log('Goodbye!')
+			case "6":
+				console.log("Goodbye!")
 				await this.cleanup()
 				process.exit(0)
 				break
 			default:
-				console.log('Invalid choice. Please enter 1-6.\n')
+				console.log("Invalid choice. Please enter 1-6.\n")
 				break
 		}
 	}
 
 	private async discoverDevices() {
-		console.log('\n🔍 Discovering devices on the network...\n')
-		
+		console.log("\n🔍 Discovering devices on the network...\n")
+
 		this.discoveredDevices.clear()
 
 		let discoveryServer: LocalSendHonoServer | null = null
@@ -180,11 +180,11 @@ class InteractiveLocalSend {
 			this.discoveredDevices.set(`${device.ip}:${device.port}`, device)
 		})
 
-		console.log('Scanning for 5 seconds...')
+		console.log("Scanning for 5 seconds...")
 		await httpDiscovery.startScan?.()
 
 		// Wait for 5 seconds
-		await new Promise(resolve => setTimeout(resolve, 5000))
+		await new Promise((resolve) => setTimeout(resolve, 5000))
 
 		// Stop discovery
 		discovery.stop()
@@ -197,58 +197,60 @@ class InteractiveLocalSend {
 		}
 
 		const devices = Array.from(this.discoveredDevices.values())
-		
+
 		console.log(`\nScan complete! Found ${devices.length} device(s).`)
-		
+
 		if (devices.length > 0) {
-			console.log('\nDiscovered devices:')
+			console.log("\nDiscovered devices:")
 			devices.forEach((device, index) => {
-				console.log(`  ${index + 1}. ${device.alias} (${device.ip}:${device.port}) - ${device.deviceModel}`)
+				console.log(
+					`  ${index + 1}. ${device.alias} (${device.ip}:${device.port}) - ${device.deviceModel}`
+				)
 			})
 		}
-		
-		console.log('')
-		await this.question('Press Enter to return to main menu...')
+
+		console.log("")
+		await this.question("Press Enter to return to main menu...")
 	}
 
 	private async sendText() {
-		console.log('\n📝 Send Text Message\n')
+		console.log("\n📝 Send Text Message\n")
 
 		// Check if we have discovered devices
 		if (this.discoveredDevices.size === 0) {
-			console.log('No devices discovered. Please discover devices first.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("No devices discovered. Please discover devices first.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		// Show available devices
 		const devices = Array.from(this.discoveredDevices.values())
-		console.log('Available devices:')
+		console.log("Available devices:")
 		devices.forEach((device, index) => {
 			console.log(`  ${index + 1}. ${device.alias} (${device.ip}:${device.port})`)
 		})
 
-		const deviceChoice = await this.question('\nEnter device number: ')
+		const deviceChoice = await this.question("\nEnter device number: ")
 		const deviceIndex = parseInt(deviceChoice) - 1
 
 		if (deviceIndex < 0 || deviceIndex >= devices.length) {
-			console.log('Invalid device selection.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("Invalid device selection.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		const targetDevice = devices[deviceIndex]
-		const textMessage = await this.question('Enter text to send: ')
+		const textMessage = await this.question("Enter text to send: ")
 
 		if (!textMessage.trim()) {
-			console.log('No text entered.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("No text entered.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		// Create a temporary text file
 		const tempFileName = `message_${Date.now()}.txt`
-		const tempFilePath = path.join('/tmp', tempFileName)
+		const tempFilePath = path.join("/tmp", tempFileName)
 		await fs.promises.writeFile(tempFilePath, textMessage)
 
 		try {
@@ -262,48 +264,54 @@ class InteractiveLocalSend {
 	}
 
 	private async sendFile() {
-		console.log('\n📁 Send File\n')
+		console.log("\n📁 Send File\n")
 
 		// Check if we have discovered devices
 		if (this.discoveredDevices.size === 0) {
-			console.log('No devices discovered. Please discover devices first.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("No devices discovered. Please discover devices first.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		// Show available devices
 		const devices = Array.from(this.discoveredDevices.values())
-		console.log('Available devices:')
+		console.log("Available devices:")
 		devices.forEach((device, index) => {
 			console.log(`  ${index + 1}. ${device.alias} (${device.ip}:${device.port})`)
 		})
 
-		const deviceChoice = await this.question('\nEnter device number: ')
+		const deviceChoice = await this.question("\nEnter device number: ")
 		const deviceIndex = parseInt(deviceChoice) - 1
 
 		if (deviceIndex < 0 || deviceIndex >= devices.length) {
-			console.log('Invalid device selection.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("Invalid device selection.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		const targetDevice = devices[deviceIndex]
-		const filePath = await this.question('Enter absolute path to file: ')
+		const filePath = await this.question("Enter absolute path to file: ")
 
 		// Check if file exists
 		try {
 			await stat(filePath)
 		} catch {
-			console.log('File does not exist or is not accessible.')
-			await this.question('Press Enter to return to main menu...')
+			console.log("File does not exist or is not accessible.")
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
 		await this.sendFileToDevice(targetDevice, filePath, false)
 	}
 
-	private async sendFileToDevice(targetDevice: DeviceInfo, filePath: string, isTextMessage: boolean = false) {
-		console.log(`\n📤 Sending ${isTextMessage ? 'text message' : 'file'} to ${targetDevice.alias}...`)
+	private async sendFileToDevice(
+		targetDevice: DeviceInfo,
+		filePath: string,
+		isTextMessage: boolean = false
+	) {
+		console.log(
+			`\n📤 Sending ${isTextMessage ? "text message" : "file"} to ${targetDevice.alias}...`
+		)
 
 		try {
 			// Create client
@@ -330,10 +338,10 @@ class InteractiveLocalSend {
 			}
 
 			// Get PIN if needed
-			const pin = await this.question('Enter PIN (leave empty if none required): ')
+			const pin = await this.question("Enter PIN (leave empty if none required): ")
 
 			// Prepare upload
-			console.log('Preparing upload...')
+			console.log("Preparing upload...")
 			const uploadPrepare = await client.prepareUpload(
 				{
 					ip: targetDevice.ip!,
@@ -345,20 +353,22 @@ class InteractiveLocalSend {
 			)
 
 			if (!uploadPrepare) {
-				console.log('❌ Failed to prepare upload. Check if the device is reachable and PIN is correct.')
-				await this.question('Press Enter to return to main menu...')
+				console.log(
+					"❌ Failed to prepare upload. Check if the device is reachable and PIN is correct."
+				)
+				await this.question("Press Enter to return to main menu...")
 				return
 			}
 
 			if (Object.keys(uploadPrepare.files || {}).length === 0) {
 				if (isTextMessage) {
-					console.log('✅ Text message delivered (no file upload required).')
-					await this.question('Press Enter to return to main menu...')
+					console.log("✅ Text message delivered (no file upload required).")
+					await this.question("Press Enter to return to main menu...")
 					return
 				}
 
-				console.log('❌ No file tokens returned. Transfer was not accepted.')
-				await this.question('Press Enter to return to main menu...')
+				console.log("❌ No file tokens returned. Transfer was not accepted.")
+				await this.question("Press Enter to return to main menu...")
 				return
 			}
 
@@ -376,7 +386,7 @@ class InteractiveLocalSend {
 
 			const sizeDisplay = `${formatFileSize(0)}/${formatFileSize(fileSize)}`
 			progressBar.start(fileSize, 0, {
-				filename: (isTextMessage ? 'message.txt' : fileName).padEnd(25),
+				filename: (isTextMessage ? "message.txt" : fileName).padEnd(25),
 				sizeDisplay,
 				speed: "0 B/s",
 				eta: "?",
@@ -426,8 +436,8 @@ class InteractiveLocalSend {
 			// Upload file
 			const fileToken = uploadPrepare.files[fileId]
 			if (!fileToken) {
-				console.log('❌ File token missing for upload. Transfer was not accepted.')
-				await this.question('Press Enter to return to main menu...')
+				console.log("❌ File token missing for upload. Transfer was not accepted.")
+				await this.question("Press Enter to return to main menu...")
 				return
 			}
 
@@ -444,32 +454,31 @@ class InteractiveLocalSend {
 			)
 
 			if (success) {
-				console.log(`✅ ${isTextMessage ? 'Text message' : 'File'} sent successfully!`)
+				console.log(`✅ ${isTextMessage ? "Text message" : "File"} sent successfully!`)
 			} else {
-				console.log(`❌ Failed to send ${isTextMessage ? 'text message' : 'file'}`)
+				console.log(`❌ Failed to send ${isTextMessage ? "text message" : "file"}`)
 			}
-
 		} catch (error) {
-			console.error('Error sending:', error)
+			console.error("Error sending:", error)
 		}
 
-		await this.question('Press Enter to return to main menu...')
+		await this.question("Press Enter to return to main menu...")
 	}
 
 	private async startReceiver() {
-		console.log('\n📥 Starting Receiver Mode\n')
+		console.log("\n📥 Starting Receiver Mode\n")
 
-		const saveDir = await this.question('Enter save directory (default: ./received_files): ')
-		const pin = await this.question('Enter PIN for authentication (leave empty for no PIN): ')
+		const saveDir = await this.question("Enter save directory (default: ./received_files): ")
+		const pin = await this.question("Enter PIN for authentication (leave empty for no PIN): ")
 
-		const finalSaveDir = saveDir.trim() || './received_files'
+		const finalSaveDir = saveDir.trim() || "./received_files"
 
 		// Create save directory if it doesn't exist
 		try {
 			await fs.promises.mkdir(finalSaveDir, { recursive: true })
 		} catch (error) {
-			console.error('Error creating save directory:', error)
-			await this.question('Press Enter to return to main menu...')
+			console.error("Error creating save directory:", error)
+			await this.question("Press Enter to return to main menu...")
 			return
 		}
 
@@ -478,7 +487,7 @@ class InteractiveLocalSend {
 		console.log(`Port: ${this.deviceInfo.port}`)
 		console.log(`Save directory: ${finalSaveDir}`)
 		if (pin) console.log(`PIN required: Yes`)
-		console.log('\nPress Ctrl+C to stop receiver and return to main menu.\n')
+		console.log("\nPress Ctrl+C to stop receiver and return to main menu.\n")
 
 		const multiBar = new cliProgress.MultiBar(
 			{
@@ -505,19 +514,20 @@ class InteractiveLocalSend {
 				console.log(`\n📩 Incoming transfer from ${senderInfo.alias}:`)
 				console.log(`Files: ${filesInfo}`)
 
-				const accept = await this.question('Accept transfer? (y/N): ')
-				
-				if (accept.toLowerCase() !== 'y') {
-					console.log('Transfer rejected\n')
+				const accept = await this.question("Accept transfer? (y/N): ")
+
+				if (accept.toLowerCase() !== "y") {
+					console.log("Transfer rejected\n")
 					return false
 				}
 
 				// Create progress bars for each file
 				Object.entries(files).forEach(([fileId, file]) => {
 					const bar = multiBar.create(file.size, 0, {
-						filename: file.fileName.length > 25 
-							? file.fileName.substring(0, 22) + "..." 
-							: file.fileName.padEnd(25),
+						filename:
+							file.fileName.length > 25
+								? file.fileName.substring(0, 22) + "..."
+								: file.fileName.padEnd(25),
 						sizeDisplay: `${formatFileSize(0)}/${formatFileSize(file.size)}`,
 						speed: "0 B/s",
 						eta: "?",
@@ -526,10 +536,18 @@ class InteractiveLocalSend {
 					activeProgressBars.set(fileId, bar)
 				})
 
-				console.log('Transfer accepted, downloading...\n')
+				console.log("Transfer accepted, downloading...\n")
 				return true
 			},
-			onTransferProgress: async (fileId, fileName, received, total, speed, finished, transferInfo) => {
+			onTransferProgress: async (
+				fileId,
+				fileName,
+				received,
+				total,
+				speed,
+				finished,
+				transferInfo
+			) => {
 				const progressBar = activeProgressBars.get(fileId)
 				if (progressBar) {
 					const sizeDisplay = `${formatFileSize(received)}/${formatFileSize(total)}`
@@ -557,7 +575,7 @@ class InteractiveLocalSend {
 
 					if (finished && transferInfo) {
 						const fileType = getFileType(fileName)
-						const avgSpeedFormatted = formatFileSize(transferInfo.averageSpeed) + '/s'
+						const avgSpeedFormatted = formatFileSize(transferInfo.averageSpeed) + "/s"
 						const timeSeconds = transferInfo.totalTimeSeconds.toFixed(1)
 
 						console.log(`\n📁 RECEIVED: ${fileName}`)
@@ -587,8 +605,8 @@ class InteractiveLocalSend {
 			// Wait for Ctrl+C
 			await new Promise<void>((resolve) => {
 				const cleanup = async () => {
-					console.log('\nStopping receiver...')
-					
+					console.log("\nStopping receiver...")
+
 					if (this.scanInterval) {
 						clearInterval(this.scanInterval)
 						this.scanInterval = null
@@ -605,42 +623,41 @@ class InteractiveLocalSend {
 					}
 
 					multiBar.stop()
-					console.log('Receiver stopped.\n')
+					console.log("Receiver stopped.\n")
 					resolve()
 				}
 
-				const originalHandler = process.listeners('SIGINT')
-				process.removeAllListeners('SIGINT')
-				process.once('SIGINT', cleanup)
-				
+				const originalHandler = process.listeners("SIGINT")
+				process.removeAllListeners("SIGINT")
+				process.once("SIGINT", cleanup)
+
 				// Restore original handlers after cleanup
 				resolve = ((originalResolve) => () => {
-					originalHandler.forEach(handler => process.on('SIGINT', handler as any))
+					originalHandler.forEach((handler) => process.on("SIGINT", handler as any))
 					originalResolve()
 				})(resolve)
 			})
-
 		} catch (error) {
-			console.error('Error starting receiver:', error)
-			await this.question('Press Enter to return to main menu...')
+			console.error("Error starting receiver:", error)
+			await this.question("Press Enter to return to main menu...")
 		}
 	}
 
 	private async changeSettings() {
-		console.log('\n⚙️  Settings\n')
+		console.log("\n⚙️  Settings\n")
 		console.log(`Current device alias: ${this.deviceInfo.alias}`)
 		console.log(`Current port: ${this.deviceInfo.port}`)
 
-		console.log('\nSettings:')
-		console.log('  1. Change device alias')
-		console.log('  2. Change port')
-		console.log('  3. Back to main menu')
+		console.log("\nSettings:")
+		console.log("  1. Change device alias")
+		console.log("  2. Change port")
+		console.log("  3. Back to main menu")
 
-		const choice = await this.question('Enter your choice (1-3): ')
+		const choice = await this.question("Enter your choice (1-3): ")
 
 		switch (choice.trim()) {
-			case '1':
-				const newAlias = await this.question('Enter new device alias: ')
+			case "1":
+				const newAlias = await this.question("Enter new device alias: ")
 				if (newAlias.trim()) {
 					this.deviceInfo = getDeviceInfo({
 						...this.deviceInfo,
@@ -649,8 +666,8 @@ class InteractiveLocalSend {
 					console.log(`Device alias changed to: ${this.deviceInfo.alias}`)
 				}
 				break
-			case '2':
-				const newPort = await this.question('Enter new port number: ')
+			case "2":
+				const newPort = await this.question("Enter new port number: ")
 				const portNum = parseInt(newPort.trim())
 				if (!isNaN(portNum) && portNum > 0 && portNum <= 65535) {
 					this.deviceInfo = getDeviceInfo({
@@ -659,17 +676,17 @@ class InteractiveLocalSend {
 					})
 					console.log(`Port changed to: ${this.deviceInfo.port}`)
 				} else {
-					console.log('Invalid port number.')
+					console.log("Invalid port number.")
 				}
 				break
-			case '3':
+			case "3":
 				return
 			default:
-				console.log('Invalid choice.')
+				console.log("Invalid choice.")
 				break
 		}
 
-		await this.question('Press Enter to continue...')
+		await this.question("Press Enter to continue...")
 	}
 
 	close() {
@@ -699,9 +716,9 @@ const main = defineCommand({
 		const alias = args.alias as string | undefined
 
 		const cli = new InteractiveLocalSend(port, alias)
-		
+
 		// Handle process termination
-		process.on('SIGINT', () => {
+		process.on("SIGINT", () => {
 			cli.close()
 			process.exit(0)
 		})

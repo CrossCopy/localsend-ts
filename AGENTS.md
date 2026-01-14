@@ -1,6 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
+
 - src/: TypeScript source. Notable modules: `api/`, `discovery/`, and generated SDK in `sdk/` (`*.gen.ts` — do not edit by hand).
 - src/cli.ts: CLI entrypoint bundled to `dist/cli.js`.
 - examples/: Small runnable demos (e.g., `basic-sender.ts`, `hono-receiver.ts`).
@@ -10,6 +11,7 @@
 - The protocol description can be found at https://github.com/localsend/protocol/blob/main/README.md
 
 ## Build, Test, and Development Commands
+
 - Build: `bun run build` (runs `build.ts`, generates SDK, bundles CLI, makes it executable).
 - Run CLI: `./dist/cli.js discover --timeout 5` or `./dist/cli.js receive --saveDir ./downloads`.
 - Run examples: `bun examples/basic-receiver.ts` (TypeScript executed via Bun runtime).
@@ -18,21 +20,25 @@
 Notes: The build spins up `examples/hono-receiver.ts` on port 53317 to fetch OpenAPI and generate `src/sdk/*`. If the port is busy, adjust in `build.ts`.
 
 ## Coding Style & Naming Conventions
+
 - Prettier: tabs, no semicolons, print width 100, no trailing commas.
 - TypeScript: `strict` enabled; ESNext modules/targets.
 - Naming: files kebab-case (e.g., `server-adapter.ts`); types/interfaces PascalCase; variables/functions camelCase.
 - Generated code: files ending `*.gen.ts` are produced by the build; avoid manual edits.
 
 ## Testing Guidelines
+
 - No test suite is configured yet. Prefer Bun’s test runner when adding tests.
 - Suggested layout: `test/**/*.test.ts` or colocate with `src/**/__tests__`.
 - Run (once added): `bun test` and aim for meaningful coverage on protocol and transfer flows.
 
 ## Commit & Pull Request Guidelines
+
 - Commits: follow Conventional Commits when possible (e.g., `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Recent history reflects this style.
 - PRs: include a clear summary, linked issues, and CLI reproduction (commands + expected output). Add screenshots only if relevant to logs/UX.
 - Quality bar: run `bun run build` and `bun run format` before opening PRs. Don’t modify generated `src/sdk/*` directly; update sources or OpenAPI instead.
 
 ## Security & Configuration Tips
+
 - Network-facing examples/CLI bind to a local port; avoid exposing publicly. Do not commit secrets.
 - Package exports are verified post-build (`verify-package-export`). Keep exports consistent with `package.json`.
