@@ -20,7 +20,7 @@ function getInterfaceAddresses(): string[] {
 		}
 
 		for (const address of networkInterface) {
-			const isIpv4 = address.family === "IPv4" || address.family === 4
+			const isIpv4 = address.family === "IPv4"
 			if (isIpv4 && !address.internal) {
 				addresses.push(address.address)
 			}

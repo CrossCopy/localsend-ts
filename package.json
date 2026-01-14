@@ -12,6 +12,7 @@
 	"scripts": {
 		"build": "bun build.ts",
 		"postbuild": "verify-package-export verify",
+		"check-types": "tsc --noEmit",
 		"dev": "bun run --watch dev.ts",
 		"format": "prettier --write .",
 		"cli": "bun src/cli-interactive.ts",
@@ -51,6 +52,7 @@
 		"ink": "^6.3.0",
 		"pretty-bytes": "^7.0.1",
 		"react": "^19.1.1",
+		"undici": "^7.18.2",
 		"valibot": "^1.0.0"
 	},
 	"files": [

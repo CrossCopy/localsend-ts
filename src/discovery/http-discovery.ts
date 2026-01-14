@@ -1,6 +1,7 @@
 import type { DeviceInfo } from "../types.ts"
 import { networkInterfaces } from "node:os"
 import type { Discovery } from "./types.ts"
+import { Agent } from "undici"
 
 /**
  * HttpDiscovery is used to discover devices in the network using the HTTP method
@@ -16,8 +17,7 @@ export class HttpDiscovery implements Discovery {
 			? true
 			: process.env.LOCALSEND_INSECURE_TLS === "1"
 
-	constructor(private deviceInfo: DeviceInfo) {
-	}
+	constructor(private deviceInfo: DeviceInfo) {}
 
 	async start(): Promise<void> {
 		// Start periodic scanning
@@ -105,7 +105,7 @@ export class HttpDiscovery implements Discovery {
 		for (const networkInterface of Object.values(interfaces)) {
 			if (networkInterface) {
 				for (const address of networkInterface) {
-					const isIpv4 = address.family === "IPv4" || address.family === 4
+					const isIpv4 = address.family === "IPv4"
 					// Only use IPv4 addresses
 					if (isIpv4 && !address.internal) {
 						ips.push(address.address)
@@ -203,7 +203,6 @@ export class HttpDiscovery implements Discovery {
 					options.tls = { rejectUnauthorized: false }
 				} else {
 					try {
-						const { Agent } = await import("undici")
 						options.dispatcher = new Agent({ connect: { rejectUnauthorized: false } })
 					} catch {
 						// Ignore if undici isn't available; fetch will use default TLS settings.

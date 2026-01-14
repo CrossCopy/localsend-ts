@@ -36,7 +36,6 @@ switch (forceRuntime) {
 // Create and start the HTTP server with the specified adapter
 const server = new LocalSendHonoServer(deviceInfo, {
 	saveDirectory: "./received_files",
-	requirePin: true,
 	pin: "123456",
 	serverAdapter // Pass the adapter
 })
