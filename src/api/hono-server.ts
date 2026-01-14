@@ -21,7 +21,6 @@ import fs from "node:fs"
 import { type ServerAdapter, createServerAdapter } from "./server-adapter.ts"
 import * as v from "valibot"
 import { describeRoute, openAPIRouteHandler, resolver, validator } from "hono-openapi"
-import { apiReference } from "@scalar/hono-api-reference"
 import { bodyLimit } from "hono/body-limit"
 
 // Define a transfer request handler type
