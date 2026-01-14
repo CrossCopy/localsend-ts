@@ -6,6 +6,8 @@ This project is a TypeScript implementation of the LocalSend protocol, which ena
 
 LocalSend provides a secure way to transfer files between devices on the same network. This TypeScript implementation includes both a CLI tool and a library that can be used in other projects.
 
+The protocol description can be found at https://github.com/localsend/protocol/blob/main/README.md
+
 ### Key Features
 
 - Cross-platform file sharing (Windows, macOS, Linux)
@@ -42,11 +44,13 @@ src/
 The CLI provides three main commands:
 
 1. **Send**: Send files to another device
+
    ```
    localsend send <target-ip> <file-path>
    ```
 
 2. **Receive**: Start a receiver to accept files
+
    ```
    localsend receive
    ```
@@ -57,6 +61,7 @@ The CLI provides three main commands:
    ```
 
 For detailed usage, run:
+
 ```
 localsend --help
 ```
@@ -66,11 +71,7 @@ localsend --help
 The library can be imported and used in other TypeScript/JavaScript projects:
 
 ```typescript
-import {
-  LocalSendServer,
-  LocalSendClient,
-  MulticastDiscovery
-} from 'localsend'
+import { LocalSendServer, LocalSendClient, MulticastDiscovery } from "localsend"
 
 // Create a server
 const server = new LocalSendHonoServer(deviceInfo)
@@ -87,11 +88,13 @@ See `src/cli.ts` for detailed usage examples.
 ### Building
 
 To build the project:
+
 ```bash
 bun run build
 ```
 
 This will:
+
 1. Generate the SDK from the OpenAPI spec
 2. Compile the CLI to `dist/cli.js`
 3. Make the CLI executable
@@ -99,6 +102,7 @@ This will:
 ### Development Server
 
 To run in development mode:
+
 ```bash
 bun run dev
 ```
@@ -106,6 +110,7 @@ bun run dev
 ### Formatting
 
 To format the code:
+
 ```bash
 bun run format
 ```
@@ -113,12 +118,14 @@ bun run format
 ## API Documentation
 
 When running the server, API documentation is available at:
+
 - OpenAPI spec: `http://localhost:<port>/openapi`
 - Interactive docs: `http://localhost:<port>/docs`
 
 ## Testing
 
 To run tests (if available):
+
 ```bash
 # Test command would be specified here if tests existed
 ```
@@ -137,11 +144,13 @@ This project uses Changesets for version management. To contribute:
 ## Deployment
 
 The built CLI can be installed globally with:
+
 ```bash
 npm install -g localsend
 ```
 
 Or run directly with:
+
 ```bash
 npx localsend
 ```

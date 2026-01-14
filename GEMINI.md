@@ -4,6 +4,8 @@
 
 This project is a TypeScript implementation of the LocalSend protocol. It provides a command-line interface (CLI) and a library for sending and receiving files between devices on the same local network. The project is built with Bun and uses the Hono framework for the server implementation.
 
+The protocol description can be found at https://github.com/localsend/protocol/blob/main/README.md
+
 ## Building and Running
 
 ### Building the project

@@ -24,13 +24,13 @@ try {
 }
 await $`rm -rf ./dist`
 await Bun.build({
-	entrypoints: ["./src/cli.ts"],
+	entrypoints: ["./src/cli.ts", "./src/cli-interactive.ts"],
 	target: "node",
 	outdir: "./dist",
 	minify: true,
 	format: "esm",
 	external: ["node:*"]
 })
-// Make the CLI executable
-await $`chmod +x ./dist/cli.js`
-console.log("Made CLI executable: chmod +x ./dist/cli.js")
+// Make the CLIs executable
+await $`chmod +x ./dist/cli.js ./dist/cli-interactive.js`
+console.log("Made CLIs executable: chmod +x ./dist/cli.js ./dist/cli-interactive.js")

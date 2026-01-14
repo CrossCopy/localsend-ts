@@ -7,6 +7,8 @@
 
 LocalSend provides a documentation for their protocol at https://github.com/localsend/protocol
 
+Readme to the protocol: https://github.com/localsend/protocol/blob/main/README.md
+
 I've seen some implementations in rust
 
 - https://crates.io/crates/localsend
@@ -17,6 +19,43 @@ I want to build a LocalSend integration extension for my project https://github.
 So I decided to build a TypeScript implementation of the LocalSend protocol.
 
 ## CLI
+
+### Interactive TUI (Recommended)
+
+```bash
+# Run the sophisticated TUI with real-time device scanning
+npm run tui
+# or with Bun
+bun src/cli-tui.tsx
+
+# With custom port and alias
+npm run tui -- --port 8080 --alias "My Device"
+```
+
+The TUI provides a sophisticated interface built with **Ink (React for CLI)** featuring:
+- **Real-time device scanning** - Continuously discover LocalSend devices
+- **Device selection** - Navigate and select from discovered devices
+- **Send text messages** - Interactive text input and sending
+- **Send files** - File path input with validation
+- **Receiver mode** - Real-time file receiving with progress
+- **Settings** - Dynamic device configuration
+
+### Simple Interactive CLI
+
+```bash
+# Run the basic menu-driven CLI
+npm run cli
+
+# With custom settings  
+npm run cli -- --port 8080 --alias "My Device"
+```
+
+Basic menu interface with:
+- Device discovery and selection
+- Text and file sending
+- Receiver mode with graceful shutdown
+
+### Traditional CLI
 
 ```bash
 npx localsend

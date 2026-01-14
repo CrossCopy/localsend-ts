@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a TypeScript implementation of the LocalSend protocol - a cross-platform file sharing solution. The project supports multiple JavaScript runtimes (Node.js, Bun, Deno) and provides both a CLI tool and library for LocalSend integration.
 
+The protocol description can be found at https://github.com/localsend/protocol/blob/main/README.md
+
 ## Common Commands
 
 - **Build**: `bun build.ts` - Builds the CLI and generates SDK from OpenAPI spec

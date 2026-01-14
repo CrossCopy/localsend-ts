@@ -14,8 +14,8 @@ export type GetApiLocalsendV2InfoResponses = {
     200: {
         alias: string;
         version: string;
-        deviceModel: string;
-        deviceType: 'mobile' | 'desktop' | 'web' | 'headless' | 'server';
+        deviceModel: string | null;
+        deviceType: ('mobile' | 'desktop' | 'web' | 'headless' | 'server') | null;
         fingerprint: string;
         port: number;
         protocol: 'http' | 'https';
@@ -29,8 +29,8 @@ export type PostApiLocalsendV2RegisterData = {
     body?: {
         alias: string;
         version: string;
-        deviceModel: string;
-        deviceType: 'mobile' | 'desktop' | 'web' | 'headless' | 'server';
+        deviceModel: string | null;
+        deviceType: ('mobile' | 'desktop' | 'web' | 'headless' | 'server') | null;
         fingerprint: string;
         port: number;
         protocol: 'http' | 'https';
@@ -59,8 +59,8 @@ export type PostApiLocalsendV2RegisterResponses = {
     200: {
         alias: string;
         version: string;
-        deviceModel: string;
-        deviceType: 'mobile' | 'desktop' | 'web' | 'headless' | 'server';
+        deviceModel: string | null;
+        deviceType: ('mobile' | 'desktop' | 'web' | 'headless' | 'server') | null;
         fingerprint: string;
         port: number;
         protocol: 'http' | 'https';
@@ -75,8 +75,8 @@ export type PostApiLocalsendV2PrepareUploadData = {
         info: {
             alias: string;
             version: string;
-            deviceModel: string;
-            deviceType: 'mobile' | 'desktop' | 'web' | 'headless' | 'server';
+            deviceModel: string | null;
+            deviceType: ('mobile' | 'desktop' | 'web' | 'headless' | 'server') | null;
             fingerprint: string;
             port: number;
             protocol: 'http' | 'https';
@@ -88,12 +88,12 @@ export type PostApiLocalsendV2PrepareUploadData = {
                 fileName: string;
                 size: number;
                 fileType: string;
-                sha256?: string;
-                preview?: string;
+                sha256?: string | null;
+                preview?: string | null;
                 metadata?: {
-                    modified?: string;
-                    accessed?: string;
-                };
+                    modified?: string | null;
+                    accessed?: string | null;
+                } | null;
             };
         };
     };
