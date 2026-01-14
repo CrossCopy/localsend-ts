@@ -1,5 +1,4 @@
 import type { DeviceInfo } from "../types.ts"
-import { LocalSendClient } from "../api/client.ts"
 import { networkInterfaces } from "node:os"
 import type { Discovery } from "./types.ts"
 
@@ -10,12 +9,14 @@ import type { Discovery } from "./types.ts"
 export class HttpDiscovery implements Discovery {
 	private knownDevices: Map<string, DeviceInfo> = new Map()
 	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void
-	private client: LocalSendClient
 	private isScanning = false
 	private scanInterval?: NodeJS.Timeout
+	private allowInsecureTls =
+		process.env.LOCALSEND_INSECURE_TLS === undefined
+			? true
+			: process.env.LOCALSEND_INSECURE_TLS === "1"
 
 	constructor(private deviceInfo: DeviceInfo) {
-		this.client = new LocalSendClient(deviceInfo)
 	}
 
 	async start(): Promise<void> {
@@ -52,11 +53,11 @@ export class HttpDiscovery implements Discovery {
 			// Generate IP addresses in the same subnet
 			const targetIps = this.generateTargetIps(localIps)
 
-			// Scan all targets concurrently
-			const promises = targetIps.map((ip) => this.scanTarget(ip))
-
-			// Wait for all promises to settle
-			await Promise.allSettled(promises)
+			// Scan all targets with a concurrency limit
+			await this.runWithConcurrency(
+				targetIps.map((ip) => () => this.scanTarget(ip)),
+				50
+			)
 		} catch (err) {
 			console.error("Error during HTTP discovery:", err)
 		} finally {
@@ -65,55 +66,29 @@ export class HttpDiscovery implements Discovery {
 	}
 
 	/**
-	 * Check if a host is up by attempting a quick connection with timeout
-	 */
-	private async isHostUp(ip: string, port: number): Promise<boolean> {
-		try {
-			const controller = new AbortController()
-			const timeoutId = setTimeout(() => controller.abort(), 500) // 500ms timeout
-
-			const response = await fetch(`http://${ip}:${port}/api/localsend/v2/info`, {
-				method: "HEAD",
-				signal: controller.signal
-			})
-
-			clearTimeout(timeoutId)
-			return response.ok
-		} catch (err) {
-			return false // Any error means the host is not reachable
-		}
-	}
-
-	/**
 	 * Scan a single target IP address
 	 */
 	private async scanTarget(ip: string): Promise<void> {
 		try {
-			// First check if the host is up before attempting to register
-			const isUp = await this.isHostUp(ip, this.deviceInfo.port)
+			const device = await this.fetchDeviceInfo(ip)
 
-			if (!isUp) {
-				return // Skip registration attempt if host is not up
+			if (!device) {
+				return
 			}
 
-			const device = await this.client.register({
-				ip,
-				port: this.deviceInfo.port
-			})
+			// Ignore self
+			if (device.fingerprint === this.deviceInfo.fingerprint) {
+				return
+			}
 
-			if (device) {
-				// Ignore self
-				if (device.fingerprint === this.deviceInfo.fingerprint) {
-					return
-				}
+			const discoveredDevice = { ...device, ip }
 
-				// Add to known devices
-				this.knownDevices.set(device.fingerprint, device)
+			// Add to known devices
+			this.knownDevices.set(device.fingerprint, discoveredDevice)
 
-				// Notify new device
-				if (this.onDeviceDiscoveredCallback) {
-					this.onDeviceDiscoveredCallback(device)
-				}
+			// Notify new device
+			if (this.onDeviceDiscoveredCallback) {
+				this.onDeviceDiscoveredCallback(discoveredDevice)
 			}
 		} catch (err) {
 			// Ignore errors - just means the device is not available
@@ -130,8 +105,9 @@ export class HttpDiscovery implements Discovery {
 		for (const networkInterface of Object.values(interfaces)) {
 			if (networkInterface) {
 				for (const address of networkInterface) {
+					const isIpv4 = address.family === "IPv4" || address.family === 4
 					// Only use IPv4 addresses
-					if (address.family === "IPv4" && !address.internal) {
+					if (isIpv4 && !address.internal) {
 						ips.push(address.address)
 					}
 				}
@@ -165,6 +141,93 @@ export class HttpDiscovery implements Discovery {
 		}
 
 		return targets
+	}
+
+	private async fetchDeviceInfo(ip: string): Promise<DeviceInfo | null> {
+		const protocols = this.getProtocolCandidates()
+		for (const protocol of protocols) {
+			const result = await this.fetchDeviceInfoWithProtocol(ip, protocol)
+			if (result) {
+				return {
+					...result,
+					protocol
+				}
+			}
+		}
+
+		return null
+	}
+
+	private async runWithConcurrency(
+		tasks: Array<() => Promise<void>>,
+		limit: number
+	): Promise<void> {
+		let index = 0
+		const workers = Array.from({ length: limit }, async () => {
+			while (index < tasks.length) {
+				const current = index++
+				const task = tasks[current]
+				if (task) {
+					await task()
+				}
+			}
+		})
+
+		await Promise.all(workers)
+	}
+
+	private getProtocolCandidates(): Array<"http" | "https"> {
+		const preferred = this.deviceInfo.protocol || "http"
+		if (preferred === "https") {
+			return ["https", "http"]
+		}
+		return ["http", "https"]
+	}
+
+	private async fetchDeviceInfoWithProtocol(
+		ip: string,
+		protocol: "http" | "https"
+	): Promise<DeviceInfo | null> {
+		try {
+			const controller = new AbortController()
+			const timeoutId = setTimeout(() => controller.abort(), 1000)
+			const url = `${protocol}://${ip}:${this.deviceInfo.port}/api/localsend/v2/info`
+			const options: any = {
+				method: "GET",
+				signal: controller.signal
+			}
+
+			if (protocol === "https" && this.allowInsecureTls) {
+				const isBun = typeof (globalThis as any).Bun !== "undefined"
+				if (isBun) {
+					options.tls = { rejectUnauthorized: false }
+				} else {
+					try {
+						const { Agent } = await import("undici")
+						options.dispatcher = new Agent({ connect: { rejectUnauthorized: false } })
+					} catch {
+						// Ignore if undici isn't available; fetch will use default TLS settings.
+					}
+				}
+			}
+
+			const response = await fetch(url, options)
+
+			clearTimeout(timeoutId)
+
+			if (!response.ok) {
+				return null
+			}
+
+			const data = (await response.json()) as DeviceInfo
+			return {
+				...data,
+				port: data.port ?? this.deviceInfo.port,
+				protocol
+			}
+		} catch (err) {
+			return null
+		}
 	}
 
 	/**

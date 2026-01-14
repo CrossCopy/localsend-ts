@@ -53,14 +53,15 @@ export const messageResponseSchema = v.object({
 })
 
 // Infer types from schemas
-export type DeviceInfo = v.InferInput<typeof deviceInfoSchema>
+export type DeviceInfo = v.InferInput<typeof deviceInfoSchema> & { ip?: string }
 export type FileMetadata = v.InferInput<typeof fileMetadataSchema>
 export type PrepareUploadRequest = v.InferInput<typeof prepareUploadRequestSchema>
 export type PrepareUploadResponse = v.InferInput<typeof prepareUploadResponseSchema>
 export type MessageResponse = v.InferInput<typeof messageResponseSchema>
 
 export interface AnnouncementMessage extends DeviceInfo {
-	announce: boolean
+	announce?: boolean
+	announcement?: boolean
 }
 
 export interface PrepareDownloadResponse {

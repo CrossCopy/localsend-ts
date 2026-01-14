@@ -67,6 +67,7 @@ export class LocalSendHonoServer {
 	private pin: string = ""
 	private transferRequestHandler: TransferRequestHandler | null = null
 	private transferProgressHandler: TransferProgressHandler | null = null
+	private onRegisterCallback: ((device: DeviceInfo) => void) | null = null
 	private maxRequestBodySize: number = 5 * 1024 * 1024 * 1024 // Default to 5GB
 
 	constructor(
@@ -77,6 +78,7 @@ export class LocalSendHonoServer {
 			serverAdapter?: ServerAdapter
 			onTransferRequest?: TransferRequestHandler
 			onTransferProgress?: TransferProgressHandler
+			onRegister?: (device: DeviceInfo) => void
 			maxRequestBodySize?: number
 		} = {}
 	) {
@@ -86,6 +88,7 @@ export class LocalSendHonoServer {
 		this.requirePin = !!this.pin // Only require PIN if one is provided
 		this.transferRequestHandler = options.onTransferRequest || null
 		this.transferProgressHandler = options.onTransferProgress || null
+		this.onRegisterCallback = options.onRegister || null
 		// Set max request body size if provided, otherwise use default
 		this.maxRequestBodySize = options.maxRequestBodySize || this.maxRequestBodySize
 
@@ -180,10 +183,16 @@ export class LocalSendHonoServer {
 					}
 				}
 			}),
-			validator("json", deviceInfoSchema),
 			async (c) => {
 				try {
-					const body = c.req.valid("json")
+					const body = (await c.req.json()) as Partial<DeviceInfo>
+					const remoteAddress = this.getRemoteAddress(c)
+					if (this.onRegisterCallback && remoteAddress && body?.fingerprint && body?.alias) {
+						this.onRegisterCallback({
+							...body,
+							ip: remoteAddress
+						} as DeviceInfo)
+					}
 					return c.json(this.deviceInfo)
 				} catch (err) {
 					console.error("Error parsing request body:", err)
@@ -625,6 +634,41 @@ export class LocalSendHonoServer {
 			console.error("Server error:", err)
 			return c.json({ message: "Internal server error" }, 500)
 		})
+	}
+
+	private getRemoteAddress(c: any): string | null {
+		const forwardedFor = c.req?.header?.("x-forwarded-for")
+		if (forwardedFor) {
+			return forwardedFor.split(",")[0]?.trim() || null
+		}
+
+		const raw = c.req?.raw
+		const socketAddress = raw?.socket?.remoteAddress
+		if (socketAddress) {
+			return this.normalizeRemoteAddress(socketAddress)
+		}
+
+		const server = this.server as any
+		if (server && typeof server.requestIP === "function" && raw) {
+			const addr = server.requestIP(raw)
+			if (addr && typeof addr.address === "string") {
+				return addr.address
+			}
+		}
+
+		return null
+	}
+
+	private normalizeRemoteAddress(address?: string | null): string | null {
+		if (!address) {
+			return null
+		}
+
+		if (address.startsWith("::ffff:")) {
+			return address.slice("::ffff:".length)
+		}
+
+		return address
 	}
 
 	async start(): Promise<void> {

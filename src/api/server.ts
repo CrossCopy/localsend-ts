@@ -20,6 +20,8 @@ type SessionData = {
 	receivedFiles: Set<string>
 }
 
+const DEBUG_DISCOVERY = process.env.LOCALSEND_DEBUG_DISCOVERY === "1"
+
 export class LocalSendServer {
 	private server
 	private routes: Map<string, RouteHandler> = new Map()
@@ -28,15 +30,22 @@ export class LocalSendServer {
 	private saveDirectory: string
 	private requirePin: boolean = false
 	private pin: string = ""
+	private onRegisterCallback: ((device: DeviceInfo) => void) | null = null
 
 	constructor(
 		deviceInfo: DeviceInfo,
-		options: { saveDirectory?: string; requirePin?: boolean; pin?: string } = {}
+		options: {
+			saveDirectory?: string
+			requirePin?: boolean
+			pin?: string
+			onRegister?: (device: DeviceInfo) => void
+		} = {}
 	) {
 		this.deviceInfo = deviceInfo
 		this.saveDirectory = options.saveDirectory || "./received_files"
 		this.requirePin = options.requirePin || false
 		this.pin = options.pin || ""
+		this.onRegisterCallback = options.onRegister || null
 
 		// Create save directory if it doesn't exist
 		if (!fs.existsSync(this.saveDirectory)) {
@@ -120,9 +129,36 @@ export class LocalSendServer {
 			return
 		}
 
+		const remoteAddress = this.normalizeRemoteAddress(req.socket.remoteAddress)
+		if (this.onRegisterCallback && remoteAddress) {
+			if (DEBUG_DISCOVERY) {
+				console.log("[DISCOVER/HTTP] Register request", {
+					from: remoteAddress,
+					alias: body.alias,
+					fingerprint: body.fingerprint
+				})
+			}
+			this.onRegisterCallback({
+				...body,
+				ip: remoteAddress
+			})
+		}
+
 		// Send our device info as response
 		res.setHeader("Content-Type", "application/json")
 		res.end(JSON.stringify(this.deviceInfo))
+	}
+
+	private normalizeRemoteAddress(address?: string | null): string | null {
+		if (!address) {
+			return null
+		}
+
+		if (address.startsWith("::ffff:")) {
+			return address.slice("::ffff:".length)
+		}
+
+		return address
 	}
 
 	private async handlePrepareUpload(req: IncomingMessage, res: ServerResponse) {

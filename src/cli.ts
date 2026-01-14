@@ -87,7 +87,8 @@ const main = defineCommand({
 				console.log(`Getting device info for ${targetIp}...`)
 				const targetDevice = await client.getDeviceInfo({
 					ip: targetIp,
-					port: deviceInfo.port
+					port: deviceInfo.port,
+					protocol
 				})
 
 				if (!targetDevice) {
@@ -119,11 +120,12 @@ const main = defineCommand({
 
 				// Prepare upload
 				console.log("Preparing upload...")
+				const targetProtocol = targetDevice.protocol || protocol
 				const uploadPrepare = await client.prepareUpload(
 					{
 						ip: targetIp,
 						port: deviceInfo.port,
-						protocol
+						protocol: targetProtocol
 					},
 					{ [fileId]: fileMetadata },
 					args.pin as string
@@ -131,6 +133,11 @@ const main = defineCommand({
 
 				if (!uploadPrepare) {
 					console.error("Failed to prepare upload")
+					process.exit(1)
+				}
+
+				if (!uploadPrepare.files || !uploadPrepare.files[fileId]) {
+					console.error("No file token returned. Transfer was not accepted.")
 					process.exit(1)
 				}
 
@@ -225,7 +232,7 @@ const main = defineCommand({
 					{
 						ip: targetIp,
 						port: deviceInfo.port,
-						protocol
+						protocol: targetProtocol
 					},
 					uploadPrepare.sessionId,
 					fileId,
@@ -243,7 +250,7 @@ const main = defineCommand({
 						{
 							ip: targetIp,
 							port: deviceInfo.port,
-							protocol
+							protocol: targetProtocol
 						},
 						uploadPrepare.sessionId
 					)
@@ -653,6 +660,27 @@ const main = defineCommand({
 				// Keep track of discovered devices
 				const discoveredDevices = new Map<string, any>()
 
+				// Start a lightweight server to capture register responses
+				let discoveryServer: LocalSendHonoServer | null = null
+				try {
+					discoveryServer = new LocalSendHonoServer(deviceInfo, {
+						onRegister: (device) => {
+							if (args.verbose) {
+								console.log("Device discovered via register:", device.alias)
+							}
+							discoveredDevices.set(`${device.ip}:${device.port}`, device)
+						}
+					})
+					await discoveryServer.start()
+					if (args.verbose) {
+						console.log("Discovery server started")
+					}
+				} catch (err) {
+					if (args.verbose) {
+						console.warn("Failed to start discovery server:", err)
+					}
+				}
+
 				// Start device discovery
 				const discovery = createDiscovery(deviceInfo)
 				discovery.onDeviceDiscovered((device: any) => {
@@ -666,6 +694,9 @@ const main = defineCommand({
 				if (args.verbose) {
 					console.log("Device discovery started")
 				}
+
+				// Announce our presence to trigger responses
+				discovery.announcePresence?.()
 
 				// Start HTTP discovery
 				const httpDiscovery = createScanner(deviceInfo)
@@ -685,6 +716,15 @@ const main = defineCommand({
 
 				// Stop discovery
 				discovery.stop()
+				if (discoveryServer) {
+					try {
+						await discoveryServer.stop()
+					} catch (err) {
+						if (args.verbose) {
+							console.warn("Failed to stop discovery server:", err)
+						}
+					}
+				}
 
 				// Output results
 				const devices = Array.from(discoveredDevices.values())

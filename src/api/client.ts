@@ -1,26 +1,16 @@
 import { Buffer } from "node:buffer"
-import type {
-	DeviceInfo,
-	PrepareUploadRequest,
-	PrepareUploadResponse,
-	FileMetadata
-} from "../types.ts"
+import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../types.ts"
 import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
-import {
-	getApiLocalsendV2Info,
-	postApiLocalsendV2Register,
-	postApiLocalsendV2PrepareUpload,
-	postApiLocalsendV2Cancel
-} from "../sdk/index.ts"
-import { type ClientOptions, type Client, createClient, createConfig } from "@hey-api/client-fetch"
-import { createDenoClient } from "./deno-client.ts"
 
 export class LocalSendClient {
-	private client: Client | null = null
 	private progressCallback:
 		| ((bytesUploaded: number, totalBytes: number, finished: boolean) => void)
 		| null = null
+	private allowInsecureTls =
+		process.env.LOCALSEND_INSECURE_TLS === undefined
+			? true
+			: process.env.LOCALSEND_INSECURE_TLS === "1"
 
 	constructor(private deviceInfo: DeviceInfo) {
 		// Client will be created on-demand when making requests
@@ -38,11 +28,14 @@ export class LocalSendClient {
 	/**
 	 * Register with another device (discovery)
 	 */
-	async register(targetDevice: { ip: string; port: number }): Promise<DeviceInfo | null> {
+	async register(targetDevice: {
+		ip: string
+		port: number
+		protocol?: "http" | "https"
+	}): Promise<DeviceInfo | null> {
 		try {
-			const client = this.createClientForTarget(targetDevice)
-			const { data } = await postApiLocalsendV2Register({
-				client,
+			const device = await this.requestJson<DeviceInfo>(targetDevice, "/api/localsend/v2/register", {
+				method: "POST",
 				body: {
 					...this.deviceInfo,
 					deviceModel: this.deviceInfo.deviceModel || "",
@@ -50,7 +43,7 @@ export class LocalSendClient {
 				}
 			})
 
-			return data as DeviceInfo
+			return this.normalizeDeviceInfo(device, targetDevice)
 		} catch (err) {
 			console.error("Error registering with device:", err)
 			return null
@@ -66,8 +59,6 @@ export class LocalSendClient {
 		pin?: string
 	): Promise<PrepareUploadResponse | null> {
 		try {
-			const client = this.createClientForTarget(targetDevice)
-
 			// Ensure the data conforms to the expected types
 			const deviceInfo = {
 				...this.deviceInfo,
@@ -97,16 +88,31 @@ export class LocalSendClient {
 				}
 			})
 
-			const { data } = await postApiLocalsendV2PrepareUpload({
-				client,
-				body: {
-					info: deviceInfo,
-					files: convertedFiles
-				},
-				query: pin ? { pin } : undefined
-			})
+			const result = await this.requestWithStatus<PrepareUploadResponse>(
+				targetDevice,
+				"/api/localsend/v2/prepare-upload",
+				{
+					method: "POST",
+					body: {
+						info: deviceInfo,
+						files: convertedFiles
+					},
+					query: pin ? { pin } : undefined
+				}
+			)
 
-			return data as PrepareUploadResponse
+			if (!result) {
+				return null
+			}
+
+			if (result.status === 204) {
+				return {
+					sessionId: "",
+					files: {}
+				}
+			}
+
+			return result.data
 		} catch (err) {
 			console.error("Error preparing upload:", err)
 			return null
@@ -168,14 +174,16 @@ export class LocalSendClient {
 					const blob = new Blob(chunks)
 
 					// Upload the chunk
-					const response = await fetch(baseUrl, {
+					const fetchOptions: any = {
 						method: "POST",
 						headers: {
 							"Content-Length": chunkSize.toString(),
 							"X-Content-Range": `bytes ${offset}-${end - 1}/${stats.size}`
 						},
 						body: blob
-					})
+					}
+					this.applyTlsOptions(fetchOptions, targetDevice.protocol)
+					const response = await fetch(baseUrl, fetchOptions)
 
 					if (!response.ok) {
 						console.error(
@@ -210,13 +218,15 @@ export class LocalSendClient {
 					this.progressCallback(0, stats.size, false)
 				}
 
-				const response = await fetch(baseUrl, {
+				const fetchOptions: any = {
 					method: "POST",
 					headers: {
 						"Content-Length": stats.size.toString()
 					},
 					body: blob
-				})
+				}
+				this.applyTlsOptions(fetchOptions, targetDevice.protocol)
+				const response = await fetch(baseUrl, fetchOptions)
 
 				// Call progress callback after upload
 				if (this.progressCallback) {
@@ -239,15 +249,19 @@ export class LocalSendClient {
 		sessionId: string
 	): Promise<boolean> {
 		try {
-			const client = this.createClientForTarget(targetDevice)
-			const { data } = await postApiLocalsendV2Cancel({
-				client,
-				query: {
-					sessionId
+			const response = await this.requestJson<unknown>(
+				targetDevice,
+				"/api/localsend/v2/cancel",
+				{
+					method: "POST",
+					query: {
+						sessionId
+					},
+					expectJson: false
 				}
-			})
+			)
 
-			return !!data
+			return response !== null
 		} catch (err) {
 			console.error("Error canceling session:", err)
 			return false
@@ -257,41 +271,180 @@ export class LocalSendClient {
 	/**
 	 * Get information about a device
 	 */
-	async getDeviceInfo(targetDevice: { ip: string; port: number }): Promise<DeviceInfo | null> {
+	async getDeviceInfo(targetDevice: {
+		ip: string
+		port: number
+		protocol?: "http" | "https"
+	}): Promise<DeviceInfo | null> {
 		try {
-			const client = this.createClientForTarget(targetDevice)
-			const { data } = await getApiLocalsendV2Info({
-				client
-			})
+			const candidates = this.getProtocolCandidates(targetDevice.protocol)
+			for (const protocol of candidates) {
+				const device = await this.requestJson<DeviceInfo>(
+					{
+						...targetDevice,
+						protocol
+					},
+					"/api/localsend/v2/info",
+					{
+						method: "GET"
+					}
+				)
 
-			return data as DeviceInfo
+				const normalized = this.normalizeDeviceInfo(device, {
+					...targetDevice,
+					protocol
+				})
+				if (normalized) {
+					return normalized
+				}
+			}
+
+			return null
 		} catch (err) {
 			console.error("Error getting device info:", err)
 			return null
 		}
 	}
 
-	/**
-	 * Create a client for a specific target device
-	 */
-	private createClientForTarget(targetDevice: {
-		ip: string
-		port: number
-		protocol?: "http" | "https"
-	}): Client {
-		const protocol = targetDevice.protocol || "http"
-		const baseUrl = `${protocol}://${targetDevice.ip}:${targetDevice.port}`
+	private getProtocolCandidates(
+		preferred?: "http" | "https"
+	): Array<"http" | "https"> {
+		if (preferred === "https") {
+			return ["https", "http"]
+		}
+		if (preferred === "http") {
+			return ["http", "https"]
+		}
+		return ["https", "http"]
+	}
 
-		// Use Deno client if running in Deno
-		// @ts-ignore - Deno exists in Deno environment
-		if (typeof Deno !== "undefined") {
-			return createDenoClient(baseUrl)
+	private normalizeDeviceInfo(
+		device: DeviceInfo | null,
+		targetDevice: { port: number; protocol?: "http" | "https" }
+	): DeviceInfo | null {
+		if (!device) {
+			return null
 		}
 
-		return createClient(
-			createConfig<ClientOptions>({
-				baseUrl
-			})
-		)
+		return {
+			...device,
+			port: device.port ?? targetDevice.port,
+			protocol: device.protocol ?? targetDevice.protocol ?? "http"
+		}
+	}
+
+	private async requestJson<T>(
+		targetDevice: { ip: string; port: number; protocol?: "http" | "https" },
+		path: string,
+		options: {
+			method: "GET" | "POST"
+			body?: unknown
+			query?: Record<string, string>
+			expectJson?: boolean
+		}
+	): Promise<T | null> {
+		const protocol = targetDevice.protocol || this.deviceInfo.protocol || "http"
+		const url = new URL(`${protocol}://${targetDevice.ip}:${targetDevice.port}${path}`)
+		if (options.query) {
+			for (const [key, value] of Object.entries(options.query)) {
+				if (value !== undefined && value !== null) {
+					url.searchParams.set(key, value)
+				}
+			}
+		}
+
+		const fetchOptions: any = {
+			method: options.method,
+			headers: {
+				"Content-Type": "application/json"
+			}
+		}
+
+		if (options.body !== undefined) {
+			fetchOptions.body = JSON.stringify(options.body)
+		}
+
+		this.applyTlsOptions(fetchOptions, protocol)
+
+		const response = await fetch(url.toString(), fetchOptions)
+
+		if (!response.ok) {
+			return null
+		}
+
+		if (options.expectJson === false) {
+			return {} as T
+		}
+
+		return (await response.json()) as T
+	}
+
+	private async requestWithStatus<T>(
+		targetDevice: { ip: string; port: number; protocol?: "http" | "https" },
+		path: string,
+		options: {
+			method: "GET" | "POST"
+			body?: unknown
+			query?: Record<string, string>
+		}
+	): Promise<{ status: number; data: T | null } | null> {
+		const protocol = targetDevice.protocol || this.deviceInfo.protocol || "http"
+		const url = new URL(`${protocol}://${targetDevice.ip}:${targetDevice.port}${path}`)
+		if (options.query) {
+			for (const [key, value] of Object.entries(options.query)) {
+				if (value !== undefined && value !== null) {
+					url.searchParams.set(key, value)
+				}
+			}
+		}
+
+		const fetchOptions: any = {
+			method: options.method,
+			headers: {
+				"Content-Type": "application/json"
+			}
+		}
+
+		if (options.body !== undefined) {
+			fetchOptions.body = JSON.stringify(options.body)
+		}
+
+		this.applyTlsOptions(fetchOptions, protocol)
+
+		const response = await fetch(url.toString(), fetchOptions)
+		if (!response.ok) {
+			return null
+		}
+
+		if (response.status === 204) {
+			return { status: response.status, data: null }
+		}
+
+		const contentType = response.headers.get("content-type") || ""
+		if (!contentType.includes("application/json")) {
+			return { status: response.status, data: null }
+		}
+
+		const data = (await response.json()) as T
+		return { status: response.status, data }
+	}
+
+	private applyTlsOptions(options: any, protocol: "http" | "https"): void {
+		if (protocol !== "https" || !this.allowInsecureTls) {
+			return
+		}
+
+		const isBun = typeof (globalThis as any).Bun !== "undefined"
+		if (isBun) {
+			options.tls = { rejectUnauthorized: false }
+			return
+		}
+
+		try {
+			const { Agent } = require("undici")
+			options.dispatcher = new Agent({ connect: { rejectUnauthorized: false } })
+		} catch {
+			// Ignore if undici is not available.
+		}
 	}
 }

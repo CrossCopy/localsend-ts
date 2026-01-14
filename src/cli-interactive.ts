@@ -150,6 +150,19 @@ class InteractiveLocalSend {
 		
 		this.discoveredDevices.clear()
 
+		let discoveryServer: LocalSendHonoServer | null = null
+		try {
+			discoveryServer = new LocalSendHonoServer(this.deviceInfo, {
+				onRegister: (device) => {
+					console.log(`📱 Found: ${device.alias} (${device.ip}:${device.port})`)
+					this.discoveredDevices.set(`${device.ip}:${device.port}`, device)
+				}
+			})
+			await discoveryServer.start()
+		} catch (err) {
+			console.warn("Failed to start discovery server:", err)
+		}
+
 		// Start device discovery
 		const discovery = createDiscovery(this.deviceInfo)
 		discovery.onDeviceDiscovered((device: DeviceInfo) => {
@@ -158,6 +171,7 @@ class InteractiveLocalSend {
 		})
 
 		await discovery.start()
+		discovery.announcePresence?.()
 
 		// Start HTTP discovery
 		const httpDiscovery = createScanner(this.deviceInfo)
@@ -174,6 +188,13 @@ class InteractiveLocalSend {
 
 		// Stop discovery
 		discovery.stop()
+		if (discoveryServer) {
+			try {
+				await discoveryServer.stop()
+			} catch (err) {
+				console.warn("Failed to stop discovery server:", err)
+			}
+		}
 
 		const devices = Array.from(this.discoveredDevices.values())
 		
@@ -295,12 +316,14 @@ class InteractiveLocalSend {
 			const fileSize = fileStats.length
 			const fileHash = createHash("sha256").update(fileStats).digest("hex")
 
+			const previewText = isTextMessage ? fileStats.toString("utf8") : undefined
 			const fileMetadata: FileMetadata = {
 				id: fileId,
 				fileName: isTextMessage ? `message.txt` : fileName,
 				size: fileSize,
 				fileType: isTextMessage ? "text/plain" : "application/octet-stream",
 				sha256: fileHash,
+				preview: previewText,
 				metadata: {
 					modified: new Date().toISOString()
 				}
@@ -315,7 +338,7 @@ class InteractiveLocalSend {
 				{
 					ip: targetDevice.ip!,
 					port: targetDevice.port,
-					protocol: "http"
+					protocol: targetDevice.protocol || "https"
 				},
 				{ [fileId]: fileMetadata },
 				pin
@@ -323,6 +346,18 @@ class InteractiveLocalSend {
 
 			if (!uploadPrepare) {
 				console.log('❌ Failed to prepare upload. Check if the device is reachable and PIN is correct.')
+				await this.question('Press Enter to return to main menu...')
+				return
+			}
+
+			if (Object.keys(uploadPrepare.files || {}).length === 0) {
+				if (isTextMessage) {
+					console.log('✅ Text message delivered (no file upload required).')
+					await this.question('Press Enter to return to main menu...')
+					return
+				}
+
+				console.log('❌ No file tokens returned. Transfer was not accepted.')
 				await this.question('Press Enter to return to main menu...')
 				return
 			}
@@ -389,15 +424,22 @@ class InteractiveLocalSend {
 			})
 
 			// Upload file
+			const fileToken = uploadPrepare.files[fileId]
+			if (!fileToken) {
+				console.log('❌ File token missing for upload. Transfer was not accepted.')
+				await this.question('Press Enter to return to main menu...')
+				return
+			}
+
 			const success = await client.uploadFile(
 				{
 					ip: targetDevice.ip!,
 					port: targetDevice.port,
-					protocol: "http"
+					protocol: targetDevice.protocol || "https"
 				},
 				uploadPrepare.sessionId,
 				fileId,
-				uploadPrepare.files[fileId],
+				fileToken,
 				filePath
 			)
 

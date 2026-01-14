@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { render, Text, Box, useInput, useApp } from 'ink'
 import { defineCommand, runMain } from "citty"
-import { getDeviceInfo, LocalSendHonoServer } from "./index.ts"
+import { getDeviceInfo, LocalSendClient, LocalSendHonoServer } from "./index.ts"
 import { createDiscovery, createScanner } from "./discovery/runtime.ts"
-import type { DeviceInfo } from "./index.ts"
+import type { DeviceInfo, FileMetadata } from "./index.ts"
 import prettyBytes from "pretty-bytes"
+import { createHash } from "node:crypto"
+import { readFile, stat, writeFile, unlink } from "node:fs/promises"
+import path from "node:path"
+import os from "node:os"
 
 // Extended DeviceInfo with IP for discovered devices
 interface DiscoveredDevice extends DeviceInfo {
@@ -26,6 +30,9 @@ interface AppState {
 	sendMode: SendMode | null
 	textInput: string
 	fileInput: string
+	isSending: boolean
+	statusMessage: string | null
+	statusLevel: 'info' | 'success' | 'error' | null
 	isReceiving: boolean
 	receivedFiles: Array<{
 		fileName: string
@@ -51,25 +58,42 @@ const Header: React.FC<{ title: string; deviceName: string; port: number }> = ({
 	</Box>
 )
 
-const StatusBar: React.FC<{ isScanning: boolean; lastScanTime: Date | null; deviceCount: number }> = ({ 
+const StatusBar: React.FC<{
+	isScanning: boolean
+	lastScanTime: Date | null
+	deviceCount: number
+	statusMessage?: string | null
+	statusLevel?: 'info' | 'success' | 'error' | null
+}> = ({
 	isScanning, 
 	lastScanTime, 
-	deviceCount 
-}) => (
-	<Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={1}>
-		<Text>
-			Status: <Text color={isScanning ? "yellow" : "green"}>
-				{isScanning ? "🔍 Scanning..." : "✓ Ready"}
+	deviceCount,
+	statusMessage,
+	statusLevel
+}) => {
+	const statusColor = statusLevel === 'error' ? 'red' : statusLevel === 'success' ? 'green' : 'yellow'
+
+	return (
+		<Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={1} flexDirection="column">
+			<Text>
+				Status: <Text color={isScanning ? "yellow" : "green"}>
+					{isScanning ? "🔍 Scanning..." : "✓ Ready"}
+				</Text>
+				{" | "}
+				Devices: <Text color="cyan">{deviceCount}</Text>
+				{" | "}
+				Last scan: <Text color="gray">
+					{lastScanTime ? lastScanTime.toLocaleTimeString() : "Never"}
+				</Text>
 			</Text>
-			{" | "}
-			Devices: <Text color="cyan">{deviceCount}</Text>
-			{" | "}
-			Last scan: <Text color="gray">
-				{lastScanTime ? lastScanTime.toLocaleTimeString() : "Never"}
-			</Text>
-		</Text>
-	</Box>
-)
+			{statusMessage ? (
+				<Text color={statusColor}>
+					{statusMessage}
+				</Text>
+			) : null}
+		</Box>
+	)
+}
 
 const DeviceList: React.FC<{ 
 	devices: DiscoveredDevice[]
@@ -248,6 +272,9 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 		sendMode: null,
 		textInput: '',
 		fileInput: '',
+		isSending: false,
+		statusMessage: null,
+		statusLevel: null,
 		isReceiving: false,
 		receivedFiles: []
 	})
@@ -257,6 +284,103 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 	const [httpDiscovery, setHttpDiscovery] = useState<any>(null)
 	const [server, setServer] = useState<LocalSendHonoServer | null>(null)
 	const [scanInterval, setScanInterval] = useState<NodeJS.Timeout | null>(null)
+	const previousScreenRef = useRef<Screen>(state.screen)
+
+	const setStatus = useCallback((message: string | null, level: 'info' | 'success' | 'error' | null) => {
+		setState(prev => ({ ...prev, statusMessage: message, statusLevel: level }))
+	}, [])
+
+	const sendFileToDevice = useCallback(async (device: DiscoveredDevice, filePath: string, isTextMessage: boolean) => {
+		const client = new LocalSendClient(state.deviceInfo)
+		const fileId = createHash("md5").update(filePath).digest("hex")
+		const fileName = isTextMessage ? "message.txt" : path.basename(filePath)
+		const fileBuffer = await readFile(filePath)
+		const fileSize = fileBuffer.length
+		const fileHash = createHash("sha256").update(fileBuffer).digest("hex")
+		const previewText = isTextMessage ? fileBuffer.toString("utf8") : undefined
+
+		const fileMetadata: FileMetadata = {
+			id: fileId,
+			fileName,
+			size: fileSize,
+			fileType: isTextMessage ? "text/plain" : "application/octet-stream",
+			sha256: fileHash,
+			preview: previewText,
+			metadata: {
+				modified: new Date().toISOString()
+			}
+		}
+
+		const targetProtocol = device.protocol || "https"
+		const uploadPrepare = await client.prepareUpload(
+			{
+				ip: device.ip,
+				port: device.port,
+				protocol: targetProtocol
+			},
+			{ [fileId]: fileMetadata }
+		)
+
+		if (!uploadPrepare) {
+			return { ok: false, message: "Failed to prepare upload" }
+		}
+
+		const fileToken = uploadPrepare.files?.[fileId]
+		if (!fileToken) {
+			if (isTextMessage) {
+				return { ok: true, message: "Text message delivered" }
+			}
+			return { ok: false, message: "No file token returned" }
+		}
+
+		const success = await client.uploadFile(
+			{
+				ip: device.ip,
+				port: device.port,
+				protocol: targetProtocol
+			},
+			uploadPrepare.sessionId,
+			fileId,
+			fileToken,
+			filePath
+		)
+
+		return success ? { ok: true, message: "File sent successfully" } : { ok: false, message: "Upload failed" }
+	}, [state.deviceInfo])
+
+	const sendTextMessage = useCallback(async (device: DiscoveredDevice, message: string) => {
+		setState(prev => ({ ...prev, isSending: true }))
+		setStatus("Sending message...", "info")
+		const tempFilePath = path.join(os.tmpdir(), `localsend-message-${Date.now()}.txt`)
+
+		try {
+			await writeFile(tempFilePath, message)
+			const result = await sendFileToDevice(device, tempFilePath, true)
+			setStatus(result.message, result.ok ? "success" : "error")
+		} catch {
+			setStatus("Failed to send message", "error")
+		} finally {
+			try {
+				await unlink(tempFilePath)
+			} catch {}
+			setState(prev => ({ ...prev, isSending: false }))
+		}
+	}, [sendFileToDevice, setStatus])
+
+	const sendFileFromPath = useCallback(async (device: DiscoveredDevice, filePath: string) => {
+		setState(prev => ({ ...prev, isSending: true }))
+		setStatus("Sending file...", "info")
+
+		try {
+			await stat(filePath)
+			const result = await sendFileToDevice(device, filePath, false)
+			setStatus(result.message, result.ok ? "success" : "error")
+		} catch {
+			setStatus("File not found or inaccessible", "error")
+		} finally {
+			setState(prev => ({ ...prev, isSending: false }))
+		}
+	}, [sendFileToDevice, setStatus])
 
 	// Device scanning
 	const startScanning = useCallback(async () => {
@@ -286,6 +410,7 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 			})
 
 			await disc.start()
+			disc.announcePresence?.()
 			setDiscovery(disc)
 
 			// Start HTTP discovery
@@ -324,6 +449,85 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 		}
 	}, [state.deviceInfo, state.isScanning])
 
+	const startReceiver = useCallback(async () => {
+		if (server || state.isReceiving) {
+			return
+		}
+
+		setStatus("Starting receiver...", "info")
+
+		try {
+			const receiver = new LocalSendHonoServer(state.deviceInfo, {
+				saveDirectory: "./received_files",
+				onTransferRequest: async (senderInfo, files) => {
+					const fileCount = Object.keys(files).length
+					setStatus(
+						`Incoming transfer from ${senderInfo.alias} (${fileCount} file${fileCount === 1 ? "" : "s"})`,
+						"info"
+					)
+					return true
+				},
+				onTransferProgress: async (fileId, fileName, received, total, speed, finished, transferInfo) => {
+					if (finished && transferInfo) {
+						setState(prev => ({
+							...prev,
+							receivedFiles: [
+								...prev.receivedFiles,
+								{
+									fileName,
+									size: total,
+									time: new Date().toLocaleTimeString(),
+									type: fileName.split('.').pop() || 'file'
+								}
+							]
+						}))
+						setStatus(`Received ${fileName}`, "success")
+					}
+				}
+			})
+
+			await receiver.start()
+			setServer(receiver)
+			setState(prev => ({ ...prev, isReceiving: true }))
+			setStatus("Receiver started", "success")
+
+			if (discovery) {
+				discovery.announcePresence?.()
+			}
+		} catch (error) {
+			setStatus("Failed to start receiver", "error")
+		}
+	}, [discovery, server, setStatus, state.deviceInfo, state.isReceiving])
+
+	const stopReceiver = useCallback(async () => {
+		if (!server) {
+			setState(prev => ({ ...prev, isReceiving: false }))
+			return
+		}
+
+		setStatus("Stopping receiver...", "info")
+		try {
+			await server.stop()
+		} catch {
+			// Ignore stop errors
+		}
+		setServer(null)
+		setState(prev => ({ ...prev, isReceiving: false }))
+		setStatus("Receiver stopped", "success")
+	}, [server, setStatus])
+
+	useEffect(() => {
+		const previousScreen = previousScreenRef.current
+
+		if (state.screen === 'receive' && previousScreen !== 'receive') {
+			void startReceiver()
+		} else if (previousScreen === 'receive' && state.screen !== 'receive') {
+			void stopReceiver()
+		}
+
+		previousScreenRef.current = state.screen
+	}, [state.screen, startReceiver, stopReceiver])
+
 	const stopScanning = useCallback(() => {
 		if (discovery) {
 			discovery.stop()
@@ -341,11 +545,16 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 		startScanning()
 		return () => {
 			stopScanning()
+			if (server) {
+				server.stop().catch(() => {})
+			}
 		}
 	}, [])
 
 	// Input handling
 	useInput((input, key) => {
+		const selectedDevice =
+			state.devices.length > 0 ? state.devices[state.selectedDeviceIndex] : null
 		// Global shortcuts
 		if (input === 'q' && state.screen === 'main') {
 			exit()
@@ -415,9 +624,15 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 				break
 
 			case 'send-text':
-				if (key.return && state.textInput.trim()) {
-					// Send text logic here
+				if (key.return && state.textInput.trim() && !state.isSending) {
+					if (!selectedDevice) {
+						setStatus("No device selected", "error")
+						setState(prev => ({ ...prev, screen: 'main' }))
+						return
+					}
+					const message = state.textInput.trim()
 					setState(prev => ({ ...prev, textInput: '', screen: 'main' }))
+					void sendTextMessage(selectedDevice, message)
 				} else if (key.backspace) {
 					setState(prev => ({ ...prev, textInput: prev.textInput.slice(0, -1) }))
 				} else if (input && !key.ctrl) {
@@ -426,9 +641,15 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 				break
 
 			case 'send-file':
-				if (key.return && state.fileInput.trim()) {
-					// Send file logic here
+				if (key.return && state.fileInput.trim() && !state.isSending) {
+					if (!selectedDevice) {
+						setStatus("No device selected", "error")
+						setState(prev => ({ ...prev, screen: 'main' }))
+						return
+					}
+					const filePath = state.fileInput.trim()
 					setState(prev => ({ ...prev, fileInput: '', screen: 'main' }))
+					void sendFileFromPath(selectedDevice, filePath)
 				} else if (key.backspace) {
 					setState(prev => ({ ...prev, fileInput: prev.fileInput.slice(0, -1) }))
 				} else if (input && !key.ctrl) {
@@ -438,7 +659,11 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 
 			case 'receive':
 				if (input === 'r') {
-					setState(prev => ({ ...prev, isReceiving: !prev.isReceiving }))
+					if (state.isReceiving) {
+						void stopReceiver()
+					} else {
+						void startReceiver()
+					}
 				}
 				break
 		}
@@ -515,6 +740,8 @@ const LocalSendTUI: React.FC<{ initialPort?: number; initialAlias?: string }> = 
 				isScanning={state.isScanning}
 				lastScanTime={state.lastScanTime}
 				deviceCount={state.devices.length}
+				statusMessage={state.statusMessage}
+				statusLevel={state.statusLevel}
 			/>
 		</Box>
 	)
