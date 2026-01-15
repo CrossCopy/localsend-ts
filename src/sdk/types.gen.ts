@@ -27,16 +27,7 @@ export type GetApiLocalsendV2InfoResponse =
 	GetApiLocalsendV2InfoResponses[keyof GetApiLocalsendV2InfoResponses]
 
 export type PostApiLocalsendV2RegisterData = {
-	body?: {
-		alias: string
-		version: string
-		deviceModel: string | null
-		deviceType: ("mobile" | "desktop" | "web" | "headless" | "server") | null
-		fingerprint: string
-		port: number
-		protocol: "http" | "https"
-		download: boolean
-	}
+	body?: never
 	path?: never
 	query?: never
 	url: "/api/localsend/v2/register"

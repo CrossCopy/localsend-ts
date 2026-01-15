@@ -12,6 +12,9 @@ export { HttpDiscovery } from "./discovery/http-discovery.ts"
 export { LocalSendServer } from "./api/server.ts"
 export { LocalSendHonoServer } from "./api/hono-server.ts"
 export { LocalSendClient } from "./api/client.ts"
+export { LocalSendRpcClient } from "./hono-rpc.ts"
+export type { LocalSendClientOptions } from "./hono-rpc.ts"
+export type { LocalSendAppType } from "./api/hono-server.ts"
 
 // Export server adapters - fix by using explicit import and export
 import {

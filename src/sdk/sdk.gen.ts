@@ -64,11 +64,7 @@ export const postApiLocalsendV2Register = <ThrowOnError extends boolean = false>
 		ThrowOnError
 	>({
 		url: "/api/localsend/v2/register",
-		...options,
-		headers: {
-			"Content-Type": "application/json",
-			...options?.headers
-		}
+		...options
 	})
 }
 

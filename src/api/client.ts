@@ -170,9 +170,15 @@ export class LocalSendClient {
 					const fileStream = createReadStream(filePath, { start: offset, end: end - 1 })
 
 					// Read the chunk into a buffer
-					const chunks: Uint8Array[] = []
+					const chunks: BlobPart[] = []
 					for await (const chunk of fileStream) {
-						chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk))
+						const uint8Array = chunk instanceof Uint8Array ? chunk : Buffer.from(chunk)
+						chunks.push(
+							uint8Array.buffer.slice(
+								uint8Array.byteOffset,
+								uint8Array.byteOffset + uint8Array.byteLength
+							)
+						)
 					}
 
 					const blob = new Blob(chunks)
@@ -210,9 +216,15 @@ export class LocalSendClient {
 			} else {
 				// For smaller files, use a single request
 				const fileStream = createReadStream(filePath)
-				const chunks: Uint8Array[] = []
+				const chunks: BlobPart[] = []
 				for await (const chunk of fileStream) {
-					chunks.push(chunk instanceof Uint8Array ? chunk : Buffer.from(chunk))
+					const uint8Array = chunk instanceof Uint8Array ? chunk : Buffer.from(chunk)
+					chunks.push(
+						uint8Array.buffer.slice(
+							uint8Array.byteOffset,
+							uint8Array.byteOffset + uint8Array.byteLength
+						)
+					)
 				}
 
 				const blob = new Blob(chunks)
