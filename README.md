@@ -1,4 +1,9 @@
+
 # localsend-ts
+
+<div align="center">
+  <img src="./localsend-ts.jpeg" alt="LocalSend TypeScript Banner" width="80%">
+</div>
 
 [![NPM Version](https://img.shields.io/npm/v/localsend)](https://www.npmjs.com/package/localsend)
 [![JSR](https://jsr.io/badges/@crosscopy/localsend)](https://jsr.io/@crosscopy/localsend)
