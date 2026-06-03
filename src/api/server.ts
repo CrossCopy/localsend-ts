@@ -10,6 +10,7 @@ import { DEFAULT_CONFIG } from "../config.ts"
 import { randomBytes } from "node:crypto"
 import path from "node:path"
 import fs from "node:fs"
+import { safeJoinReceivePath } from "../utils/path-safety.ts"
 
 type RouteHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>
 type SessionData = {
@@ -258,7 +259,7 @@ export class LocalSendServer {
 
 		try {
 			// Create file path
-			const filePath = path.join(this.saveDirectory, fileMetadata.fileName)
+			const filePath = safeJoinReceivePath(this.saveDirectory, fileMetadata.fileName)
 
 			// Ensure the directory exists (create all parent directories if they don't)
 			const dirPath = path.dirname(filePath)

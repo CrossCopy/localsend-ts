@@ -23,6 +23,7 @@ import * as v from "valibot"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import { bodyLimit } from "hono/body-limit"
 import type { Context } from "hono"
+import { safeJoinReceivePath } from "../utils/path-safety.ts"
 
 export interface LocalSendContext {
 	deviceInfo: DeviceInfo
@@ -273,7 +274,7 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 				}
 
 				try {
-					const filePath = path.join(ctx.saveDirectory, fileMetadata.fileName)
+					const filePath = safeJoinReceivePath(ctx.saveDirectory, fileMetadata.fileName)
 
 					const dirPath = path.dirname(filePath)
 					if (!fs.existsSync(dirPath)) {
