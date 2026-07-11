@@ -159,4 +159,4 @@ spins up a real server (via `test/helpers/harness.ts`) for end-to-end checks. Ex
 - **Multicast**: 224.0.0.167:53317
 - **Default port**: 53317
 - **Authentication**: PIN-based (optional, server-configured)
-- **Chunked uploads**: Files >50MB split into 10MB chunks with Content-Range header
+- **Uploads**: Whole-file POST in one request (no Content-Range chunking)
