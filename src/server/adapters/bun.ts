@@ -8,16 +8,21 @@ export class BunServerAdapter implements ServerAdapter {
 		port: number
 		fetch: Function
 		maxRequestBodySize?: number
+		tls?: { cert: string; key: string }
 	}): Promise<unknown> {
 		try {
-			// @ts-ignore - Bun specific API
-			return Bun.serve({
+			const config: any = {
 				port: options.port,
 				fetch: options.fetch as any,
 				// Set a high max request body size to handle large files
 				// Default to 1GB if not specified
 				maxRequestBodySize: options.maxRequestBodySize || 1024 * 1024 * 1024
-			})
+			}
+			if (options.tls) {
+				config.tls = { cert: options.tls.cert, key: options.tls.key }
+			}
+			// @ts-ignore - Bun specific API
+			return Bun.serve(config)
 		} catch (error) {
 			console.error("Error starting Bun server:", error)
 			throw error
