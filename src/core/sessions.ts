@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto"
 import type { DeviceInfo, FileMetadata } from "../protocol/types.ts"
+import type { StagedFile } from "./files.ts"
 
 export type UploadSession = {
 	info: DeviceInfo
@@ -46,6 +47,32 @@ export class UploadSessionStore {
 		const allDone = s.receivedFiles.size === s.acceptedFiles.length
 		if (allDone) this.sessions.delete(sessionId)
 		return { allDone }
+	}
+
+	delete(sessionId: string): void {
+		this.sessions.delete(sessionId)
+	}
+}
+
+export type DownloadSession = { files: Record<string, StagedFile>; createdAt: number }
+
+export class DownloadSessionStore {
+	private sessions = new Map<string, DownloadSession>()
+
+	create(files: StagedFile[]): string {
+		const sessionId = randomBytes(16).toString("hex")
+		const map: Record<string, StagedFile> = {}
+		for (const f of files) map[f.fileId] = f
+		this.sessions.set(sessionId, { files: map, createdAt: Date.now() })
+		return sessionId
+	}
+
+	get(sessionId: string): DownloadSession | undefined {
+		return this.sessions.get(sessionId)
+	}
+
+	getFile(sessionId: string, fileId: string): StagedFile | undefined {
+		return this.sessions.get(sessionId)?.files[fileId]
 	}
 
 	delete(sessionId: string): void {

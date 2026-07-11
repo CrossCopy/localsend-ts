@@ -6,6 +6,8 @@ import { stat } from "node:fs/promises"
 import path from "node:path"
 import type { FileMetadata } from "../protocol/types.ts"
 
+export type StagedFile = { fileId: string; metadata: FileMetadata; absolutePath: string }
+
 export function sanitizeFilename(name: string): string {
 	const base = path.basename(name)
 	if (base === "" || base === "." || base === "..") return "unnamed_file"
@@ -120,4 +122,9 @@ export function buildFileMetadataFromBytes(
 		metadata
 	}
 	return { fileId, fileMetadata }
+}
+
+export async function stageFile(filePath: string): Promise<StagedFile> {
+	const { fileId, fileMetadata } = await buildFileMetadataFromPath(filePath)
+	return { fileId, metadata: fileMetadata, absolutePath: path.resolve(filePath) }
 }
