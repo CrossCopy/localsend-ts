@@ -33,21 +33,24 @@
 ## Task 3.1: DownloadSessionStore + StagedFile + staging util (core)
 
 **Files:**
+
 - Modify: `src/core/sessions.ts` (add `StagedFile`, `DownloadSessionStore`)
 - Modify: `src/core/files.ts` (add `stageFile`)
 - Test: `test/unit/download-sessions.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
 ```ts
 type StagedFile = { fileId: string; metadata: FileMetadata; absolutePath: string }
 class DownloadSessionStore {
-	create(files: StagedFile[]): string                        // returns sessionId (32-hex)
+	create(files: StagedFile[]): string // returns sessionId (32-hex)
 	get(sessionId: string): { files: Record<string, StagedFile>; createdAt: number } | undefined
 	getFile(sessionId: string, fileId: string): StagedFile | undefined
 	delete(sessionId: string): void
 }
-async function stageFile(filePath: string): Promise<StagedFile>  // builds metadata + absolutePath
+async function stageFile(filePath: string): Promise<StagedFile> // builds metadata + absolutePath
 ```
 
 - [ ] **Step 1: Write `test/unit/download-sessions.test.ts`**
@@ -106,6 +109,7 @@ export async function stageFile(filePath: string): Promise<StagedFile> {
 	return { fileId, metadata: fileMetadata, absolutePath: path.resolve(filePath) }
 }
 ```
+
 (`path` and `buildFileMetadataFromPath` are already imported/defined in this file.)
 
 - [ ] **Step 4: Add `DownloadSessionStore` to `src/core/sessions.ts`** (import `StagedFile` from `./files.ts`)
@@ -139,10 +143,12 @@ export class DownloadSessionStore {
 	}
 }
 ```
+
 (`randomBytes` is already imported in sessions.ts.)
 
 - [ ] **Step 5: Run — verify PASS.** Run: `bun test test/unit/download-sessions.test.ts` → 2 pass.
 - [ ] **Step 6:** `bun run check-types && bun test`; `bun run format`; commit:
+
 ```bash
 git add src/core/sessions.ts src/core/files.ts test/unit/download-sessions.test.ts
 git commit -m "feat: add StagedFile, stageFile, and DownloadSessionStore to core"
@@ -153,11 +159,13 @@ git commit -m "feat: add StagedFile, stageFile, and DownloadSessionStore to core
 ## Task 3.2: prepare-download + download handlers + server staging wiring
 
 **Files:**
+
 - Modify: `src/server/routes.ts` (context fields + two handlers)
 - Modify: `src/server/server.ts` (staging option, wire ctx)
 - Test: `test/conformance/download.test.ts`
 
 **Interfaces:**
+
 - Consumes: `DownloadSessionStore`, `StagedFile`, `stageFile`.
 - Produces: `LocalSendServer` option `sharedFiles?: string[]`; `LocalSendContext` gains `sharedFiles: StagedFile[]` and `downloads: DownloadSessionStore`. Routes: `POST /api/localsend/v2/prepare-download`, `GET /api/localsend/v2/download`.
 
@@ -281,7 +289,8 @@ test("prepare-download requires correct PIN", async () => {
 	}
 )
 ```
-  (`fs`, `v`, `describeRoute`, `resolver`, `validator`, `messageResponseSchema`, `FileMetadata` are already imported in routes.ts. Add imports for `StagedFile`/`DownloadSessionStore` types.)
+
+(`fs`, `v`, `describeRoute`, `resolver`, `validator`, `messageResponseSchema`, `FileMetadata` are already imported in routes.ts. Add imports for `StagedFile`/`DownloadSessionStore` types.)
 
 - [ ] **Step 4: Wire staging in `src/server/server.ts`**
   - Add constructor option `sharedFiles?: string[]`; store `this.sharedFilePaths = options.sharedFiles ?? []`.
@@ -291,6 +300,7 @@ test("prepare-download requires correct PIN", async () => {
 
 - [ ] **Step 5: Run — verify PASS.** Run: `bun test test/conformance/download.test.ts` → 2 pass. Then `bun test` (full) + `bun run check-types` green.
 - [ ] **Step 6:** `bun run format`; commit:
+
 ```bash
 git add src/server/routes.ts src/server/server.ts test/conformance/download.test.ts
 git commit -m "feat: implement prepare-download + download endpoints with file staging"
@@ -301,6 +311,7 @@ git commit -m "feat: implement prepare-download + download endpoints with file s
 ## Task 3.3: Minimal browser share page (`GET /`)
 
 **Files:**
+
 - Create: `src/server/web.ts` (`renderSharePage(deviceInfo, sessionId, files)`)
 - Modify: `src/server/routes.ts` (add `GET /`)
 - Test: `test/conformance/browser-page.test.ts`
@@ -317,7 +328,9 @@ test("GET / lists shared files with download links", async () => {
 	const dir = await tempDir()
 	const src = await makeRandomFile(dir, "photo.bin", 32)
 	const port = await getFreePort()
-	const server = new LocalSendServer(getDeviceInfo({ alias: "Sharer", port }), { sharedFiles: [src.path] })
+	const server = new LocalSendServer(getDeviceInfo({ alias: "Sharer", port }), {
+		sharedFiles: [src.path]
+	})
 	await server.start()
 	try {
 		const res = await fetch(`http://127.0.0.1:${port}/`)
@@ -361,7 +374,11 @@ ${rows}
 }
 
 function escapeHtml(s: string): string {
-	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
 }
 ```
 
@@ -381,6 +398,7 @@ function escapeHtml(s: string): string {
 
 - [ ] **Step 5: Run — verify PASS.** Run: `bun test test/conformance/browser-page.test.ts`. Then full `bun test` + `bun run check-types`.
 - [ ] **Step 6:** `bun run format`; commit:
+
 ```bash
 git add src/server/web.ts src/server/routes.ts test/conformance/browser-page.test.ts
 git commit -m "feat: minimal browser share page at GET /"
@@ -391,11 +409,14 @@ git commit -m "feat: minimal browser share page at GET /"
 ## Task 3.4: Client prepareDownload + download + interop tests
 
 **Files:**
+
 - Modify: `src/core/send.ts` (add `prepareDownload`, `download`)
 - Test: `test/interop/download.test.ts`
 
 **Interfaces:**
+
 - Produces on `LocalSendClient`:
+
 ```ts
 prepareDownload(target: {ip; port; protocol}, pin?: string): Promise<PrepareDownloadResponse | null>
 download(target: {ip; port; protocol}, sessionId: string, fileId: string, outPath: string): Promise<boolean>
@@ -416,7 +437,9 @@ test("client downloads a shared file byte-for-byte (incl 60MB)", async () => {
 	const outDir = await tempDir()
 	const big = await makeRandomFile(dir, "big.bin", 60 * 1024 * 1024)
 	const port = await getFreePort()
-	const server = new LocalSendServer(getDeviceInfo({ alias: "Sharer", port }), { sharedFiles: [big.path] })
+	const server = new LocalSendServer(getDeviceInfo({ alias: "Sharer", port }), {
+		sharedFiles: [big.path]
+	})
 	await server.start()
 	const client = new LocalSendClient(getDeviceInfo({ alias: "Downloader" }))
 	const target = { ip: "127.0.0.1", port, protocol: "http" as const }
@@ -486,10 +509,12 @@ async download(
 	}
 }
 ```
+
 (`requestJson` already supports `{ method, query }`; it returns parsed JSON. `applyTlsOptions` already exists.)
 
 - [ ] **Step 4: Run — verify PASS.** Run: `bun test test/interop/download.test.ts`. Then full `bun test` + `bun run check-types`.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add src/core/send.ts test/interop/download.test.ts
 git commit -m "feat: client prepareDownload + download (streamed to disk)"
@@ -500,10 +525,12 @@ git commit -m "feat: client prepareDownload + download (streamed to disk)"
 ## Task 3.5: Session TTL sweep (closes abandoned-session leak)
 
 **Files:**
+
 - Modify: `src/core/sessions.ts` (add `createdAt` + lazy purge to `UploadSessionStore`; purge to `DownloadSessionStore`)
 - Test: `test/unit/session-ttl.test.ts`
 
 **Interfaces:**
+
 - `UploadSessionStore` and `DownloadSessionStore` gain optional constructor `ttlMs` (default `3_600_000`) and a `purgeExpired(now?: number): void` method; `create(...)` calls `purgeExpired()` first. `UploadSession` gains `createdAt: number`.
 
 - [ ] **Step 1: Write `test/unit/session-ttl.test.ts`**
@@ -513,8 +540,17 @@ import { test, expect } from "bun:test"
 import { UploadSessionStore, DownloadSessionStore } from "../../src/core/sessions.ts"
 import type { DeviceInfo, FileMetadata } from "../../src/protocol/types.ts"
 
-const info = { alias: "a", version: "2.1", fingerprint: "fp", port: 1, protocol: "http", download: false } as DeviceInfo
-const files: Record<string, FileMetadata> = { f1: { id: "f1", fileName: "a", size: 1, fileType: "x" } }
+const info = {
+	alias: "a",
+	version: "2.1",
+	fingerprint: "fp",
+	port: 1,
+	protocol: "http",
+	download: false
+} as DeviceInfo
+const files: Record<string, FileMetadata> = {
+	f1: { id: "f1", fileName: "a", size: 1, fileType: "x" }
+}
 
 test("expired upload sessions are purged on next create", () => {
 	const store = new UploadSessionStore(1000) // 1s ttl
@@ -539,6 +575,7 @@ test("fresh sessions survive purge", () => {
   - Constructor: `constructor(private ttlMs: number = 3_600_000) {}`.
   - In `create`, set `createdAt: Date.now()` on the stored session and call `this.purgeExpired()` at the top.
   - Add:
+
 ```ts
 purgeExpired(now: number = Date.now()): void {
 	for (const [id, s] of this.sessions) {
@@ -546,10 +583,12 @@ purgeExpired(now: number = Date.now()): void {
 	}
 }
 ```
-  - Do the same (ttlMs ctor + `createdAt` already present + `purgeExpired` + call in `create`) for `DownloadSessionStore`.
+
+- Do the same (ttlMs ctor + `createdAt` already present + `purgeExpired` + call in `create`) for `DownloadSessionStore`.
 
 - [ ] **Step 4: Run — verify PASS.** Run: `bun test test/unit/session-ttl.test.ts`. Then full `bun test` + `bun run check-types`.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add src/core/sessions.ts test/unit/session-ttl.test.ts
 git commit -m "fix: expire abandoned upload/download sessions (TTL sweep)"
@@ -560,6 +599,7 @@ git commit -m "fix: expire abandoned upload/download sessions (TTL sweep)"
 ## Task 3.6: Exports + docs + phase sweep
 
 **Files:**
+
 - Modify: `src/index.ts` (export `StagedFile` type + ensure new client methods available — they ride on `LocalSendClient`, already exported)
 - Modify: `AGENTS.md` / design doc checkboxes
 
@@ -567,6 +607,7 @@ git commit -m "fix: expire abandoned upload/download sessions (TTL sweep)"
 - [ ] **Step 2:** Update root `AGENTS.md` "WHERE TO LOOK" / feature notes to mention the download API (`prepare-download`/`download`/`GET /`) and `sharedFiles` option. In the design doc §8, tick **Phase 3**.
 - [ ] **Step 3: Full sweep.** Run: `bun run check-types && bun test` — all green (expect ~26 tests). Do NOT run `bun run build` if port 53317 is busy; note it.
 - [ ] **Step 4:** `bun run format`; commit:
+
 ```bash
 git add src/index.ts AGENTS.md docs/superpowers/specs/2026-07-12-localsend-v2.1-completion-and-test-harness-design.md
 git commit -m "docs: mark Phase 3 (download API) complete; export StagedFile"
