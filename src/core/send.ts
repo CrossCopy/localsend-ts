@@ -1,7 +1,7 @@
-import { Buffer } from "node:buffer"
 import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../protocol/types.ts"
 import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
+import { Readable } from "node:stream"
 
 export class LocalSendClient {
 	private progressCallback:
@@ -124,7 +124,10 @@ export class LocalSendClient {
 	}
 
 	/**
-	 * Upload a file to the receiver
+	 * Upload a file to the receiver.
+	 *
+	 * Sends the entire file as a single POST body, as the LocalSend protocol
+	 * requires (no chunking, no non-standard range headers).
 	 */
 	async uploadFile(
 		targetDevice: { ip: string; port: number; protocol: "http" | "https" },
@@ -134,123 +137,35 @@ export class LocalSendClient {
 		filePath: string
 	): Promise<boolean> {
 		try {
-			// Get file size
 			const stats = await stat(filePath)
+			const url = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
 
-			// Create base URL for upload
-			const baseUrl = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
+			if (this.progressCallback) this.progressCallback(0, stats.size, false)
 
-			// Initialize progress tracking
-			let totalBytesUploaded = 0
-
-			// For large files (>50MB), split into chunks
-			if (stats.size > 50 * 1024 * 1024) {
-				console.log(
-					`File is large (${(stats.size / (1024 * 1024)).toFixed(2)} MB), uploading in chunks...`
-				)
-
-				// Set chunk size to 10MB
-				const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
-				let offset = 0
-				let success = true
-
-				while (offset < stats.size) {
-					const end = Math.min(offset + CHUNK_SIZE, stats.size)
-					const chunkSize = end - offset
-
-					if (this.progressCallback) {
-						this.progressCallback(totalBytesUploaded, stats.size, false)
-					}
-
-					console.log(
-						`Uploading chunk: ${(offset / (1024 * 1024)).toFixed(2)} - ${(end / (1024 * 1024)).toFixed(2)} MB`
-					)
-
-					// Create a read stream for just this chunk
-					const fileStream = createReadStream(filePath, { start: offset, end: end - 1 })
-
-					// Read the chunk into a buffer
-					const chunks: BlobPart[] = []
-					for await (const chunk of fileStream) {
-						const uint8Array = chunk instanceof Uint8Array ? chunk : Buffer.from(chunk)
-						chunks.push(
-							uint8Array.buffer.slice(
-								uint8Array.byteOffset,
-								uint8Array.byteOffset + uint8Array.byteLength
-							)
-						)
-					}
-
-					const blob = new Blob(chunks)
-
-					// Upload the chunk
-					const fetchOptions: any = {
-						method: "POST",
-						headers: {
-							"Content-Length": chunkSize.toString(),
-							"X-Content-Range": `bytes ${offset}-${end - 1}/${stats.size}`
-						},
-						body: blob
-					}
-					this.applyTlsOptions(fetchOptions, targetDevice.protocol)
-					const response = await fetch(baseUrl, fetchOptions)
-
-					if (!response.ok) {
-						console.error(
-							`Failed to upload chunk: ${offset}-${end - 1}, Status: ${response.status}`
-						)
-						success = false
-						break
-					}
-
-					// Update progress
-					totalBytesUploaded += chunkSize
-					if (this.progressCallback) {
-						this.progressCallback(totalBytesUploaded, stats.size, offset + chunkSize >= stats.size)
-					}
-
-					offset = end
-				}
-
-				return success
-			} else {
-				// For smaller files, use a single request
-				const fileStream = createReadStream(filePath)
-				const chunks: BlobPart[] = []
-				for await (const chunk of fileStream) {
-					const uint8Array = chunk instanceof Uint8Array ? chunk : Buffer.from(chunk)
-					chunks.push(
-						uint8Array.buffer.slice(
-							uint8Array.byteOffset,
-							uint8Array.byteOffset + uint8Array.byteLength
-						)
-					)
-				}
-
-				const blob = new Blob(chunks)
-
-				// Call progress callback before upload
-				if (this.progressCallback) {
-					this.progressCallback(0, stats.size, false)
-				}
-
-				const fetchOptions: any = {
-					method: "POST",
-					headers: {
-						"Content-Length": stats.size.toString()
-					},
-					body: blob
-				}
-				this.applyTlsOptions(fetchOptions, targetDevice.protocol)
-				const response = await fetch(baseUrl, fetchOptions)
-
-				// Call progress callback after upload
-				if (this.progressCallback) {
-					this.progressCallback(stats.size, stats.size, true)
-				}
-
-				return response.ok
+			const fetchOptions: any = {
+				method: "POST",
+				headers: { "Content-Length": stats.size.toString() }
 			}
+
+			// Bun's fetch streams `Bun.file(...)` directly without buffering the
+			// whole file in memory, avoiding known issues with web-stream request
+			// bodies under Bun's fetch implementation. Other runtimes (Node) use a
+			// web ReadableStream built from a Node read stream with duplex: "half".
+			const isBun = typeof (globalThis as any).Bun !== "undefined"
+			if (isBun) {
+				fetchOptions.body = (globalThis as any).Bun.file(filePath)
+			} else {
+				const nodeStream = createReadStream(filePath)
+				const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream
+				fetchOptions.body = webStream
+				fetchOptions.duplex = "half"
+			}
+
+			this.applyTlsOptions(fetchOptions, targetDevice.protocol)
+			const response = await fetch(url, fetchOptions)
+
+			if (this.progressCallback) this.progressCallback(stats.size, stats.size, true)
+			return response.ok
 		} catch (err) {
 			console.error("Error uploading file:", err)
 			return false

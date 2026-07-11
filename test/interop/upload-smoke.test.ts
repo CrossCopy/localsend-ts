@@ -16,3 +16,16 @@ test("uploads a small file byte-for-byte (TS -> TS)", async () => {
 		await rmTemp(src)
 	}
 })
+
+test("uploads a 60MB file byte-for-byte (TS -> TS, single request)", async () => {
+	const src = await tempDir()
+	const receiver = await startReceiver({ autoAccept: true })
+	try {
+		const { path: filePath, sha256 } = await makeRandomFile(src, "big.bin", 60 * 1024 * 1024)
+		expect(await sendFile(receiver, filePath)).toBe(true)
+		expect(await sha256File(savedPath(receiver, "big.bin"))).toBe(sha256)
+	} finally {
+		await receiver.stop()
+		await rmTemp(src)
+	}
+})

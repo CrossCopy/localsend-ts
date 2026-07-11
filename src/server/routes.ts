@@ -46,17 +46,6 @@ export interface LocalSendContext {
 	normalizeRemoteAddress: (address?: string | null) => string | null
 }
 
-// Transient per-transfer chunk-streaming bookkeeping. This intentionally lives
-// outside UploadSessionStore (which only tracks session/token/accepted-file
-// state) so the store's unit-tested interface stays free of streaming
-// concerns. Keyed by sessionId; each entry tracks per-fileId state. Removed
-// once the whole session completes or is canceled.
-type ChunkState = {
-	transferStartTimes: Record<string, number>
-	bytesReceived: Record<string, number>
-	fileStreams: Record<string, fs.WriteStream>
-}
-
 function createLocalSendMiddleware(ctx: LocalSendContext) {
 	return async (c: Context, next: () => Promise<void>) => {
 		c.set("localsendContext", ctx)
@@ -66,16 +55,6 @@ function createLocalSendMiddleware(ctx: LocalSendContext) {
 
 export function createLocalSendRoutes(ctx: LocalSendContext) {
 	const middleware = createLocalSendMiddleware(ctx)
-	const chunkStates = new Map<string, ChunkState>()
-
-	function getChunkState(sessionId: string): ChunkState {
-		let state = chunkStates.get(sessionId)
-		if (!state) {
-			state = { transferStartTimes: {}, bytesReceived: {}, fileStreams: {} }
-			chunkStates.set(sessionId, state)
-		}
-		return state
-	}
 
 	const app = new Hono()
 		.use("*", middleware)
@@ -271,179 +250,68 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 						fs.mkdirSync(dirPath, { recursive: true })
 					}
 
-					const chunk = getChunkState(sessionId)
-
-					const contentRange = c.req.header("X-Content-Range")
-					let isChunkedUpload = false
-					let rangeStart = 0
-					let rangeEnd = 0
-					let totalSize = 0
-
-					if (contentRange) {
-						isChunkedUpload = true
-						const match = contentRange.match(/bytes (\d+)-(\d+)\/(\d+)/)
-						if (match) {
-							rangeStart = parseInt(match[1], 10)
-							rangeEnd = parseInt(match[2], 10)
-							totalSize = parseInt(match[3], 10)
-
-							if (totalSize !== fileMetadata.size) {
-								return c.json(
-									{
-										message: `File size mismatch. Expected: ${fileMetadata.size}, Got: ${totalSize}`
-									},
-									400
-								)
-							}
-						} else {
-							return c.json({ message: "Invalid Content-Range format" }, 400)
-						}
-					}
-
-					if (!chunk.transferStartTimes[fileId] || (isChunkedUpload && rangeStart === 0)) {
-						chunk.transferStartTimes[fileId] = Date.now()
-						chunk.bytesReceived[fileId] = 0
-
-						const fileStream = fs.createWriteStream(filePath, {
-							flags: isChunkedUpload ? "w" : "w"
-						})
-
-						if (!chunk.fileStreams) {
-							chunk.fileStreams = {}
-						}
-
-						chunk.fileStreams[fileId] = fileStream
-					} else if (isChunkedUpload && rangeStart > 0) {
-						if (!chunk.fileStreams[fileId] || chunk.fileStreams[fileId].closed) {
-							const fileStream = fs.createWriteStream(filePath, { flags: "a" })
-							chunk.fileStreams[fileId] = fileStream
-						}
-					}
-
 					const stream = c.req.raw.body
-
 					if (!stream) {
 						return c.json({ message: "Request body stream not available" }, 500)
 					}
 
-					if (!chunk.fileStreams) {
-						chunk.fileStreams = {}
-					}
+					const fileStream = fs.createWriteStream(filePath, { flags: "w" })
+					const reader = stream.getReader()
+					let received = 0
+					const start = Date.now()
 
-					const fileStream = chunk.fileStreams[fileId]
-
-					if (!fileStream) {
-						return c.json({ message: "File stream not found" }, 500)
-					}
-
-					let totalChunkSize = 0
-					let lastProgressUpdate = Date.now()
-					const PROGRESS_UPDATE_INTERVAL = 100
+					// Waits for all buffered writes to actually reach disk. Without this,
+					// the handler could respond success before large files are fully
+					// flushed, racing anyone who reads the file right after the response.
+					const closeFileStream = () =>
+						new Promise<void>((resolve, reject) => {
+							fileStream.end((err?: Error | null) => (err ? reject(err) : resolve()))
+						})
 
 					try {
-						const reader = stream.getReader()
-
 						while (true) {
 							const { done, value } = await reader.read()
-
-							if (done) {
-								break
-							}
-
+							if (done) break
 							if (value && value.length > 0) {
-								totalChunkSize += value.length
+								received += value.length
 								fileStream.write(Buffer.from(value))
-
-								const now = Date.now()
-								if (now - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL) {
-									const elapsedSinceStart = (now - chunk.transferStartTimes[fileId]) / 1000
-									const speed =
-										elapsedSinceStart > 0
-											? (chunk.bytesReceived[fileId] + totalChunkSize) / elapsedSinceStart
-											: 0
-
-									const currentReceived = chunk.bytesReceived[fileId] + totalChunkSize
-
-									if (ctx.transferProgressHandler) {
-										ctx.transferProgressHandler(
-											fileId,
-											fileMetadata.fileName,
-											currentReceived,
-											fileMetadata.size,
-											speed
-										)
-									}
-
-									lastProgressUpdate = now
+								if (ctx.transferProgressHandler) {
+									const elapsed = (Date.now() - start) / 1000
+									ctx.transferProgressHandler(
+										fileId,
+										fileMetadata.fileName,
+										received,
+										fileMetadata.size,
+										elapsed > 0 ? received / elapsed : 0
+									)
 								}
 							}
 						}
-
-						const chunkReceivedBytes = isChunkedUpload ? rangeEnd - rangeStart + 1 : totalChunkSize
-
-						chunk.bytesReceived[fileId] += chunkReceivedBytes
-
-						const elapsedTime = (Date.now() - chunk.transferStartTimes[fileId]) / 1000
-						const speed = elapsedTime > 0 ? chunk.bytesReceived[fileId] / elapsedTime : 0
-
-						if (ctx.transferProgressHandler) {
-							ctx.transferProgressHandler(
-								fileId,
-								fileMetadata.fileName,
-								chunk.bytesReceived[fileId],
-								fileMetadata.size,
-								speed
-							)
-						}
-
-						const isLastChunk = isChunkedUpload
-							? rangeEnd + 1 >= totalSize
-							: chunk.bytesReceived[fileId] >= fileMetadata.size
-
-						if (isLastChunk) {
-							fileStream.end()
-							delete chunk.fileStreams[fileId]
-
-							const { allDone } = ctx.uploads.markReceived(sessionId, fileId)
-
-							const totalTimeSeconds = (Date.now() - chunk.transferStartTimes[fileId]) / 1000
-
-							const avgSpeed =
-								totalTimeSeconds > 0 ? chunk.bytesReceived[fileId] / totalTimeSeconds : 0
-
-							if (ctx.transferProgressHandler) {
-								ctx.transferProgressHandler(
-									fileId,
-									fileMetadata.fileName,
-									chunk.bytesReceived[fileId],
-									fileMetadata.size,
-									avgSpeed,
-									true,
-									{
-										filePath,
-										totalTimeSeconds,
-										averageSpeed: avgSpeed
-									}
-								)
-							}
-
-							if (allDone) {
-								chunkStates.delete(sessionId)
-							}
-
-							return c.json({ message: "File received successfully" })
-						}
-
-						return c.json({
-							message: "Chunk received",
-							bytesReceived: chunk.bytesReceived[fileId],
-							totalBytes: fileMetadata.size
-						})
 					} catch (error) {
-						fileStream.end()
-						console.error("Error processing file chunk:", error)
-						return c.json({ message: "Error processing file chunk" }, 500)
+						await closeFileStream().catch(() => {})
+						console.error("Error processing file upload:", error)
+						return c.json({ message: "Error processing file upload" }, 500)
 					}
+
+					await closeFileStream()
+					ctx.uploads.markReceived(sessionId, fileId)
+					const totalTime = (Date.now() - start) / 1000
+					if (ctx.transferProgressHandler) {
+						ctx.transferProgressHandler(
+							fileId,
+							fileMetadata.fileName,
+							received,
+							fileMetadata.size,
+							totalTime > 0 ? received / totalTime : 0,
+							true,
+							{
+								filePath,
+								totalTimeSeconds: totalTime,
+								averageSpeed: totalTime > 0 ? received / totalTime : 0
+							}
+						)
+					}
+					return c.json({ message: "File received successfully" })
 				} catch (err) {
 					console.error("Error handling file upload:", err)
 					return c.json({ message: "Error handling file upload" }, 500)
@@ -480,7 +348,6 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 				if (ctx.uploads.has(sessionId)) {
 					ctx.uploads.delete(sessionId)
 				}
-				chunkStates.delete(sessionId)
 
 				return c.json({ message: "Session canceled" })
 			}
