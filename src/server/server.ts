@@ -5,6 +5,7 @@ import { createLocalSendRoutes, type LocalSendContext } from "./routes.ts"
 import type { DeviceInfo, FileMetadata } from "../protocol/types.ts"
 import { UploadSessionStore, DownloadSessionStore } from "../core/sessions.ts"
 import { stageFile, type StagedFile } from "../core/files.ts"
+import { generateSelfSignedCert, certFingerprintSha256 } from "../crypto/cert.ts"
 import fs from "node:fs"
 
 export type TransferRequestHandler = (
@@ -31,7 +32,7 @@ export class LocalSendServer {
 	private server: unknown = null
 	private serverAdapter: ServerAdapter
 	private uploads: UploadSessionStore = new UploadSessionStore()
-	private deviceInfo: DeviceInfo
+	private _deviceInfo: DeviceInfo
 	private saveDirectory: string
 	private requirePin: boolean = false
 	private pin: string = ""
@@ -42,6 +43,8 @@ export class LocalSendServer {
 	private sharedFilePaths: string[] = []
 	private sharedFiles: StagedFile[] = []
 	private downloads = new DownloadSessionStore()
+	private tls?: { cert: string; key: string }
+	private requestedProtocol?: "http" | "https"
 
 	constructor(
 		deviceInfo: DeviceInfo,
@@ -55,9 +58,10 @@ export class LocalSendServer {
 			maxRequestBodySize?: number
 			protocol?: "http" | "https"
 			sharedFiles?: string[]
+			tls?: { cert: string; key: string }
 		} = {}
 	) {
-		this.deviceInfo = options.protocol ? { ...deviceInfo, protocol: options.protocol } : deviceInfo
+		this._deviceInfo = options.protocol ? { ...deviceInfo, protocol: options.protocol } : deviceInfo
 		this.saveDirectory = options.saveDirectory || "./received_files"
 		this.pin = options.pin || ""
 		this.requirePin = !!this.pin
@@ -66,6 +70,8 @@ export class LocalSendServer {
 		this.onRegisterCallback = options.onRegister || null
 		this.maxRequestBodySize = options.maxRequestBodySize || this.maxRequestBodySize
 		this.sharedFilePaths = options.sharedFiles ?? []
+		this.requestedProtocol = options.protocol
+		this.tls = options.tls
 
 		this.serverAdapter = options.serverAdapter || createServerAdapter()
 
@@ -76,9 +82,17 @@ export class LocalSendServer {
 		this.registerRoutes()
 	}
 
+	get deviceInfo(): DeviceInfo {
+		return this._deviceInfo
+	}
+
+	get tlsCert(): string | undefined {
+		return this.tls?.cert
+	}
+
 	private registerRoutes() {
 		const ctx: LocalSendContext = {
-			deviceInfo: this.deviceInfo,
+			deviceInfo: this._deviceInfo,
 			saveDirectory: this.saveDirectory,
 			requirePin: this.requirePin,
 			pin: this.pin,
@@ -134,20 +148,30 @@ export class LocalSendServer {
 		try {
 			if (this.sharedFilePaths.length > 0) {
 				this.sharedFiles = await Promise.all(this.sharedFilePaths.map(stageFile))
-				this.deviceInfo.download = true
+				this._deviceInfo.download = true
 				this.registerRoutes()
 			}
 
+			const wantsHttps = this._deviceInfo.protocol === "https" || this.requestedProtocol === "https"
+			if (wantsHttps) {
+				if (!this.tls) {
+					this.tls = generateSelfSignedCert()
+				}
+				this._deviceInfo.protocol = "https"
+				this._deviceInfo.fingerprint = certFingerprintSha256(this.tls.cert)
+			}
+
 			this.server = await this.serverAdapter.start({
-				port: this.deviceInfo.port,
+				port: this._deviceInfo.port,
 				fetch: this.app.fetch,
-				maxRequestBodySize: this.maxRequestBodySize
+				maxRequestBodySize: this.maxRequestBodySize,
+				tls: this.tls
 			})
 
 			const sizeInGB = Math.round(this.maxRequestBodySize / (1024 * 1024 * 1024))
-			console.log(`LocalSend server started on port ${this.deviceInfo.port}`)
+			console.log(`LocalSend server started on port ${this._deviceInfo.port}`)
 			console.log(`Maximum request body size: ${sizeInGB} GB`)
-			console.log(`API documentation available at http://localhost:${this.deviceInfo.port}/docs`)
+			console.log(`API documentation available at http://localhost:${this._deviceInfo.port}/docs`)
 		} catch (error) {
 			console.error("Failed to start server:", error)
 			throw error
