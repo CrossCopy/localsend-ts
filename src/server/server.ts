@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import type { ServerAdapter } from "./adapters/index.ts"
 import { createServerAdapter } from "./adapters/index.ts"
 import { createLocalSendRoutes, type LocalSendContext } from "./routes.ts"
-import type { DeviceInfo, FileMetadata } from "../types.ts"
+import type { DeviceInfo, FileMetadata } from "../protocol/types.ts"
 import { UploadSessionStore } from "../core/sessions.ts"
 import fs from "node:fs"
 
@@ -81,8 +81,7 @@ export class LocalSendServer {
 			onRegisterCallback: this.onRegisterCallback || undefined,
 			maxRequestBodySize: this.maxRequestBodySize,
 			uploads: this.uploads,
-			getRemoteAddress: this.getRemoteAddress.bind(this),
-			normalizeRemoteAddress: this.normalizeRemoteAddress.bind(this)
+			getRemoteAddress: this.getRemoteAddress.bind(this)
 		}
 
 		this.app = createLocalSendRoutes(ctx)

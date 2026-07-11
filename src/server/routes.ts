@@ -1,16 +1,17 @@
 import { Hono } from "hono"
 import { openAPIRouteHandler } from "hono-openapi"
 import { Scalar } from "@scalar/hono-api-reference"
-import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../types.ts"
+import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../protocol/types.ts"
 import {
 	deviceInfoSchema,
 	prepareUploadRequestSchema,
 	prepareUploadResponseSchema,
 	messageResponseSchema
-} from "../types.ts"
+} from "../protocol/types.ts"
 import { Buffer } from "node:buffer"
 import path from "node:path"
 import fs from "node:fs"
+import { unlink } from "node:fs/promises"
 import * as v from "valibot"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import type { Context } from "hono"
@@ -43,7 +44,6 @@ export interface LocalSendContext {
 	maxRequestBodySize: number
 	uploads: UploadSessionStore
 	getRemoteAddress: (c: any) => string | null
-	normalizeRemoteAddress: (address?: string | null) => string | null
 }
 
 function createLocalSendMiddleware(ctx: LocalSendContext) {
@@ -149,6 +149,9 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 							return c.json({ message: "PIN required" }, 401)
 						}
 					}
+
+					if (Object.keys(body.files).length === 0) return c.body(null, 204)
+
 					if (ctx.transferRequestHandler) {
 						const accepted = await ctx.transferRequestHandler(body.info, body.files)
 
@@ -156,8 +159,6 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 							return c.json({ message: "Transfer rejected by user" }, 403)
 						}
 					}
-
-					if (Object.keys(body.files).length === 0) return c.body(null, 204)
 
 					const { sessionId, tokens } = ctx.uploads.create(body.info, body.files)
 
@@ -292,6 +293,8 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 						}
 					} catch (error) {
 						await closeFileStream().catch(() => {})
+						ctx.uploads.delete(sessionId)
+						await unlink(filePath).catch(() => {})
 						console.error("Error processing file upload:", error)
 						return c.json({ message: "Error processing file upload" }, 500)
 					}
