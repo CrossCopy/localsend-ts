@@ -11,7 +11,7 @@
 
 `localsend-ts` is a TypeScript implementation of the LocalSend protocol, intended to be
 consumed as a **library** to build a browser/desktop extension later. A verification pass
-(2026-07-12) found the implementation is a working *upload-only, HTTP-only, CLI-to-CLI* tool
+(2026-07-12) found the implementation is a working _upload-only, HTTP-only, CLI-to-CLI_ tool
 but is **not interop-complete with the real LocalSend app** and has correctness/security bugs.
 
 **Goals**
@@ -35,7 +35,7 @@ but is **not interop-complete with the real LocalSend app** and has correctness/
 ## 2. Non-Goals (explicitly out of scope)
 
 - **Protocol v3** (nonce handshake, ed25519 signed tokens, cert pairing / mutual-TLS trust store).
-  It is *unpublished and experimental* — it exists only in the newer Rust `core` crate, not in the
+  It is _unpublished and experimental_ — it exists only in the newer Rust `core` crate, not in the
   public `localsend/protocol` spec (which tops out at v2.1). Chasing it means tracking a moving target.
 - **WebRTC / internet transfer** via `public.localsend.org` signaling.
 - **Multi-file folder-tree UX niceties** beyond what the protocol requires.
@@ -51,16 +51,18 @@ Default multicast: `224.0.0.167:53317`. Default HTTP/HTTPS port: `53317`.
 Fingerprint: **HTTPS** = SHA-256 of the TLS certificate; **HTTP** = random string.
 
 ### 3.1 Discovery
+
 - **Multicast announce** (UDP → group): JSON `{alias, version, deviceModel?, deviceType, fingerprint, port, protocol, download?, announce:true}`.
 - **Response** to an announce: HTTP `POST /api/localsend/v2/register` with own info (no `announce`), OR a UDP message with `announce:false` as fallback.
 - **HTTP legacy discovery**: when multicast fails, `POST /register` to peers / scan subnet `GET /info`.
 
 ### 3.2 Upload API (receiver hosts server) — the default path
-| Method | Path | Query | Body | Success |
-|---|---|---|---|---|
-| POST | `/api/localsend/v2/prepare-upload` | `?pin=` | `{info, files:{fileId:FileMetadata}}` | `200 {sessionId, files:{fileId:token}}` or `204` (nothing to send) |
-| POST | `/api/localsend/v2/upload` | `?sessionId&fileId&token` | **whole binary file** | `200` |
-| POST | `/api/localsend/v2/cancel` | `?sessionId` | — | `200` |
+
+| Method | Path                               | Query                     | Body                                  | Success                                                            |
+| ------ | ---------------------------------- | ------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| POST   | `/api/localsend/v2/prepare-upload` | `?pin=`                   | `{info, files:{fileId:FileMetadata}}` | `200 {sessionId, files:{fileId:token}}` or `204` (nothing to send) |
+| POST   | `/api/localsend/v2/upload`         | `?sessionId&fileId&token` | **whole binary file**                 | `200`                                                              |
+| POST   | `/api/localsend/v2/cancel`         | `?sessionId`              | —                                     | `200`                                                              |
 
 `prepare-upload` status codes: `200`, `204` (finished/no transfer), `400` (invalid), `401` (PIN),
 `403` (rejected), `409` (blocked by another session), `429` (too many), `500`.
@@ -70,24 +72,28 @@ Fingerprint: **HTTPS** = SHA-256 of the TLS certificate; **HTTP** = random strin
 > / `X-Content-Range` chunking in the spec. The current impl's invented chunking is an interop bug.
 
 ### 3.3 Download API (sender hosts server) — reverse / share-by-link
-| Method | Path | Query | Body | Success |
-|---|---|---|---|---|
-| GET | `/` | — | — | Browser share page (HTML) |
-| POST | `/api/localsend/v2/prepare-download` | `?pin=` | *(optional requester info)* | `200 {info, sessionId, files:{fileId:FileMetadata}}` |
-| GET | `/api/localsend/v2/download` | `?sessionId&fileId` | — | binary file |
+
+| Method | Path                                 | Query               | Body                        | Success                                              |
+| ------ | ------------------------------------ | ------------------- | --------------------------- | ---------------------------------------------------- |
+| GET    | `/`                                  | —                   | —                           | Browser share page (HTML)                            |
+| POST   | `/api/localsend/v2/prepare-download` | `?pin=`             | _(optional requester info)_ | `200 {info, sessionId, files:{fileId:FileMetadata}}` |
+| GET    | `/api/localsend/v2/download`         | `?sessionId&fileId` | —                           | binary file                                          |
 
 `prepare-download` status codes: `200`, `401` (PIN), `403` (rejected), `429`, `500`.
 
 ### 3.4 Info
+
 `GET /api/localsend/v2/info` → `{alias, version, deviceModel?, deviceType, fingerprint, download?}`.
 
 ### 3.5 Data shapes
+
 ```
 DeviceInfo   = { alias, version, deviceModel?:string|null, deviceType:"mobile"|"desktop"|"web"|"headless"|"server",
                  fingerprint, port, protocol:"http"|"https", download?:boolean=false }
 FileMetadata = { id, fileName, size, fileType, sha256?:string|null, preview?:string|null,
                  metadata?: { modified?:string|null, accessed?:string|null } | null }
 ```
+
 Spec leniency to honor: `download` optional (default false); `deviceModel`/`sha256`/`preview`/`metadata`
 nullable/optional; unknown `deviceType` → default `desktop`.
 
@@ -96,6 +102,7 @@ nullable/optional; unknown `deviceType` → default `desktop`.
 ## 4. Current State Assessment
 
 ### Works
+
 - Multicast discovery (announce + respond) — `src/discovery/multicast.ts`
 - HTTP subnet-scan discovery — `src/discovery/http-discovery.ts`
 - `info`, `register`, `prepare-upload`, `upload`, `cancel` (Hono server) — `src/api/hono-routes.ts`
@@ -104,16 +111,17 @@ nullable/optional; unknown `deviceType` → default `desktop`.
 - Typed OpenAPI + Hono RPC client — `src/hono-rpc.ts`, `src/sdk/*`
 
 ### Missing / Broken (must fix)
-| # | Issue | Location | Severity |
-|---|---|---|---|
-| G1 | Download API (`prepare-download`, `download`, `/` page) absent | — | Feature gap |
-| G2 | No HTTPS server; no cert; fingerprint always random | `src/api/*`, `src/utils/device.ts:9` | Feature gap |
-| B1 | Invented `X-Content-Range` chunking → breaks real-app interop for files >50 MB | `src/api/client.ts:147`, `src/hono-rpc.ts:63`, `src/api/hono-routes.ts:283` | Correctness |
-| B2 | Path traversal via `fileName` | `src/api/hono-routes.ts:276`, `src/api/server.ts:261` | Security |
-| B3 | Schema stricter than spec (`download`/`port` required) → rejects valid peers | `src/types.ts:19-21` | Correctness |
-| B4 | Vanilla `LocalSendServer` truncates on chunked upload, no accept/progress/download | `src/api/server.ts` | Correctness |
-| B5 | `204` never returned; filename collisions overwrite | `src/api/hono-routes.ts` | Minor |
-| B6 | PIN and accept-callback mutually exclusive | `src/api/hono-routes.ts:164-175` | Minor |
+
+| #   | Issue                                                                              | Location                                                                    | Severity    |
+| --- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------- |
+| G1  | Download API (`prepare-download`, `download`, `/` page) absent                     | —                                                                           | Feature gap |
+| G2  | No HTTPS server; no cert; fingerprint always random                                | `src/api/*`, `src/utils/device.ts:9`                                        | Feature gap |
+| B1  | Invented `X-Content-Range` chunking → breaks real-app interop for files >50 MB     | `src/api/client.ts:147`, `src/hono-rpc.ts:63`, `src/api/hono-routes.ts:283` | Correctness |
+| B2  | Path traversal via `fileName`                                                      | `src/api/hono-routes.ts:276`, `src/api/server.ts:261`                       | Security    |
+| B3  | Schema stricter than spec (`download`/`port` required) → rejects valid peers       | `src/types.ts:19-21`                                                        | Correctness |
+| B4  | Vanilla `LocalSendServer` truncates on chunked upload, no accept/progress/download | `src/api/server.ts`                                                         | Correctness |
+| B5  | `204` never returned; filename collisions overwrite                                | `src/api/hono-routes.ts`                                                    | Minor       |
+| B6  | PIN and accept-callback mutually exclusive                                         | `src/api/hono-routes.ts:164-175`                                            | Minor       |
 
 ---
 
@@ -162,30 +170,32 @@ tools/
 ```
 
 ### 5.1 Key interfaces (illustrative)
+
 ```ts
 // core/receive.ts — framework-free handler context
 interface ReceiveContext {
-  deviceInfo: DeviceInfo
-  saveDirectory: string
-  pin?: string
-  uploads: UploadSessionStore
-  downloads: DownloadSessionStore
-  onTransferRequest?: (sender: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>
-  onProgress?: (ev: ProgressEvent) => void
-  sharedFiles?: StagedFile[]           // for download API
+	deviceInfo: DeviceInfo
+	saveDirectory: string
+	pin?: string
+	uploads: UploadSessionStore
+	downloads: DownloadSessionStore
+	onTransferRequest?: (sender: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>
+	onProgress?: (ev: ProgressEvent) => void
+	sharedFiles?: StagedFile[] // for download API
 }
 
 // core/files.ts
-function resolveSavePath(saveDir: string, fileName: string): string  // throws on traversal escape
+function resolveSavePath(saveDir: string, fileName: string): string // throws on traversal escape
 function sanitizeFilename(name: string): string
 function stageFilesForDownload(paths: string[]): Promise<StagedFile[]>
 
 // crypto/cert.ts
-function generateSelfSignedCert(): { cert: string; key: string }     // PEM
-function certFingerprintSha256(certPem: string): string              // hex, matches app format
+function generateSelfSignedCert(): { cert: string; key: string } // PEM
+function certFingerprintSha256(certPem: string): string // hex, matches app format
 ```
 
 ### 5.2 Public API changes (breaking — acceptable at 0.1.x)
+
 - **Remove** vanilla `LocalSendServer` (`src/api/server.ts`).
 - **Rename** `LocalSendHonoServer` → **`LocalSendServer`** (canonical). Keep `LocalSendHonoServer`
   as a deprecated alias for one release.
@@ -199,6 +209,7 @@ function certFingerprintSha256(certPem: string): string              // hex, mat
 ## 6. Feature Designs
 
 ### 6.1 Fix upload (B1, B4) — whole-file streaming
+
 - Client `uploadFile()` sends the **entire file as one POST**, body = a streamed `ReadableStream`
   from `createReadStream(path)` (avoid buffering large files in memory), with `Content-Length: size`.
   Use `duplex: "half"` where required (undici/Node). No `X-Content-Range`. Progress via a
@@ -207,18 +218,21 @@ function certFingerprintSha256(certPem: string): string              // hex, mat
 - Remove chunking from `hono-rpc.ts` too.
 
 ### 6.2 Fix path traversal + collisions (B2, B5)
+
 - `resolveSavePath(saveDir, fileName)`: `const p = path.resolve(saveDir, fileName)`; require
   `p === saveDir || p.startsWith(saveDir + path.sep)`, else reject (`403`/`400`). This preserves
   legitimate sub-folder transfers while blocking `../` escapes.
 - On collision, append ` (1)`, ` (2)`, … before the extension.
 
 ### 6.3 Relax schema (B3, B6)
+
 - `download` → `v.optional(v.boolean(), false)`; `deviceModel/sha256/preview/metadata` optional+nullable;
   unknown `deviceType` coerced to `"desktop"`. Keep `port` required in announcements but tolerate its
   absence in `prepare-upload.info` (fall back to socket/known port).
 - Allow PIN **and** accept-callback together: check PIN first, then call `onTransferRequest`.
 
 ### 6.4 Download API (G1)
+
 - **Staging:** `LocalSendServer({ sharedFiles: string[] })` or `server.share(paths)` builds
   `StagedFile[]` = `{ fileId, metadata, absolutePath }`; sets `deviceInfo.download = true`.
 - **`POST /prepare-download`**: validate PIN; create a `DownloadSession` referencing staged files;
@@ -230,6 +244,7 @@ function certFingerprintSha256(certPem: string): string              // hex, mat
 - **Client:** `prepareDownload(target, pin?)` → metadata; `download(target, sessionId, fileId, outPath)`.
 
 ### 6.5 HTTPS (G2)
+
 - `crypto/cert.ts` generates a self-signed cert+key. Cross-runtime generation has **no Node stdlib
   primitive**, so add a small pure-JS dependency (candidate: `selfsigned`, forge-based) — decision in
   Phase 4 after checking Bun/Deno compatibility; fallback: `node-forge` directly.
@@ -243,21 +258,34 @@ function certFingerprintSha256(certPem: string): string              // hex, mat
 - Client/discovery already accept self-signed certs (`rejectUnauthorized:false`).
 
 ### 6.6 Discovery tweaks (minor)
+
 - Optional periodic re-announce (interval) so late-joiners see us without waiting for their announce.
-- Keep multicast + HTTP-scan fallback as-is otherwise.
+- **Multicast config seam:** make the multicast group **address + port injectable** (defaulting to the
+  protocol values `224.0.0.167` / `53317`). Real runs and Docker e2e use the defaults so they interop
+  with the official app; isolated tests can point at a scratch group to avoid cross-talk. Note the two
+  ports are independent: the **multicast port is fixed at 53317** (the discovery rendezvous — peers only
+  find each other there), while the **HTTP server port is free** and advertised in each announcement's
+  `port` field.
+- **HTTP-scan fallback caveat:** `HttpDiscovery` currently probes a single port (`this.deviceInfo.port`)
+  on every subnet IP, so it only finds peers on that same port. Real interop relies on multicast (which
+  carries the peer's real port); the scan is a best-effort fallback. Leave as-is for now; documented so
+  the Docker e2e layer exercises the multicast path, not the scan.
 
 ---
 
 ## 7. Testing Strategy
 
 ### 7.1 Layer 1 — Unit (`test/unit/`)
+
 - `resolveSavePath` traversal cases; `sanitizeFilename`; collision renaming.
 - Session stores: token issue/validate, TTL/cleanup, all-received cleanup.
 - Schema: accepts spec-lenient payloads; rejects malformed.
 - `certFingerprintSha256` stable & correct format.
 
 ### 7.2 Layer 2 — Spec conformance (`test/conformance/`) — **the interop safety net without a real peer**
+
 Assert our **wire output/expectations match §3**, not our own client:
+
 - Upload of a 60 MB file emits **one** POST, whole body, **no** `X-Content-Range` header.
 - `prepare-upload` returns `{sessionId, files:{id:token}}`; `204` when files map empty.
 - Server accepts a spec-shaped `prepare-upload` whose `info` omits `download`.
@@ -265,20 +293,43 @@ Assert our **wire output/expectations match §3**, not our own client:
 - Status codes match the table (401 on bad PIN, 403 on reject, etc.).
 - `info`/`register` payload shapes exact.
 
-### 7.3 Layer 3 — Interop e2e (`test/interop/`)
+### 7.3 Layer 3 — Interop e2e, single-host (`test/interop/`)
+
 - Spin real `LocalSendServer` + real `LocalSendClient` on an ephemeral port; transfer files of
   sizes {0 B, 1 KB, 60 MB}; assert **byte-for-byte** (sha256) equality and cleanup.
 - Same for the **download** direction.
 - Both **HTTP and HTTPS** modes.
 - PIN accept/reject; user-reject via `onTransferRequest`.
+- **Discovery is NOT tested here.** These tests connect directly to a known port, so no multicast is
+  needed and ephemeral localhost ports are reliable. Same-host multicast (two instances sharing UDP
+  53317 via `reuseAddr` + loopback) is OS-dependent and flaky — kept out of the default suite (at most
+  a single skippable smoke). Real discovery is covered in Layer 4 (Docker).
 
-### 7.4 Layer 4 — Real-peer oracle (`test/oracle/`, `tools/oracle-rs/`) — **Phase 5, after core is solid**
+### 7.4 Layer 4 — Docker discovery e2e (`test/e2e-docker/`) — **opt-in; own phase**
+
+Separate containers = separate network namespaces = **real multicast between hosts**. This is the only
+honest way to test discovery.
+
+- `docker compose` with 2+ containers on a **user-defined bridge network**, each running the built
+  artifact (`dist/`, via bun or node) with a small headless entrypoint that starts discovery + a
+  receiver and announces on the protocol defaults (`224.0.0.167:53317`).
+- Assert **mutual discovery** (each container sees the other via multicast/register), then perform a
+  **real file transfer** between containers and verify sha256.
+- The test runner talks to the containers (exec / mapped HTTP), it does **not** join the multicast group.
+- **macOS caveat (dev is on darwin):** Docker Desktop runs Linux in a VM, so `--network host` and
+  host↔container multicast do not work; **container↔container multicast on a shared custom network does**
+  (it lives inside the VM's bridge). CI on Linux works directly.
+- Skippable when Docker is unavailable (keeps the default `bun test` green without Docker).
+
+### 7.5 Layer 5 — Real-peer oracle (`test/oracle/`, `tools/oracle-rs/`) — **after core is solid**
+
 - Thin Rust CLI wrapping `references/localsend/core` (`http` feature): subcommands
   `serve|send|download`. Driven from bun tests via `child_process`.
 - Cases: TS→Rust upload, Rust→TS upload, TS↔Rust download, over HTTP and HTTPS; assert byte-equality.
 - Marked skippable when `cargo`/crate unavailable (keeps CI green without Rust).
 
-### 7.5 Manual (documented, not CI)
+### 7.6 Manual (documented, not CI)
+
 - Spot-check against installed **LocalSend 1.17.0** (enable Quick Save as auto-accept receiver;
   manual send from the app). Procedure documented in `docs/`.
 
@@ -290,32 +341,39 @@ Assert our **wire output/expectations match §3**, not our own client:
 > Checkboxes track progress.
 
 - [ ] **Phase 0 — Test scaffolding**
-  Add `bun test` setup, `test/` dirs, helpers (temp dirs, ephemeral ports, sha256 compare, fetch-recorder).
-  Exit: a trivial interop test (send 1 KB TS↔TS) passes against current code.
+      Add `bun test` setup, `test/` dirs, helpers (temp dirs, ephemeral ports, sha256 compare, fetch-recorder).
+      Exit: a trivial interop test (send 1 KB TS↔TS) passes against current code.
 
 - [ ] **Phase 1 — Refactor to core (no behavior change intended)**
-  Extract `protocol/`, `core/`, `server/`; consolidate to one `LocalSendServer`; remove vanilla server;
-  port existing endpoints onto `core/receive.ts`. Keep discovery. Update `index.ts`.
-  Exit: existing behavior preserved; Phase-0 test + new conformance tests for current endpoints pass.
+      Extract `protocol/`, `core/`, `server/`; consolidate to one `LocalSendServer`; remove vanilla server;
+      port existing endpoints onto `core/receive.ts`. Keep discovery. Update `index.ts`.
+      Exit: existing behavior preserved; Phase-0 test + new conformance tests for current endpoints pass.
 
 - [ ] **Phase 2 — Correctness/security fixes (B1–B6)**
-  Whole-file streaming upload; path-traversal guard; schema leniency; `204`; collisions; PIN+accept.
-  Exit: conformance + interop tests for upload (incl. 60 MB, 0 B) green; traversal test green.
+      Whole-file streaming upload; path-traversal guard; schema leniency; `204`; collisions; PIN+accept.
+      Exit: conformance + interop tests for upload (incl. 60 MB, 0 B) green; traversal test green.
 
 - [ ] **Phase 3 — Download API (G1)**
-  Staging, `prepare-download`, `download`, minimal `/` page; client `prepareDownload`/`download`.
-  Exit: download interop tests (incl. 60 MB) green over HTTP.
+      Staging, `prepare-download`, `download`, minimal `/` page; client `prepareDownload`/`download`.
+      Exit: download interop tests (incl. 60 MB) green over HTTP.
 
 - [ ] **Phase 4 — HTTPS (G2)**
-  `crypto/cert.ts` (choose dep), fingerprint=SHA-256(cert) with **verified** format, TLS in all adapters.
-  Exit: HTTP+HTTPS interop tests green; fingerprint format confirmed against `core` source.
+      `crypto/cert.ts` (choose dep), fingerprint=SHA-256(cert) with **verified** format, TLS in all adapters.
+      Exit: HTTP+HTTPS interop tests green; fingerprint format confirmed against `core` source.
 
-- [ ] **Phase 5 — Rust oracle**
-  `tools/oracle-rs` wrapper; `test/oracle/` cross-impl tests (skippable). Confirm real-protocol parity;
-  fix any residual mismatches (this is where HTTPS fingerprint & prepare-download body shape get proven).
+- [ ] **Phase 5 — Docker discovery e2e**
+      Multicast-config seam (injectable group addr/port, default `224.0.0.167:53317`); headless
+      discovery+receiver entrypoint over the built `dist/`; `docker compose` with 2+ containers on a
+      user-defined bridge network; `test/e2e-docker/` asserting mutual discovery + real transfer.
+      Exit: two containers discover each other via multicast and complete a verified transfer; skippable
+      when Docker absent.
 
-- [ ] **Phase 6 — Docs & polish**
-  Update `README.md`/`AGENTS.md`, public API docs, manual GUI-app checklist, discovery re-announce.
+- [ ] **Phase 6 — Rust oracle**
+      `tools/oracle-rs` wrapper; `test/oracle/` cross-impl tests (skippable). Confirm real-protocol parity;
+      fix any residual mismatches (this is where HTTPS fingerprint & prepare-download body shape get proven).
+
+- [ ] **Phase 7 — Docs & polish**
+      Update `README.md`/`AGENTS.md`, public API docs, manual GUI-app checklist, discovery re-announce.
 
 ---
 

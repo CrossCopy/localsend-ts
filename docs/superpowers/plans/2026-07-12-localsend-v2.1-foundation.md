@@ -50,12 +50,14 @@
 ### Task 0.1: Test utilities + harness + first green interop test
 
 **Files:**
+
 - Create: `test/helpers/util.ts`
 - Create: `test/helpers/harness.ts`
 - Create: `test/interop/upload-smoke.test.ts`
 - Modify: `package.json` (add `test` script)
 
 **Interfaces:**
+
 - Produces: `tempDir(): Promise<string>`, `rmTemp(dir)`, `getFreePort(): Promise<number>`, `makeRandomFile(dir, name, size): Promise<{path, sha256}>`, `sha256File(path): Promise<string>`
 - Produces: `startReceiver(opts?): Promise<Receiver>` where `Receiver = { port, saveDir, deviceInfo, stop() }`; `sendFile(receiver, filePath, opts?): Promise<boolean>`. These wrap the CURRENT API today and are updated in Phase 1 so test bodies stay stable.
 
@@ -129,7 +131,9 @@ export interface Receiver {
 	stop(): Promise<void>
 }
 
-export async function startReceiver(opts: { pin?: string; autoAccept?: boolean } = {}): Promise<Receiver> {
+export async function startReceiver(
+	opts: { pin?: string; autoAccept?: boolean } = {}
+): Promise<Receiver> {
 	const port = await getFreePort()
 	const saveDir = await tempDir()
 	const deviceInfo = getDeviceInfo({ alias: "Test Receiver", port })
@@ -221,10 +225,12 @@ git commit -m "test: add bun test harness with TS<->TS upload smoke test"
 ### Task 1.1: Extract protocol constants
 
 **Files:**
+
 - Create: `src/protocol/constants.ts`
 - Modify: `src/config.ts` (becomes re-export)
 
 **Interfaces:**
+
 - Produces: `DEFAULT_CONFIG` (unchanged shape), `API_PATHS = { info, register, prepareUpload, upload, cancel, prepareDownload, download }`, `MULTICAST`.
 
 - [ ] **Step 1: Create `src/protocol/constants.ts`**
@@ -270,6 +276,7 @@ Expected: all green (re-export keeps existing imports working).
 ### Task 1.2: Move protocol types
 
 **Files:**
+
 - Create: `src/protocol/types.ts` (copy current `src/types.ts` verbatim, change internal import of config to `./constants.ts` if any)
 - Modify: `src/types.ts` → `export * from "./protocol/types.ts"`
 
@@ -281,6 +288,7 @@ Expected: all green (re-export keeps existing imports working).
 ### Task 1.3: Extract crypto/fingerprint
 
 **Files:**
+
 - Create: `src/crypto/fingerprint.ts`
 - Modify: `src/utils/device.ts` (import fingerprint from new module, re-export it)
 
@@ -302,11 +310,13 @@ export function generateFingerprint(): string {
 ### Task 1.4: Create `src/core/files.ts` with traversal-safe path resolver (test-first)
 
 **Files:**
+
 - Create: `src/core/files.ts`
 - Create: `test/unit/files.test.ts`
 - Modify: `src/utils/file.ts` → re-export from `../core/files.ts`
 
 **Interfaces:**
+
 - Produces: `sanitizeFilename(name: string): string`, `resolveSavePath(saveDir: string, fileName: string): string` (throws `Error` on traversal escape), plus the existing `createFileId`, `computeSha256FromFile`, `computeSha256FromBytes`, `buildFileMetadataFromPath`, `buildFileMetadataFromBytes` (moved verbatim).
 
 - [ ] **Step 1: Write `test/unit/files.test.ts`**
@@ -405,11 +415,10 @@ export async function buildFileMetadataFromPath(
 	const fileId = options.fileId ?? createFileId(filePath)
 	const fileName = options.fileName ?? path.basename(filePath)
 	const fileType = options.fileType ?? "application/octet-stream"
-	const metadata =
-		options.metadata ?? {
-			modified: fileStats.mtime?.toISOString(),
-			accessed: fileStats.atime?.toISOString()
-		}
+	const metadata = options.metadata ?? {
+		modified: fileStats.mtime?.toISOString(),
+		accessed: fileStats.atime?.toISOString()
+	}
 	const sha256 = options.computeSha256 === false ? undefined : await computeSha256FromFile(filePath)
 	const fileMetadata: FileMetadata = {
 		id: fileId,
@@ -466,11 +475,14 @@ git commit -m "refactor: add core/files with traversal-safe resolveSavePath (+te
 ### Task 1.5: Extract `UploadSessionStore` (test-first)
 
 **Files:**
+
 - Create: `src/core/sessions.ts`
 - Create: `test/unit/sessions.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
 ```ts
 type UploadSession = {
 	info: DeviceInfo
@@ -480,7 +492,10 @@ type UploadSession = {
 	receivedFiles: Set<string>
 }
 class UploadSessionStore {
-	create(info: DeviceInfo, files: Record<string, FileMetadata>): { sessionId: string; tokens: Record<string, string> }
+	create(
+		info: DeviceInfo,
+		files: Record<string, FileMetadata>
+	): { sessionId: string; tokens: Record<string, string> }
 	get(sessionId: string): UploadSession | undefined
 	validateToken(sessionId: string, fileId: string, token: string): boolean
 	markReceived(sessionId: string, fileId: string): { allDone: boolean }
@@ -496,7 +511,16 @@ import { test, expect } from "bun:test"
 import { UploadSessionStore } from "../../src/core/sessions.ts"
 import type { DeviceInfo, FileMetadata } from "../../src/protocol/types.ts"
 
-const info = { alias: "a", version: "2.1", deviceModel: null, deviceType: "desktop", fingerprint: "fp", port: 53317, protocol: "http", download: false } as DeviceInfo
+const info = {
+	alias: "a",
+	version: "2.1",
+	deviceModel: null,
+	deviceType: "desktop",
+	fingerprint: "fp",
+	port: 53317,
+	protocol: "http",
+	download: false
+} as DeviceInfo
 const files: Record<string, FileMetadata> = {
 	f1: { id: "f1", fileName: "a.txt", size: 3, fileType: "text/plain" },
 	f2: { id: "f2", fileName: "b.txt", size: 3, fileType: "text/plain" }
@@ -590,6 +614,7 @@ git commit -m "refactor: add core/sessions UploadSessionStore (+tests)"
 ### Task 1.6: Move client to `src/core/send.ts`
 
 **Files:**
+
 - Create: `src/core/send.ts` (move `src/api/client.ts` verbatim; update internal imports to `../protocol/types.ts`)
 - Modify: `src/api/client.ts` → `export * from "../core/send.ts"`
 
@@ -601,6 +626,7 @@ git commit -m "refactor: add core/sessions UploadSessionStore (+tests)"
 ### Task 1.7: Rewrite server routes to delegate to core; single canonical server
 
 **Files:**
+
 - Create: `src/server/routes.ts` (Hono routes calling `UploadSessionStore` + `core/files.ts`)
 - Create: `src/server/adapters/{types,bun,node,deno}.ts` (move from `src/api/server-adapter.ts`, one class per file; `types.ts` gains optional `tls?: {cert,key}` field — unused until Phase 4)
 - Create: `src/server/server.ts` (canonical `LocalSendServer`, moved/renamed from `LocalSendHonoServer`)
@@ -609,6 +635,7 @@ git commit -m "refactor: add core/sessions UploadSessionStore (+tests)"
 - Modify: `src/api/server-adapter.ts` → re-export from `../server/adapters/*`
 
 **Interfaces:**
+
 - Produces: `class LocalSendServer` with the same constructor options as the current `LocalSendHonoServer` plus `protocol?: "http"|"https"` (http-only honored this phase). `createLocalSendRoutes(ctx)` unchanged signature; internally uses `UploadSessionStore` and `resolveSavePath`.
 
 - [ ] **Step 1:** Create `src/server/adapters/types.ts`:
@@ -644,6 +671,7 @@ git commit -m "refactor: consolidate to src/server/* delegating to core; single 
 ### Task 1.8: Update `index.ts` exports + remove dead code
 
 **Files:**
+
 - Modify: `src/index.ts`
 - Delete: `src/api/server.ts` (vanilla server), `src/api/deno-client.ts` (verify unused)
 
@@ -671,12 +699,14 @@ git commit -m "refactor: remove broken vanilla server + dead deno-client; update
 ### Task 2.1: Upload sends whole file in one request (remove invented chunking)
 
 **Files:**
+
 - Create: `test/conformance/upload-wire.test.ts`
 - Modify: `src/core/send.ts` (`uploadFile`)
 - Modify: `src/server/routes.ts` (remove `X-Content-Range` branch)
 - Modify: `src/hono-rpc.ts` (remove chunking branch)
 
 **Interfaces:**
+
 - Consumes: `UploadSessionStore`, `resolveSavePath`.
 - Produces: `uploadFile(...)` unchanged signature but streams the whole file as one POST with `Content-Length` and NO `X-Content-Range`.
 
@@ -796,7 +826,13 @@ while (true) {
 		fileStream.write(Buffer.from(value))
 		if (ctx.transferProgressHandler) {
 			const elapsed = (Date.now() - start) / 1000
-			ctx.transferProgressHandler(fileId, fileMetadata.fileName, received, fileMetadata.size, elapsed > 0 ? received / elapsed : 0)
+			ctx.transferProgressHandler(
+				fileId,
+				fileMetadata.fileName,
+				received,
+				fileMetadata.size,
+				elapsed > 0 ? received / elapsed : 0
+			)
 		}
 	}
 }
@@ -804,7 +840,19 @@ fileStream.end()
 const { allDone } = ctx.uploads.markReceived(sessionId, fileId)
 const totalTime = (Date.now() - start) / 1000
 if (ctx.transferProgressHandler) {
-	ctx.transferProgressHandler(fileId, fileMetadata.fileName, received, fileMetadata.size, totalTime > 0 ? received / totalTime : 0, true, { filePath, totalTimeSeconds: totalTime, averageSpeed: totalTime > 0 ? received / totalTime : 0 })
+	ctx.transferProgressHandler(
+		fileId,
+		fileMetadata.fileName,
+		received,
+		fileMetadata.size,
+		totalTime > 0 ? received / totalTime : 0,
+		true,
+		{
+			filePath,
+			totalTimeSeconds: totalTime,
+			averageSpeed: totalTime > 0 ? received / totalTime : 0
+		}
+	)
 }
 return c.json({ message: "File received successfully" })
 ```
@@ -842,6 +890,7 @@ git commit -m "fix: upload whole file in one request; drop non-standard X-Conten
 ### Task 2.2: Path-traversal protection end-to-end
 
 **Files:**
+
 - Create: `test/interop/path-traversal.test.ts`
 - (Implementation already added in Task 1.7 Step 3 via `resolveSavePath`; this task proves it e2e.)
 
@@ -858,12 +907,23 @@ test("rejects filename that escapes the save directory", async () => {
 	const receiver = await startReceiver({ autoAccept: true })
 	try {
 		const base = `http://127.0.0.1:${receiver.port}/api/localsend/v2`
-		const info = { alias: "x", version: "2.1", deviceType: "headless", fingerprint: "fp", port: receiver.port, protocol: "http", download: false }
+		const info = {
+			alias: "x",
+			version: "2.1",
+			deviceType: "headless",
+			fingerprint: "fp",
+			port: receiver.port,
+			protocol: "http",
+			download: false
+		}
 		const evil = "../ESCAPED.txt"
 		const prep = await fetch(`${base}/prepare-upload`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ info, files: { f1: { id: "f1", fileName: evil, size: 5, fileType: "text/plain" } } })
+			body: JSON.stringify({
+				info,
+				files: { f1: { id: "f1", fileName: evil, size: 5, fileType: "text/plain" } }
+			})
 		})
 		expect(prep.ok).toBe(true)
 		const { sessionId, files } = (await prep.json()) as any
@@ -896,6 +956,7 @@ Expected: pass. If it fails because the write is attempted before validation, mo
 ### Task 2.3: Relax schema to match spec + allow PIN together with accept callback
 
 **Files:**
+
 - Create: `test/conformance/schema.test.ts`
 - Modify: `src/protocol/types.ts` (loosen `deviceInfoSchema`)
 - Modify: `src/server/routes.ts` (`prepare-upload`: check PIN, THEN call accept handler)
@@ -908,13 +969,27 @@ import * as v from "valibot"
 import { deviceInfoSchema } from "../../src/protocol/types.ts"
 
 test("deviceInfo accepts spec-minimal payload omitting download", () => {
-	const input = { alias: "a", version: "2.1", deviceType: "mobile", fingerprint: "fp", port: 53317, protocol: "http" }
+	const input = {
+		alias: "a",
+		version: "2.1",
+		deviceType: "mobile",
+		fingerprint: "fp",
+		port: 53317,
+		protocol: "http"
+	}
 	const out = v.parse(deviceInfoSchema, input)
 	expect(out.download).toBe(false)
 })
 
 test("deviceInfo accepts null deviceModel and missing deviceType", () => {
-	const input = { alias: "a", version: "2.1", deviceModel: null, fingerprint: "fp", port: 53317, protocol: "http" }
+	const input = {
+		alias: "a",
+		version: "2.1",
+		deviceModel: null,
+		fingerprint: "fp",
+		port: 53317,
+		protocol: "http"
+	}
 	const out = v.parse(deviceInfoSchema, input)
 	expect(out.alias).toBe("a")
 })
@@ -958,6 +1033,7 @@ if (ctx.transferRequestHandler) {
 ### Task 2.4: Return 204 when there is nothing to transfer
 
 **Files:**
+
 - Create/append: `test/conformance/prepare-upload.test.ts`
 - Modify: `src/server/routes.ts` (`prepare-upload`)
 
@@ -971,7 +1047,14 @@ test("prepare-upload with empty files returns 204", async () => {
 	const receiver = await startReceiver({ autoAccept: true })
 	try {
 		const base = `http://127.0.0.1:${receiver.port}/api/localsend/v2`
-		const info = { alias: "x", version: "2.1", deviceType: "headless", fingerprint: "fp", port: receiver.port, protocol: "http" }
+		const info = {
+			alias: "x",
+			version: "2.1",
+			deviceType: "headless",
+			fingerprint: "fp",
+			port: receiver.port,
+			protocol: "http"
+		}
 		const res = await fetch(`${base}/prepare-upload`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
@@ -997,11 +1080,13 @@ if (Object.keys(body.files).length === 0) return c.body(null, 204)
 ### Task 2.5: Filename collision handling
 
 **Files:**
+
 - Modify: `src/core/files.ts` (add `uniqueSavePath`)
 - Modify: `src/server/routes.ts` (use it)
 - Create: `test/unit/collision.test.ts`
 
 **Interfaces:**
+
 - Produces: `uniqueSavePath(saveDir: string, fileName: string): string` — traversal-safe AND non-colliding (` (1)`, ` (2)` before extension).
 
 - [ ] **Step 1: Write `test/unit/collision.test.ts`**
@@ -1054,6 +1139,7 @@ export function uniqueSavePath(saveDir: string, fileName: string): string {
 ### Task 2.6: Phase 2 regression sweep + docs update
 
 **Files:**
+
 - Modify: design doc phase checkboxes; `AGENTS.md` (note `bun test`, new structure)
 
 - [ ] **Step 1: Run everything.**
@@ -1070,8 +1156,9 @@ Expected: types clean, all tests pass, build succeeds (SDK regen + CLI bundle).
 
 - **Phase 3 — Download API** (`prepare-download`, `download`, `/` page, client methods, download session store).
 - **Phase 4 — HTTPS** (cert generation dep decision, `crypto/cert.ts`, fingerprint=SHA-256(cert) verified against `references/localsend/core/src/crypto/*`, TLS in all adapters).
-- **Phase 5 — Rust oracle** (`tools/oracle-rs`, `test/oracle/`).
-- **Phase 6 — polish/docs** (README, manual GUI-app checklist, discovery re-announce).
+- **Phase 5 — Docker discovery e2e** (multicast-config seam defaulting to `224.0.0.167:53317`; headless discovery+receiver entrypoint over built `dist/`; `docker compose` with 2+ containers on a user-defined bridge; `test/e2e-docker/` asserting mutual multicast discovery + real transfer; skippable when Docker absent).
+- **Phase 6 — Rust oracle** (`tools/oracle-rs`, `test/oracle/`).
+- **Phase 7 — polish/docs** (README, manual GUI-app checklist, discovery re-announce).
 
 Each will get its own `docs/superpowers/plans/` file when Phase 2 lands.
 
