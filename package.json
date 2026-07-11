@@ -15,6 +15,7 @@
 		"check-types": "tsc --noEmit",
 		"dev": "bun run --watch dev.ts",
 		"format": "prettier --write .",
+		"test": "bun test",
 		"cli": "bun src/cli-interactive.ts",
 		"cli:dev": "bun --watch src/cli-interactive.ts",
 		"tui": "bun src/cli-tui.tsx",
