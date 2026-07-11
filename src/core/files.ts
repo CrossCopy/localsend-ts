@@ -6,7 +6,9 @@ import path from "node:path"
 import type { FileMetadata } from "../protocol/types.ts"
 
 export function sanitizeFilename(name: string): string {
-	return path.basename(name)
+	const base = path.basename(name)
+	if (base === "" || base === "." || base === "..") return "unnamed_file"
+	return base
 }
 
 /**

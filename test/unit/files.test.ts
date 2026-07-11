@@ -22,3 +22,10 @@ test("sanitizeFilename strips path separators", () => {
 	expect(sanitizeFilename("../../x.txt")).toBe("x.txt")
 	expect(sanitizeFilename("a/b/c.txt")).toBe("c.txt")
 })
+
+test("sanitizeFilename neutralizes .., ., and empty", () => {
+	expect(sanitizeFilename("..")).toBe("unnamed_file")
+	expect(sanitizeFilename("a/..")).toBe("unnamed_file")
+	expect(sanitizeFilename(".")).toBe("unnamed_file")
+	expect(sanitizeFilename("")).toBe("unnamed_file")
+})
