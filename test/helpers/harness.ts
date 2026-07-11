@@ -1,5 +1,5 @@
 import { getDeviceInfo } from "../../src/utils/device.ts"
-import { LocalSendHonoServer } from "../../src/api/hono-server.ts"
+import { LocalSendServer } from "../../src/server/server.ts"
 import { LocalSendClient } from "../../src/api/client.ts"
 import { getFreePort, tempDir, rmTemp } from "./util.ts"
 import path from "node:path"
@@ -17,7 +17,7 @@ export async function startReceiver(
 	const port = await getFreePort()
 	const saveDir = await tempDir()
 	const deviceInfo = getDeviceInfo({ alias: "Test Receiver", port })
-	const server = new LocalSendHonoServer(deviceInfo, {
+	const server = new LocalSendServer(deviceInfo, {
 		saveDirectory: saveDir,
 		pin: opts.pin,
 		onTransferRequest: async () => opts.autoAccept ?? true
