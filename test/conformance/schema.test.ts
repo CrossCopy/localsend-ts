@@ -27,3 +27,14 @@ test("deviceInfo accepts null deviceModel and missing deviceType", () => {
 	const out = v.parse(deviceInfoSchema, input)
 	expect(out.alias).toBe("a")
 })
+
+test("deviceInfo rejects payload missing required port", () => {
+	const input = { alias: "a", version: "2.1", fingerprint: "fp", protocol: "http" }
+	expect(() => v.parse(deviceInfoSchema, input as any)).toThrow()
+})
+
+test("deviceInfo defaults protocol to http when omitted", () => {
+	const input = { alias: "a", version: "2.1", fingerprint: "fp", port: 53317 }
+	const out = v.parse(deviceInfoSchema, input as any)
+	expect(out.protocol).toBe("http")
+})

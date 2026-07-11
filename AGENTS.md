@@ -102,15 +102,24 @@ bun run cli            # Menu-driven interactive CLI
 ```
 ./
 ├── src/
-│   ├── api/          # HTTP server/client, OpenAPI integration
+│   ├── protocol/     # Constants + Valibot schemas (source of truth for wire types)
+│   ├── crypto/       # Fingerprint derivation
+│   ├── core/         # files.ts, send.ts (LocalSendClient), sessions.ts (UploadSessionStore)
+│   ├── server/       # server.ts (LocalSendServer), routes.ts, adapters/ (Bun/Node/Deno)
+│   ├── api/          # Thin re-export shims over core/ + server/ (back-compat import paths)
 │   ├── discovery/    # Device discovery (multicast UDP, HTTP)
 │   ├── sdk/          # Auto-generated OpenAPI SDK (DO NOT EDIT)
 │   ├── utils/        # Device info, file operations
-│   ├── types.ts       # Protocol types via Valibot schemas (source of truth)
+│   ├── types.ts      # Re-exports src/protocol/types.ts
 │   ├── cli.ts        # Traditional CLI (send/receive/discover)
 │   ├── cli-interactive.ts  # Menu-driven CLI
 │   ├── cli-tui.tsx   # React Ink TUI (recommended)
 │   └── hono-rpc.ts   # Type-safe Hono RPC client
+├── test/
+│   ├── unit/         # Pure logic (files, sessions, collisions)
+│   ├── conformance/  # Protocol/schema/wire-format checks against the spec
+│   ├── interop/      # End-to-end checks against a running server (path traversal, upload smoke)
+│   └── helpers/      # Shared test harness + utilities
 ├── examples/         # Functional examples (serve as integration tests)
 ├── build.ts          # Custom build: spawns hono-receiver to generate SDK
 └── dist/             # Build output (generated, never commit)
@@ -136,16 +145,13 @@ bun run cli            # Menu-driven interactive CLI
 - **Deno** - Full support via @hono/node-server adapter
 - **Server adapters** - Auto-detect or explicitly: BunServerAdapter, NodeServerAdapter, DenoServerAdapter
 
-## TESTING STRATEGY
+## TESTING
 
-**No formal test suite** - Examples serve as functional integration tests. To test a feature:
-
-1. **Create an example** in `examples/` directory
-2. **Run directly with Bun** - `bun examples/your-feature.ts [args]`
-3. **Manual verification** - Check output/log for expected behavior
-4. **Type checking** - Always run `bun run check-types` after changes
-
-For formal tests, Bun test is recommended (project currently uses examples instead).
+Tests live under `test/{unit,conformance,interop}/` and run with `bun test`. `test/unit/` covers
+pure logic, `test/conformance/` checks protocol/schema/wire-format behavior, and `test/interop/`
+spins up a real server (via `test/helpers/harness.ts`) for end-to-end checks. Examples in
+`examples/` remain useful for manual, runnable demonstrations of a feature. Always run
+`bun run check-types` and `bun test` after changes.
 
 ## PROTOCOL REFERENCE
 

@@ -340,16 +340,16 @@ honest way to test discovery.
 > Each phase ends **green** (`bun test` + `bun run check-types`). TDD: write failing test → fix.
 > Checkboxes track progress.
 
-- [ ] **Phase 0 — Test scaffolding**
+- [x] **Phase 0 — Test scaffolding**
       Add `bun test` setup, `test/` dirs, helpers (temp dirs, ephemeral ports, sha256 compare, fetch-recorder).
       Exit: a trivial interop test (send 1 KB TS↔TS) passes against current code.
 
-- [ ] **Phase 1 — Refactor to core (no behavior change intended)**
+- [x] **Phase 1 — Refactor to core (no behavior change intended)**
       Extract `protocol/`, `core/`, `server/`; consolidate to one `LocalSendServer`; remove vanilla server;
       port existing endpoints onto `core/receive.ts`. Keep discovery. Update `index.ts`.
       Exit: existing behavior preserved; Phase-0 test + new conformance tests for current endpoints pass.
 
-- [ ] **Phase 2 — Correctness/security fixes (B1–B6)**
+- [x] **Phase 2 — Correctness/security fixes (B1–B6)**
       Whole-file streaming upload; path-traversal guard; schema leniency; `204`; collisions; PIN+accept.
       Exit: conformance + interop tests for upload (incl. 60 MB, 0 B) green; traversal test green.
 
