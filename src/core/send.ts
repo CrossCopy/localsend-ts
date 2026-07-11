@@ -1,4 +1,9 @@
-import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../protocol/types.ts"
+import type {
+	DeviceInfo,
+	PrepareUploadResponse,
+	PrepareDownloadResponse,
+	FileMetadata
+} from "../protocol/types.ts"
 import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
 import { Readable } from "node:stream"
@@ -168,6 +173,78 @@ export class LocalSendClient {
 			return response.ok
 		} catch (err) {
 			console.error("Error uploading file:", err)
+			return false
+		}
+	}
+
+	/**
+	 * Prepare file download by requesting session + file metadata from sender
+	 */
+	async prepareDownload(
+		targetDevice: { ip: string; port: number; protocol: "http" | "https" },
+		pin?: string
+	): Promise<PrepareDownloadResponse | null> {
+		try {
+			return await this.requestJson<PrepareDownloadResponse>(
+				targetDevice,
+				"/api/localsend/v2/prepare-download",
+				{ method: "POST", query: pin ? { pin } : undefined }
+			)
+		} catch (err) {
+			console.error("Error preparing download:", err)
+			return null
+		}
+	}
+
+	/**
+	 * Download a file from the sender, streaming the response body to disk.
+	 */
+	async download(
+		targetDevice: { ip: string; port: number; protocol: "http" | "https" },
+		sessionId: string,
+		fileId: string,
+		outPath: string
+	): Promise<boolean> {
+		try {
+			const { createWriteStream } = await import("node:fs")
+			const protocol = targetDevice.protocol || "http"
+			const url = `${protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/download?sessionId=${sessionId}&fileId=${fileId}`
+			const fetchOptions: any = { method: "GET" }
+			this.applyTlsOptions(fetchOptions, protocol)
+			const res = await fetch(url, fetchOptions)
+			if (!res.ok || !res.body) return false
+
+			const out = createWriteStream(outPath)
+			const reader = res.body.getReader()
+			try {
+				await new Promise<void>((resolve, reject) => {
+					out.on("error", reject)
+					const pump = (): void => {
+						reader
+							.read()
+							.then(({ done, value }) => {
+								if (done) {
+									out.end()
+									return
+								}
+								if (!out.write(value)) {
+									out.once("drain", pump)
+								} else {
+									pump()
+								}
+							})
+							.catch(reject)
+					}
+					out.on("finish", () => resolve())
+					pump()
+				})
+			} finally {
+				reader.releaseLock()
+			}
+
+			return true
+		} catch (err) {
+			console.error("Error downloading file:", err)
 			return false
 		}
 	}
