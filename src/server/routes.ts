@@ -157,6 +157,8 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 						}
 					}
 
+					if (Object.keys(body.files).length === 0) return c.body(null, 204)
+
 					const { sessionId, tokens } = ctx.uploads.create(body.info, body.files)
 
 					const response: PrepareUploadResponse = {
