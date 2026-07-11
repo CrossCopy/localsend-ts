@@ -13,12 +13,12 @@ export type DeviceType = v.InferOutput<typeof deviceType>
 export const deviceInfoSchema = v.object({
 	alias: v.string(),
 	version: v.string(),
-	deviceModel: v.nullable(v.string()),
-	deviceType: v.nullable(deviceType),
+	deviceModel: v.optional(v.nullable(v.string())),
+	deviceType: v.optional(v.nullable(deviceType)),
 	fingerprint: v.string(),
 	port: v.number(),
-	protocol: v.union([v.literal("http"), v.literal("https")]),
-	download: v.boolean()
+	protocol: v.optional(v.union([v.literal("http"), v.literal("https")]), "http"),
+	download: v.optional(v.boolean(), false)
 })
 
 export const fileMetadataSchema = v.object({
@@ -53,7 +53,7 @@ export const messageResponseSchema = v.object({
 })
 
 // Infer types from schemas
-export type DeviceInfo = v.InferInput<typeof deviceInfoSchema> & { ip?: string }
+export type DeviceInfo = v.InferOutput<typeof deviceInfoSchema> & { ip?: string }
 export type FileMetadata = v.InferInput<typeof fileMetadataSchema>
 export type PrepareUploadRequest = v.InferInput<typeof prepareUploadRequestSchema>
 export type PrepareUploadResponse = v.InferInput<typeof prepareUploadResponseSchema>

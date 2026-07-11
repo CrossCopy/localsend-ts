@@ -148,7 +148,8 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 						if (!pinParam || pinParam !== ctx.pin) {
 							return c.json({ message: "PIN required" }, 401)
 						}
-					} else if (ctx.transferRequestHandler) {
+					}
+					if (ctx.transferRequestHandler) {
 						const accepted = await ctx.transferRequestHandler(body.info, body.files)
 
 						if (!accepted) {
