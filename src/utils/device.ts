@@ -1,14 +1,9 @@
-import { randomBytes } from "node:crypto"
 import type { DeviceInfo } from "../types.ts"
 import { DEFAULT_CONFIG } from "../config.ts"
 import os from "node:os"
+import { generateFingerprint } from "../crypto/fingerprint.ts"
 
-/**
- * Generate a random fingerprint
- */
-export function generateFingerprint(): string {
-	return randomBytes(32).toString("hex")
-}
+export { generateFingerprint }
 
 /**
  * Determine device type based on OS
