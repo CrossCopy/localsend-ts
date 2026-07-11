@@ -15,8 +15,8 @@ import { unlink } from "node:fs/promises"
 import * as v from "valibot"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import type { Context } from "hono"
-import type { UploadSessionStore } from "../core/sessions.ts"
-import { uniqueSavePath } from "../core/files.ts"
+import type { UploadSessionStore, DownloadSessionStore } from "../core/sessions.ts"
+import { uniqueSavePath, type StagedFile } from "../core/files.ts"
 
 export interface LocalSendContext {
 	deviceInfo: DeviceInfo
@@ -43,6 +43,8 @@ export interface LocalSendContext {
 	onRegisterCallback?: (device: DeviceInfo) => void
 	maxRequestBodySize: number
 	uploads: UploadSessionStore
+	sharedFiles: StagedFile[]
+	downloads: DownloadSessionStore
 	getRemoteAddress: (c: any) => string | null
 }
 
@@ -356,6 +358,79 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 				}
 
 				return c.json({ message: "Session canceled" })
+			}
+		)
+		.post(
+			"/api/localsend/v2/prepare-download",
+			describeRoute({
+				description: "Prepare a reverse download (share-by-link)",
+				responses: {
+					200: {
+						description: "Download metadata",
+						content: {
+							"application/json": { schema: resolver(messageResponseSchema) }
+						}
+					},
+					401: {
+						description: "PIN required",
+						content: {
+							"application/json": { schema: resolver(messageResponseSchema) }
+						}
+					},
+					404: {
+						description: "Nothing shared",
+						content: {
+							"application/json": { schema: resolver(messageResponseSchema) }
+						}
+					}
+				}
+			}),
+			validator("query", v.object({ pin: v.optional(v.string()) })),
+			async (c) => {
+				if (ctx.requirePin) {
+					const pinParam = c.req.query("pin")
+					if (!pinParam || pinParam !== ctx.pin) return c.json({ message: "PIN required" }, 401)
+				}
+				if (!ctx.sharedFiles || ctx.sharedFiles.length === 0) {
+					return c.json({ message: "Nothing shared" }, 404)
+				}
+				const sessionId = ctx.downloads.create(ctx.sharedFiles)
+				const files: Record<string, FileMetadata> = {}
+				for (const f of ctx.sharedFiles) files[f.fileId] = f.metadata
+				return c.json({ info: ctx.deviceInfo, sessionId, files })
+			}
+		)
+		.get(
+			"/api/localsend/v2/download",
+			describeRoute({
+				description: "Download a shared file",
+				responses: {
+					200: { description: "Binary file" },
+					404: {
+						description: "Not found",
+						content: {
+							"application/json": { schema: resolver(messageResponseSchema) }
+						}
+					}
+				}
+			}),
+			validator("query", v.object({ sessionId: v.string(), fileId: v.string() })),
+			async (c) => {
+				const { sessionId, fileId } = c.req.valid("query")
+				const staged = ctx.downloads.getFile(sessionId, fileId)
+				if (!staged) return c.json({ message: "Not found" }, 404)
+				const stream = fs.createReadStream(staged.absolutePath)
+				const webStream = (await import("node:stream")).Readable.toWeb(
+					stream
+				) as unknown as ReadableStream
+				return new Response(webStream, {
+					status: 200,
+					headers: {
+						"Content-Type": staged.metadata.fileType || "application/octet-stream",
+						"Content-Length": staged.metadata.size.toString(),
+						"Content-Disposition": `attachment; filename="${encodeURIComponent(staged.metadata.fileName)}"`
+					}
+				})
 			}
 		)
 		.notFound((c) => {

@@ -3,7 +3,8 @@ import type { ServerAdapter } from "./adapters/index.ts"
 import { createServerAdapter } from "./adapters/index.ts"
 import { createLocalSendRoutes, type LocalSendContext } from "./routes.ts"
 import type { DeviceInfo, FileMetadata } from "../protocol/types.ts"
-import { UploadSessionStore } from "../core/sessions.ts"
+import { UploadSessionStore, DownloadSessionStore } from "../core/sessions.ts"
+import { stageFile, type StagedFile } from "../core/files.ts"
 import fs from "node:fs"
 
 export type TransferRequestHandler = (
@@ -38,6 +39,9 @@ export class LocalSendServer {
 	private transferProgressHandler: TransferProgressHandler | null = null
 	private onRegisterCallback: ((device: DeviceInfo) => void) | null = null
 	private maxRequestBodySize: number = 5 * 1024 * 1024 * 1024
+	private sharedFilePaths: string[] = []
+	private sharedFiles: StagedFile[] = []
+	private downloads = new DownloadSessionStore()
 
 	constructor(
 		deviceInfo: DeviceInfo,
@@ -50,6 +54,7 @@ export class LocalSendServer {
 			onRegister?: (device: DeviceInfo) => void
 			maxRequestBodySize?: number
 			protocol?: "http" | "https"
+			sharedFiles?: string[]
 		} = {}
 	) {
 		this.deviceInfo = options.protocol ? { ...deviceInfo, protocol: options.protocol } : deviceInfo
@@ -60,6 +65,7 @@ export class LocalSendServer {
 		this.transferProgressHandler = options.onTransferProgress || null
 		this.onRegisterCallback = options.onRegister || null
 		this.maxRequestBodySize = options.maxRequestBodySize || this.maxRequestBodySize
+		this.sharedFilePaths = options.sharedFiles ?? []
 
 		this.serverAdapter = options.serverAdapter || createServerAdapter()
 
@@ -81,6 +87,8 @@ export class LocalSendServer {
 			onRegisterCallback: this.onRegisterCallback || undefined,
 			maxRequestBodySize: this.maxRequestBodySize,
 			uploads: this.uploads,
+			sharedFiles: this.sharedFiles,
+			downloads: this.downloads,
 			getRemoteAddress: this.getRemoteAddress.bind(this)
 		}
 
@@ -124,6 +132,12 @@ export class LocalSendServer {
 
 	async start(): Promise<void> {
 		try {
+			if (this.sharedFilePaths.length > 0) {
+				this.sharedFiles = await Promise.all(this.sharedFilePaths.map(stageFile))
+				this.deviceInfo.download = true
+				this.registerRoutes()
+			}
+
 			this.server = await this.serverAdapter.start({
 				port: this.deviceInfo.port,
 				fetch: this.app.fetch,
