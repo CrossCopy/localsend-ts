@@ -9,12 +9,11 @@ export { MulticastDiscovery } from "./discovery/multicast.ts"
 export { HttpDiscovery } from "./discovery/http-discovery.ts"
 
 // Export API
-export { LocalSendServer } from "./api/server.ts"
-export { LocalSendHonoServer } from "./api/hono-server.ts"
+export { LocalSendServer, LocalSendServer as LocalSendHonoServer } from "./server/server.ts"
 export { LocalSendClient } from "./api/client.ts"
 export { LocalSendRpcClient } from "./hono-rpc.ts"
 export type { LocalSendClientOptions } from "./hono-rpc.ts"
-export type { LocalSendAppType } from "./api/hono-server.ts"
+export type { LocalSendAppType } from "./server/routes.ts"
 
 // Export server adapters - fix by using explicit import and export
 import {

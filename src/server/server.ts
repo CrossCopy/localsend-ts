@@ -148,5 +148,3 @@ export class LocalSendServer {
 		}
 	}
 }
-
-export type LocalSendAppType = ReturnType<typeof createLocalSendRoutes>
