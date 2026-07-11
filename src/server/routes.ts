@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { openAPIRouteHandler } from "hono-openapi"
 import { Scalar } from "@scalar/hono-api-reference"
 import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../protocol/types.ts"
+import { renderSharePage } from "./web.ts"
 import {
 	deviceInfoSchema,
 	prepareUploadRequestSchema,
@@ -61,6 +62,15 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 	const app = new Hono()
 		.use("*", middleware)
 		.get("/docs", Scalar({ url: "/openapi", theme: "elysiajs" }))
+		.get("/", (c) => {
+			if (!ctx.sharedFiles || ctx.sharedFiles.length === 0) {
+				return c.json({ message: "No files shared" }, 404)
+			}
+			const sessionId = ctx.downloads.create(ctx.sharedFiles)
+			const files: Record<string, FileMetadata> = {}
+			for (const f of ctx.sharedFiles) files[f.fileId] = f.metadata
+			return c.html(renderSharePage(ctx.deviceInfo, sessionId, files))
+		})
 		.get(
 			"/api/localsend/v2/info",
 			describeRoute({
