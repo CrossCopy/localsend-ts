@@ -353,7 +353,7 @@ honest way to test discovery.
       Whole-file streaming upload; path-traversal guard; schema leniency; `204`; collisions; PIN+accept.
       Exit: conformance + interop tests for upload (incl. 60 MB, 0 B) green; traversal test green.
 
-- [ ] **Phase 3 — Download API (G1)**
+- [x] **Phase 3 — Download API (G1)**
       Staging, `prepare-download`, `download`, minimal `/` page; client `prepareDownload`/`download`.
       Exit: download interop tests (incl. 60 MB) green over HTTP.
 

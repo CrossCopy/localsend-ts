@@ -11,6 +11,7 @@ export { HttpDiscovery } from "./discovery/http-discovery.ts"
 // Export API
 export { LocalSendServer, LocalSendServer as LocalSendHonoServer } from "./server/server.ts"
 export { LocalSendClient } from "./api/client.ts"
+export type { StagedFile } from "./core/files.ts"
 export { LocalSendRpcClient } from "./hono-rpc.ts"
 export type { LocalSendClientOptions } from "./hono-rpc.ts"
 export type { LocalSendAppType } from "./server/routes.ts"

@@ -127,16 +127,20 @@ bun run cli            # Menu-driven interactive CLI
 
 ## WHERE TO LOOK
 
-| Task             | Location                 | Notes                              |
-| ---------------- | ------------------------ | ---------------------------------- |
-| Send file        | `src/api/client.ts`      | LocalSendClient.sendFile()         |
-| Receive file     | `src/api/server.ts`      | LocalSendServer (vanilla)          |
-| Hono server      | `src/api/hono-server.ts` | OpenAPI integration                |
-| RPC client       | `src/hono-rpc.ts`        | Type-safe Hono client              |
-| Discover devices | `src/discovery/*.ts`     | Multicast + HTTP fallback          |
-| Build process    | `build.ts`               | Spawns hono-receiver on port 53317 |
-| Protocol types   | `src/types.ts`           | Valibot schemas (source of truth)  |
-| CLI entry        | `src/cli.ts`             | Citty framework                    |
+| Task             | Location                 | Notes                                   |
+| ---------------- | ------------------------ | --------------------------------------- |
+| Send file        | `src/api/client.ts`      | LocalSendClient.sendFile()              |
+| Receive file     | `src/api/server.ts`      | LocalSendServer (vanilla)               |
+| Download file    | `src/core/send.ts`       | Client: prepareDownload/download()      |
+| Download API     | `src/server/routes.ts`   | prepare-download / download endpoints   |
+| Download UI      | `src/server/web.ts`      | GET / (browser page & file streaming)   |
+| Share files      | `src/server/server.ts`   | LocalSendServer({ sharedFiles: [...] }) |
+| Hono server      | `src/api/hono-server.ts` | OpenAPI integration                     |
+| RPC client       | `src/hono-rpc.ts`        | Type-safe Hono client                   |
+| Discover devices | `src/discovery/*.ts`     | Multicast + HTTP fallback               |
+| Build process    | `build.ts`               | Spawns hono-receiver on port 53317      |
+| Protocol types   | `src/types.ts`           | Valibot schemas (source of truth)       |
+| CLI entry        | `src/cli.ts`             | Citty framework                         |
 
 ## RUNTIME SUPPORT
 
