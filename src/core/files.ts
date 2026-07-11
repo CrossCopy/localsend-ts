@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer"
 import { createHash, randomBytes } from "node:crypto"
 import { createReadStream } from "node:fs"
+import { existsSync } from "node:fs"
 import { stat } from "node:fs/promises"
 import path from "node:path"
 import type { FileMetadata } from "../protocol/types.ts"
@@ -20,6 +21,25 @@ export function resolveSavePath(saveDir: string, fileName: string): string {
 	const candidate = path.resolve(root, fileName)
 	if (candidate !== root && !candidate.startsWith(root + path.sep)) {
 		throw new Error(`Unsafe file path rejected: ${fileName}`)
+	}
+	return candidate
+}
+
+/**
+ * Resolve a non-colliding save path by appending (1), (2), ... before the extension
+ * if a file with the same name already exists. Traversal-safe via resolveSavePath.
+ */
+export function uniqueSavePath(saveDir: string, fileName: string): string {
+	const resolved = resolveSavePath(saveDir, fileName)
+	if (!existsSync(resolved)) return resolved
+	const dir = path.dirname(resolved)
+	const ext = path.extname(resolved)
+	const stem = path.basename(resolved, ext)
+	let i = 1
+	let candidate = path.join(dir, `${stem} (${i})${ext}`)
+	while (existsSync(candidate)) {
+		i += 1
+		candidate = path.join(dir, `${stem} (${i})${ext}`)
 	}
 	return candidate
 }

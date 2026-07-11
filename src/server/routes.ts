@@ -15,7 +15,7 @@ import * as v from "valibot"
 import { describeRoute, resolver, validator } from "hono-openapi"
 import type { Context } from "hono"
 import type { UploadSessionStore } from "../core/sessions.ts"
-import { resolveSavePath } from "../core/files.ts"
+import { uniqueSavePath } from "../core/files.ts"
 
 export interface LocalSendContext {
 	deviceInfo: DeviceInfo
@@ -242,7 +242,7 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 
 				let filePath: string
 				try {
-					filePath = resolveSavePath(ctx.saveDirectory, fileMetadata.fileName)
+					filePath = uniqueSavePath(ctx.saveDirectory, fileMetadata.fileName)
 				} catch (err) {
 					return c.json({ message: "Unsafe path" }, 400)
 				}
