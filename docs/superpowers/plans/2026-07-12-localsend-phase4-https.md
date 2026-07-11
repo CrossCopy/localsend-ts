@@ -33,15 +33,18 @@
 ## Task 4.1: crypto/cert.ts — self-signed cert + app-correct fingerprint
 
 **Files:**
+
 - Create: `src/crypto/cert.ts`
 - Modify: `package.json` (add `selfsigned` dependency)
 - Test: `test/unit/cert.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
 ```ts
-function generateSelfSignedCert(): { cert: string; key: string }   // PEM strings
-function certFingerprintSha256(certPem: string): string            // 64-char UPPERCASE hex
+function generateSelfSignedCert(): { cert: string; key: string } // PEM strings
+function certFingerprintSha256(certPem: string): string // 64-char UPPERCASE hex
 ```
 
 - [ ] **Step 1: Add the dependency**
@@ -129,6 +132,7 @@ export function certFingerprintSha256(certPem: string): string {
 
 - [ ] **Step 5: Run — verify PASS.** Run: `bun test test/unit/cert.test.ts` → 3 pass. If `selfsigned` fails to import/run under Bun, switch the implementation to use `node-forge` directly (also pure JS): `bun add node-forge`, build an RSA keypair + self-signed X.509 cert, export PEM. Keep the same two exported function signatures. Report the swap as DONE_WITH_CONCERNS.
 - [ ] **Step 6:** `bun run check-types && bun test`; `bun run format`; commit:
+
 ```bash
 git add src/crypto/cert.ts package.json bun.lock test/unit/cert.test.ts
 git commit -m "feat: self-signed cert generation + app-correct SHA-256(DER) uppercase fingerprint"
@@ -139,10 +143,12 @@ git commit -m "feat: self-signed cert generation + app-correct SHA-256(DER) uppe
 ## Task 4.2: TLS support in server adapters
 
 **Files:**
+
 - Modify: `src/server/adapters/bun.ts`, `src/server/adapters/node.ts`, `src/server/adapters/deno.ts`
 - (No new test here — exercised by the HTTPS interop test in Task 4.4.)
 
 **Interfaces:**
+
 - Consumes: `start(options)` where `options.tls?: { cert: string; key: string }`.
 - Produces: each adapter starts an HTTPS listener when `options.tls` is provided, HTTP otherwise.
 
@@ -184,6 +190,7 @@ const server = globalThis.Deno.serve(denoOptions)
 ```
 
 - [ ] **Step 4:** `bun run check-types` clean; `bun test` still green (17→existing count unchanged — no behavior change without tls). `bun run format`; commit:
+
 ```bash
 git add src/server/adapters
 git commit -m "feat: TLS support in Bun/Node/Deno server adapters"
@@ -194,10 +201,12 @@ git commit -m "feat: TLS support in Bun/Node/Deno server adapters"
 ## Task 4.3: LocalSendServer HTTPS mode (auto-cert + fingerprint)
 
 **Files:**
+
 - Modify: `src/server/server.ts`
 - Test: `test/unit/https-server.test.ts` (fingerprint wiring — unit-level)
 
 **Interfaces:**
+
 - `LocalSendServer` constructor gains `tls?: { cert: string; key: string }`. When HTTPS is requested (`options.protocol === "https"` OR `deviceInfo.protocol === "https"`): if no `tls` provided, generate one via `generateSelfSignedCert()`; set `deviceInfo.protocol = "https"`, `deviceInfo.fingerprint = certFingerprintSha256(cert)`; pass `tls` to the adapter in `start()`.
 
 - [ ] **Step 1: Write `test/unit/https-server.test.ts`**
@@ -224,6 +233,7 @@ test("https server auto-generates a cert and sets fingerprint = SHA-256(DER) upp
 	}
 })
 ```
+
 (Expose the generated cert for testing: add a public getter `get tlsCert(): string | undefined` and a public getter `get deviceInfo()` if not already public — see Step 2.)
 
 - [ ] **Step 2: Run — verify FAIL.** Run: `bun test test/unit/https-server.test.ts`
@@ -232,6 +242,7 @@ test("https server auto-generates a cert and sets fingerprint = SHA-256(DER) upp
   - Add constructor option `tls?: { cert: string; key: string }`; store `private tls?: {cert,key}`.
   - Make `deviceInfo` publicly readable (add `get deviceInfo() { return this._deviceInfo }` or make the field public if it isn't already — match the existing style; the tests and CLI read `server.deviceInfo`). Add `get tlsCert(): string | undefined { return this.tls?.cert }`.
   - In `start()` (before staging/adapter start), add:
+
 ```ts
 const wantsHttps = this.deviceInfo.protocol === "https" || this.requestedProtocol === "https"
 if (wantsHttps) {
@@ -244,11 +255,13 @@ if (wantsHttps) {
 	this.deviceInfo.fingerprint = certFingerprintSha256(this.tls.cert)
 }
 ```
-  - Pass `tls: this.tls` in the `this.serverAdapter.start({ ... })` call.
-  - Store the requested protocol from options as `this.requestedProtocol = options.protocol`.
+
+- Pass `tls: this.tls` in the `this.serverAdapter.start({ ... })` call.
+- Store the requested protocol from options as `this.requestedProtocol = options.protocol`.
 
 - [ ] **Step 4: Run — verify PASS.** Run: `bun test test/unit/https-server.test.ts`. Then full `bun test` + `bun run check-types`.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add src/server/server.ts test/unit/https-server.test.ts
 git commit -m "feat: LocalSendServer HTTPS mode with auto self-signed cert + cert fingerprint"
@@ -259,6 +272,7 @@ git commit -m "feat: LocalSendServer HTTPS mode with auto self-signed cert + cer
 ## Task 4.4: HTTPS interop tests (upload + download over TLS)
 
 **Files:**
+
 - Test: `test/interop/https.test.ts`
 
 - [ ] **Step 1: Write `test/interop/https.test.ts`**
@@ -329,6 +343,7 @@ test("download over HTTPS (self-signed) is byte-for-byte", async () => {
 - [ ] **Step 2: Run — verify.** Run: `bun test test/interop/https.test.ts`.
   - If the client can't connect over TLS to a self-signed server under Bun, confirm `applyTlsOptions` sets the right Bun fetch option. Bun fetch accepts `tls: { rejectUnauthorized: false }`; if that's not honored, use `{ tls: { rejectUnauthorized: false } }` at the top-level fetch init (already done in `applyTlsOptions`). If Bun requires a different key, adjust `applyTlsOptions` in `src/core/send.ts` accordingly and note it. The tests MUST pass under `bun test`.
 - [ ] **Step 3:** Full `bun test` + `bun run check-types` green. `bun run format`; commit:
+
 ```bash
 git add test/interop/https.test.ts src/core/send.ts
 git commit -m "test: HTTPS upload + download interop over self-signed TLS"
@@ -339,12 +354,14 @@ git commit -m "test: HTTPS upload + download interop over self-signed TLS"
 ## Task 4.5: Docs + phase sweep
 
 **Files:**
+
 - Modify: `src/utils/device.ts` (only if needed for https fingerprint note), `AGENTS.md`, design doc §8
 
 - [ ] **Step 1:** Update root `AGENTS.md` to note HTTPS mode: `new LocalSendServer(info, { protocol: "https" })` auto-generates a self-signed cert and sets `fingerprint = SHA-256(DER cert) uppercase` (matches the official app); cert logic in `src/crypto/cert.ts`; TLS in `src/server/adapters/*`.
 - [ ] **Step 2:** In the design doc §8, tick **Phase 4**. In §9, mark R1 (fingerprint format) resolved: verified against `app/lib/util/security_helper.dart` + its test (`247E5F7C…`).
 - [ ] **Step 3: Full sweep.** `bun run check-types && bun test` — all green. Do NOT run `bun run build` if port 53317 is busy (note it).
 - [ ] **Step 4:** `bun run format`; commit:
+
 ```bash
 git add AGENTS.md docs/superpowers/specs/2026-07-12-localsend-v2.1-completion-and-test-harness-design.md src/utils/device.ts
 git commit -m "docs: mark Phase 4 (HTTPS) complete; fingerprint format verified vs official app"
