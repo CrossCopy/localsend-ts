@@ -368,7 +368,7 @@ honest way to test discovery.
       Exit: two containers discover each other via multicast and complete a verified transfer; skippable
       when Docker absent.
 
-- [ ] **Phase 6 — Rust oracle**
+- [x] **Phase 6 — Rust oracle**
       `tools/oracle-rs` wrapper; `test/oracle/` cross-impl tests (skippable). Confirm real-protocol parity;
       fix any residual mismatches (this is where HTTPS fingerprint & prepare-download body shape get proven).
 
@@ -395,8 +395,10 @@ honest way to test discovery.
   Mitigation: evaluate `selfsigned`/`node-forge` early in Phase 4; keep behind `crypto/cert.ts` seam.
 - **R4 — `prepare-download` request body.** Spec says empty; app may send requester info. Design is
   lenient (optional body); confirm with oracle.
-- **R5 — Rust `core` build.** Experimental crate may not build cleanly. Mitigation: oracle is Phase 5 and
-  skippable; TS-only layers already provide strong coverage.
+- **R5 — Rust `core` build. RESOLVED (Phase 6).** The oracle confirms real-client (Rust `core`) → TS server
+  v2 upload/download interop byte-identical over HTTP and HTTPS. The `deviceType` leniency gap was
+  surfaced and fixed. Mitigation: oracle test double-gated on env var and binary presence; default `bun test`
+  skips it and remains green without Rust.
 - **Q1 — Keep `LocalSendHonoServer` alias, or hard-remove?** (Proposed: deprecated alias for one release.)
 - **Q2 — Folder-tree transfers:** preserve sub-paths in `fileName` (traversal-safe) or flatten to basename?
   (Proposed: preserve safe sub-paths.)

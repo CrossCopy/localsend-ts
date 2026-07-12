@@ -17,6 +17,8 @@
 		"format": "prettier --write .",
 		"test": "bun test",
 		"test:e2e:docker": "LOCALSEND_E2E_DOCKER=1 bun test test/e2e-docker",
+		"oracle:build": "cd tools/oracle-rs && cargo build --release",
+		"test:oracle": "LOCALSEND_ORACLE=1 bun test test/oracle",
 		"cli": "bun src/cli-interactive.ts",
 		"cli:dev": "bun --watch src/cli-interactive.ts",
 		"tui": "bun src/cli-tui.tsx",

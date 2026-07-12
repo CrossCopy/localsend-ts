@@ -165,6 +165,15 @@ be running; validates real multicast discovery between separate containers on a 
 network. Skipped by default (`bun test` does NOT run these tests) — enable only when Docker is
 available and you need to verify cross-container discovery.
 
+### Oracle (real-peer interop)
+
+`bun run test:oracle` drives the **official LocalSend Rust `core` v2 client** (`tools/oracle-rs`) against
+our TypeScript server to prove real-implementation interop. First build the oracle with
+`bun run oracle:build` (requires Rust/cargo and the `http` feature-enabled localsend/core crate in
+`references/localsend/core`). Oracle tests confirm byte-identical upload/download across HTTP and HTTPS,
+and surface any residual wire-format mismatches. Skipped by default (`bun test` does NOT run oracle tests)
+— enable only when the Rust crate builds and you need final verification against the reference implementation.
+
 ## HTTPS MODE
 
 `new LocalSendServer(info, { protocol: "https" })` auto-generates a self-signed
