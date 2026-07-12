@@ -28,10 +28,12 @@
 ## Task 5.1: Injectable multicast config seam
 
 **Files:**
+
 - Modify: `src/discovery/multicast.ts`
 - Test: `test/unit/multicast-config.test.ts`
 
 **Interfaces:**
+
 - `MulticastDiscovery` constructor gains an optional 2nd arg: `constructor(deviceInfo: DeviceInfo, options?: { multicastAddress?: string; multicastPort?: number })`. Defaults to `DEFAULT_CONFIG.MULTICAST_ADDRESS` / `MULTICAST_PORT`. Expose the resolved values as readonly public fields `multicastAddress` / `multicastPort` for testability. All internal uses of the constant are replaced with these fields.
 
 - [ ] **Step 1: Write `test/unit/multicast-config.test.ts`**
@@ -59,12 +61,14 @@ test("honors an injected multicast group (for test isolation)", () => {
 	d.stop()
 })
 ```
+
 Note: constructing `MulticastDiscovery` creates a dgram socket but does NOT bind until `start()`; `stop()` closes it. If `stop()` on an unbound socket throws, guard it. If constructing-without-start leaks, add a minimal guard — keep the test green and clean.
 
 - [ ] **Step 2: Run — verify FAIL.** Run: `bun test test/unit/multicast-config.test.ts`
 
 - [ ] **Step 3: Edit `src/discovery/multicast.ts`**
   - Add readonly public fields set in the constructor:
+
 ```ts
 public readonly multicastAddress: string
 public readonly multicastPort: number
@@ -74,11 +78,13 @@ constructor(private deviceInfo: DeviceInfo, options: { multicastAddress?: string
 	// ... existing socket/client/interfaceAddresses setup ...
 }
 ```
-  - Replace every `DEFAULT_CONFIG.MULTICAST_ADDRESS` with `this.multicastAddress` and every `DEFAULT_CONFIG.MULTICAST_PORT` with `this.multicastPort` in `start()` (bind + addMembership) and `sendUdpMessage()`.
-  - If `stop()` can be called before `start()`, wrap `this.socket.close()` in try/catch.
+
+- Replace every `DEFAULT_CONFIG.MULTICAST_ADDRESS` with `this.multicastAddress` and every `DEFAULT_CONFIG.MULTICAST_PORT` with `this.multicastPort` in `start()` (bind + addMembership) and `sendUdpMessage()`.
+- If `stop()` can be called before `start()`, wrap `this.socket.close()` in try/catch.
 
 - [ ] **Step 4: Run — verify PASS.** Run: `bun test test/unit/multicast-config.test.ts`. Then full `bun test` + `bun run check-types`.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add src/discovery/multicast.ts test/unit/multicast-config.test.ts
 git commit -m "feat: injectable multicast group (address/port) for discovery, default 224.0.0.167:53317"
@@ -89,12 +95,14 @@ git commit -m "feat: injectable multicast group (address/port) for discovery, de
 ## Task 5.2: Docker image + compose for two peers
 
 **Files:**
+
 - Create: `docker/Dockerfile`
 - Create: `docker/docker-compose.yml`
 - Create: `docker/README.md`
 - Modify: `.dockerignore` (create if absent)
 
 - [ ] **Step 1: Create `.dockerignore`** (repo root) to keep the build context small:
+
 ```
 node_modules
 dist
@@ -108,6 +116,7 @@ references
 ```
 
 - [ ] **Step 2: Create `docker/Dockerfile`** (bun base; install deps; run the CLI)
+
 ```dockerfile
 FROM oven/bun:1
 WORKDIR /app
@@ -120,6 +129,7 @@ CMD ["bun", "src/cli.ts", "--help"]
 ```
 
 - [ ] **Step 3: Create `docker/docker-compose.yml`** (two peers on a shared user-defined bridge network)
+
 ```yaml
 services:
   peer-a:
@@ -128,12 +138,34 @@ services:
       dockerfile: docker/Dockerfile
     image: localsend-ts-peer
     container_name: lspeer-a
-    command: ["bun", "src/cli.ts", "receive", "--alias", "PeerA", "--autoAccept", "--saveDir", "/received", "--verbose"]
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerA",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
     networks: [lsnet]
   peer-b:
     image: localsend-ts-peer
     container_name: lspeer-b
-    command: ["bun", "src/cli.ts", "receive", "--alias", "PeerB", "--autoAccept", "--saveDir", "/received", "--verbose"]
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerB",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
     networks: [lsnet]
     depends_on: [peer-a]
 networks:
@@ -151,10 +183,12 @@ Run: `docker compose -f docker/docker-compose.yml up -d && sleep 12 && docker co
 Expected: logs show each peer discovering the other (multicast working). If multicast does NOT work between containers on this host, capture the exact output and report DONE_WITH_CONCERNS (do not fake it) — the code is still correct; it's an environment limitation.
 
 - [ ] **Step 6:** `bun run format` (no TS changed, but keep habit); commit:
+
 ```bash
 git add docker .dockerignore
 git commit -m "feat: Docker image + compose for two-peer multicast discovery"
 ```
+
 Report the actual discovery-log output in your report.
 
 ---
@@ -162,13 +196,16 @@ Report the actual discovery-log output in your report.
 ## Task 5.3: Opt-in Docker e2e test (discovery + transfer)
 
 **Files:**
+
 - Create: `test/e2e-docker/discovery.test.ts`
 - Test helper: `test/e2e-docker/docker-helpers.ts` (spawn helpers)
 
 **Interfaces:**
+
 - The test is skipped unless `process.env.LOCALSEND_E2E_DOCKER === "1"` AND `docker info` succeeds.
 
 - [ ] **Step 1: Create `test/e2e-docker/docker-helpers.ts`**
+
 ```ts
 import { spawnSync } from "node:child_process"
 
@@ -185,6 +222,7 @@ export function sh(cmd: string, args: string[], timeoutMs = 180000): { code: num
 ```
 
 - [ ] **Step 2: Create `test/e2e-docker/discovery.test.ts`**
+
 ```ts
 import { test, expect } from "bun:test"
 import { dockerAvailable, sh } from "./docker-helpers.ts"
@@ -207,7 +245,15 @@ test.skipIf(!run)("two containers discover each other via multicast and transfer
 		// real transfer: create a file in peer-a and send to peer-b by container DNS name
 		sh("docker", ["exec", "lspeer-a", "sh", "-c", "echo hello-localsend > /tmp/t.txt"])
 		const send = sh("docker", [
-			"exec", "lspeer-a", "bun", "src/cli.ts", "send", "lspeer-b", "/tmp/t.txt", "--pin", ""
+			"exec",
+			"lspeer-a",
+			"bun",
+			"src/cli.ts",
+			"send",
+			"lspeer-b",
+			"/tmp/t.txt",
+			"--pin",
+			""
 		])
 		expect(send.out).toMatch(/uploaded successfully|✅/i)
 		// verify receipt on peer-b
@@ -218,6 +264,7 @@ test.skipIf(!run)("two containers discover each other via multicast and transfer
 	}
 })
 ```
+
 Note: adjust the exact assertions to what the CLI actually logs (check `src/cli.ts` `receive --verbose` discovery log text and `send` success text) so the assertions match real output. The `send` target uses the container name `lspeer-b`, resolved by Docker's embedded DNS on the user-defined network; confirm the client accepts a hostname (it builds `http://<host>:<port>/...`, so a hostname works).
 
 - [ ] **Step 3: Run it for real** (Docker is available on this machine):
@@ -227,10 +274,12 @@ Expected: 1 pass (mutual discovery + transfer). Iterate on the assertion strings
 
 - [ ] **Step 4: Confirm default skip.** Run: `bun test test/e2e-docker/discovery.test.ts` (without the env var) → the test is skipped (0 fail). And `bun test` (full) stays green + fast.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add test/e2e-docker
 git commit -m "test: opt-in Docker e2e — two-peer multicast discovery + transfer"
 ```
+
 Report whether the real run passed and paste the key discovery log lines.
 
 ---
@@ -238,12 +287,14 @@ Report whether the real run passed and paste the key discovery log lines.
 ## Task 5.4: Scripts + docs + sweep
 
 **Files:**
+
 - Modify: `package.json` (add `test:e2e:docker` script), `AGENTS.md`, design doc §8
 
 - [ ] **Step 1:** Add to `package.json` scripts: `"test:e2e:docker": "LOCALSEND_E2E_DOCKER=1 bun test test/e2e-docker"`.
 - [ ] **Step 2:** Root `AGENTS.md`: add a "Docker E2E" note — how to run (`bun run test:e2e:docker`), that it needs Docker, and that it validates real multicast discovery between containers. Design doc §8: tick **Phase 5**.
 - [ ] **Step 3: Sweep.** `bun run check-types` clean; `bun test` (default) green and does NOT run the docker test. Note whether the opt-in docker run passed (from Task 5.3).
 - [ ] **Step 4:** `bun run format`; commit:
+
 ```bash
 git add package.json AGENTS.md docs/superpowers/specs/2026-07-12-localsend-v2.1-completion-and-test-harness-design.md
 git commit -m "docs: mark Phase 5 (Docker discovery e2e) complete; add test:e2e:docker script"
