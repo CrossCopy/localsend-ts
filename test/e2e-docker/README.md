@@ -110,7 +110,8 @@ assertions." Clear logic and this doc matter more than a rigid abstraction.
 
 The automated transfers use the **CLI** because it's deterministic and
 exit-coded — the right tool for assertions. The same image _can_ run the **TUI**
-(`bun src/cli-tui.tsx`), since deps include `@opentui/*`. To drive the TUI inside
-a container interactively, attach a PTY and use the `shell-use` workflow (see the
+(`bun src/cli.ts --tui`), since the optional `@opentui/*` deps install in the
+image and Bun provides the FFI the renderer needs. To drive the TUI inside a
+container interactively, attach a PTY and use the `shell-use` workflow (see the
 `testing-tui-cli` skill) — useful for a human-in-the-loop demo, not for the
 automated gate.

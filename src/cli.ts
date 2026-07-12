@@ -760,4 +760,30 @@ const main = defineCommand({
 	}
 })
 
-runMain(main)
+// `localsend --tui` launches the OpenTUI/Solid dashboard in-process instead of a
+// CLI subcommand. OpenTUI's renderer needs FFI to load its native core; Bun has
+// it built in, Node exposes it only in v26.4+ (as `node:ffi`). Importing OpenTUI
+// is inert (no renderer is created until render()), so we don't touch it for
+// normal CLI use and gate on FFI availability — never on a specific runtime.
+if (process.argv.includes("--tui")) {
+	const nodeFfi = "node:ffi" // string indirection: experimental module, no TS types, may be absent
+	const hasFfi =
+		typeof process.versions.bun === "string" ||
+		(await import(nodeFfi).then(
+			() => true,
+			() => false
+		))
+	if (!hasFfi) {
+		console.error(
+			"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started with\n" +
+				"--experimental-ffi. Install Bun from https://bun.sh and run:  bun localsend --tui"
+		)
+		process.exit(1)
+	}
+	// Hide --tui from the TUI's own (citty) arg parser, then run it in-process.
+	const i = process.argv.indexOf("--tui")
+	process.argv.splice(i, 1)
+	await import("./cli-tui.tsx")
+} else {
+	runMain(main)
+}

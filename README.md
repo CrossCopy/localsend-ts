@@ -26,17 +26,21 @@ So I decided to build a TypeScript implementation of the LocalSend protocol.
 
 ### Interactive TUI (Recommended)
 
+The TUI is part of the `localsend` CLI — launch it with the `--tui` flag:
+
 ```bash
-# Run the sophisticated TUI with real-time device scanning
-npm run tui
-# or with Bun
-bun src/cli-tui.tsx
+# Launch the dashboard TUI
+localsend --tui
+# or from source
+bun src/cli.ts --tui
 
 # With custom port and alias
-npm run tui -- --port 8080 --alias "My Device"
+localsend --tui --port 8080 --alias "My Device"
 ```
 
-> Requires [Bun](https://bun.sh) — the TUI uses OpenTUI's native renderer and a Bun preload for the Solid JSX transform. `npm run tui` works because the script itself invokes `bun`.
+`localsend` (no flag) and `localsend --help` stay the plain CLI (`send` / `receive` / `discover`); only `--tui` opens the dashboard.
+
+> The TUI needs a runtime with FFI for OpenTUI's native renderer: **Bun** (recommended), or **Node.js ≥ 26.4** started with `--experimental-ffi`. Under an older Node, `localsend --tui` prints how to run it under Bun; the rest of the CLI works on any Node. The JSX is transformed into `dist/cli.js` at build time, so no separate TUI binary ships.
 
 The TUI provides a dashboard interface built with **OpenTUI (Solid.js)**, modeled on the official LocalSend app, featuring:
 

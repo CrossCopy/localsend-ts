@@ -26,7 +26,7 @@ exact grid a user would see. This is how you turn "the tests pass" into "I
 watched it work."
 
 **Prerequisite:** the `shell-use` skill/CLI must be installed (`which shell-use`).
-Read its own skill for the full command surface; this skill is the *workflow* for
+Read its own skill for the full command surface; this skill is the _workflow_ for
 testing terminal programs, plus the gotchas that bite specifically when driving
 a TUI.
 
@@ -51,7 +51,7 @@ Use `run <program> [args...]` to exec the program directly (no shell wrapper).
 For a Bun/Node TUI that's `run bun src/cli-tui.tsx --flag value`.
 
 **Gotcha — flag ambiguity.** shell-use has its own flags (`--cols`, `--rows`,
-`--cwd`, `--env`). When they sit *after* your program name, they can be swallowed
+`--cwd`, `--env`). When they sit _after_ your program name, they can be swallowed
 by shell-use instead of reaching your program — or vice versa. Don't fight the
 parser: launch first, then set the size explicitly.
 
@@ -72,20 +72,20 @@ FFI) — `wait idle` alone can return before the first paint on a slow boot.
   pipe it through `grep`/`sed` to focus on a region.
 - `text --full` — include scrollback.
 - `state` — cwd, size, cursor, last command + exit code, plus a snapshot.
-- `cells X Y W H` — per-cell char/fg/bg/flags, when you need to assert *color*.
+- `cells X Y W H` — per-cell char/fg/bg/flags, when you need to assert _color_.
 - `screenshot out.svg` — a full-color SVG of the screen for a visual artifact
   (great for a PR or bug report; crisp at any zoom).
 
 ## Sending input — pick the right verb
 
-| Verb | Sends | Use for |
-| --- | --- | --- |
-| `type "text"` | literal text, no Enter | filling a focused input field |
-| `submit ["text"]` | text + Return | running a shell command, or submitting a field |
-| `press <Key...>` | named keys | `press Enter`, `press Escape`, `press j`, `press a` |
-| `keys "Ctrl+a"` | one combo | `keys "shift+q"`, `keys "Ctrl+c"` |
-| `mouse click --on-text "OK"` | a click on a label | clickable TUIs |
-| `write <bytes>` | raw bytes | escape sequences the parsers mangle |
+| Verb                         | Sends                  | Use for                                             |
+| ---------------------------- | ---------------------- | --------------------------------------------------- |
+| `type "text"`                | literal text, no Enter | filling a focused input field                       |
+| `submit ["text"]`            | text + Return          | running a shell command, or submitting a field      |
+| `press <Key...>`             | named keys             | `press Enter`, `press Escape`, `press j`, `press a` |
+| `keys "Ctrl+a"`              | one combo              | `keys "shift+q"`, `keys "Ctrl+c"`                   |
+| `mouse click --on-text "OK"` | a click on a label     | clickable TUIs                                      |
+| `write <bytes>`              | raw bytes              | escape sequences the parsers mangle                 |
 
 ## Waiting — never assume instant
 
@@ -95,8 +95,8 @@ Match the wait to what you're waiting for:
 - `wait text "T"` — until specific text appears. **The most precise wait**; use it
   whenever you know the expected output. `--not` waits for text to disappear.
 - `wait idle` — until the screen stops repainting (~250ms quiet). Use it to let a
-  TUI finish drawing after an action. It tracks *visual quiescence, not
-  completion* — a silent background task looks idle immediately.
+  TUI finish drawing after an action. It tracks _visual quiescence, not
+  completion_ — a silent background task looks idle immediately.
 - `wait command` — until the foreground command finishes (shell integration).
   The right wait after `submit`-ing a CLI command.
 - `wait exit` — until the program itself exits (after quit, or for a `run` program).
@@ -186,14 +186,14 @@ loading the same saved port) — see the persistence gotcha below.
 These are the failure modes that waste the most time. Internalize them.
 
 1. **A running process does not pick up your code edits.** `bun x.tsx` reads
-   source at launch, but a *session you already started* is frozen at the old
+   source at launch, but a _session you already started_ is frozen at the old
    code. After editing, `close` and `run` the session again. (Symptom: your fix
    "doesn't work" but the unit test passes.)
 
 2. **Bare `Escape` lags ~1s in terminals without the kitty keyboard protocol.**
    shell-use's emulator (and many real terminals) don't negotiate kitty, so a
    lone `\x1b` is held pending disambiguation until a timeout or the next key.
-   Escape *does* work — wait longer (`sleep 1.2` or `wait text --not`), or send a
+   Escape _does_ work — wait longer (`sleep 1.2` or `wait text --not`), or send a
    following key. If your TUI relies on Escape to dismiss something, consider
    offering a non-ambiguous key (Enter/q) too — a real UX win in legacy terminals.
 
