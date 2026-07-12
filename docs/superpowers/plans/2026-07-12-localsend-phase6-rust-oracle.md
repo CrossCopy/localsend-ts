@@ -33,11 +33,13 @@
 ## Task 6.1: Rust oracle wrapper crate (`oracle send`)
 
 **Files:**
+
 - Create: `tools/oracle-rs/Cargo.toml`
 - Create: `tools/oracle-rs/src/main.rs`
 - Modify: `.gitignore` (add `tools/oracle-rs/target`)
 
 **Interfaces:**
+
 - Produces a binary `oracle` with subcommand: `oracle send --host <H> --port <P> --file <F> [--alias <A>]` → exit 0 on a successful upload, non-zero on failure.
 
 - [ ] **Step 1: Confirm the exact core-crate API** by reading:
@@ -45,7 +47,7 @@
   - `references/localsend/core/src/http/dto_v2.rs` (`RegisterDtoV2`, `PrepareUploadRequestDtoV2`, `PrepareUploadResponseDtoV2` fields — note serde rename/camelCase, and which fields are Option)
   - `references/localsend/core/src/model/transfer.rs` (`FileDto` fields)
   - `references/localsend/core/src/http/client/url.rs` (`ProtocolType` location/variants)
-  Write down the exact paths + field names; the skeleton below is a starting point to adapt.
+    Write down the exact paths + field names; the skeleton below is a starting point to adapt.
 
 - [ ] **Step 2: Create `tools/oracle-rs/Cargo.toml`**
 
@@ -163,10 +165,12 @@ async fn main() -> Result<()> {
 - [ ] **Step 4: Build it** — `cd tools/oracle-rs && cargo build --release 2>&1 | tail -30`. Iterate on field names/paths/types until it compiles cleanly. (First build compiles the core lib + deps; may take a few minutes.)
 - [ ] **Step 5:** Add `tools/oracle-rs/target` to root `.gitignore`.
 - [ ] **Step 6:** `bun run check-types` (unchanged, still clean); commit:
+
 ```bash
 git add tools/oracle-rs/Cargo.toml tools/oracle-rs/src/main.rs tools/oracle-rs/Cargo.lock .gitignore
 git commit -m "feat: Rust oracle wrapper (oracle send) over official localsend core v2 client"
 ```
+
 Report whether it compiled and the exact DTO field names you had to use.
 
 ---
@@ -174,10 +178,12 @@ Report whether it compiled and the exact DTO field names you had to use.
 ## Task 6.2: Oracle interop test (real Rust client → TS server)
 
 **Files:**
+
 - Create: `test/oracle/oracle-helpers.ts`
 - Create: `test/oracle/upload.test.ts`
 
 **Interfaces:**
+
 - Test skipped unless `process.env.LOCALSEND_ORACLE === "1"` AND the compiled oracle binary exists at `tools/oracle-rs/target/release/oracle`.
 
 - [ ] **Step 1: Create `test/oracle/oracle-helpers.ts`**
@@ -217,10 +223,14 @@ test.skipIf(!run)("official Rust v2 client uploads to our TS server byte-for-byt
 	await server.start()
 	try {
 		const f = await makeRandomFile(src, "oracle.bin", 3 * 1024 * 1024)
-		const r = spawnSync(ORACLE_BIN, ["send", "--host", "127.0.0.1", "--port", String(port), "--file", f.path], {
-			encoding: "utf8",
-			timeout: 60000
-		})
+		const r = spawnSync(
+			ORACLE_BIN,
+			["send", "--host", "127.0.0.1", "--port", String(port), "--file", f.path],
+			{
+				encoding: "utf8",
+				timeout: 60000
+			}
+		)
 		expect(r.status).toBe(0)
 		expect(await sha256File(path.join(saveDir, "oracle.bin"))).toBe(f.sha256)
 	} finally {
@@ -236,10 +246,12 @@ test.skipIf(!run)("official Rust v2 client uploads to our TS server byte-for-byt
   - If the oracle binary can't be built in this environment after honest effort, report DONE_WITH_CONCERNS with the build error — do NOT fake a pass.
 - [ ] **Step 4: Confirm default-skip** — `bun test test/oracle/upload.test.ts` (no env) → skipped; full `bun test` green + fast.
 - [ ] **Step 5:** `bun run format`; commit:
+
 ```bash
 git add test/oracle
 git commit -m "test: opt-in oracle interop — official Rust v2 client -> TS server"
 ```
+
 Report the real passing output.
 
 ---
@@ -247,12 +259,14 @@ Report the real passing output.
 ## Task 6.3: Scripts + docs + sweep
 
 **Files:**
+
 - Modify: `package.json` (add `test:oracle` script), `AGENTS.md`, design doc §8/§9
 
 - [ ] **Step 1:** Add `package.json` script: `"test:oracle": "LOCALSEND_ORACLE=1 bun test test/oracle"`. Optionally `"oracle:build": "cd tools/oracle-rs && cargo build --release"`.
 - [ ] **Step 2:** Root `AGENTS.md`: document the oracle — build with `bun run oracle:build` (needs Rust/cargo), run with `bun run test:oracle`; it drives the official localsend Rust core v2 client against our server. Design doc §8: tick **Phase 6**; §9: note the oracle confirms real-client → our-server interop (and, if run over HTTPS in a follow-up, would confirm the fingerprint end-to-end).
 - [ ] **Step 3: Sweep** — `bun run check-types` clean; default `bun test` green + fast (oracle skipped). Note whether the real oracle run passed.
 - [ ] **Step 4:** `bun run format`; commit:
+
 ```bash
 git add package.json AGENTS.md docs/superpowers/specs/2026-07-12-localsend-v2.1-completion-and-test-harness-design.md
 git commit -m "docs: mark Phase 6 (Rust oracle) complete; add test:oracle script"
