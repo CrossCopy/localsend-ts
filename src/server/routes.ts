@@ -170,7 +170,13 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 					if (Object.keys(body.files).length === 0) return c.body(null, 204)
 
 					if (ctx.transferRequestHandler) {
-						const accepted = await ctx.transferRequestHandler(body.info, body.files)
+						// The wire body carries no sender IP; attach the socket address (as the
+						// register route does) so consent UIs can show who is connecting.
+						const remoteAddress = ctx.getRemoteAddress(c)
+						const senderInfo: DeviceInfo = remoteAddress
+							? { ...body.info, ip: remoteAddress }
+							: body.info
+						const accepted = await ctx.transferRequestHandler(senderInfo, body.files)
 
 						if (!accepted) {
 							return c.json({ message: "Transfer rejected by user" }, 403)

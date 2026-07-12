@@ -226,6 +226,31 @@ test("persisted favorites and quickSave load on construction", () => {
 	expect(store.state.favorites.length).toBe(1)
 })
 
+test("a single text/plain file WITHOUT a preview is treated as a file, not a message", async () => {
+	// A real .txt file (e.g. from the rs CLI) has fileType text/plain but no preview.
+	// The official app only treats a request as a message when the single text file
+	// carries an inline preview; otherwise it is a plain file.
+	const { deps, fireRequest } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	const sender = makeDevice("10.0.0.9", { alias: "Sender" })
+	void fireRequest(sender, { a: fileMeta("a", "notes.txt", 12, { fileType: "text/plain" }) })
+	expect(store.state.incomingRequest?.isMessage).toBe(false)
+	expect(store.state.incomingRequest?.message).toBeNull()
+})
+
+test("a single text/plain file WITH a preview is treated as a message", async () => {
+	const { deps, fireRequest } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	const sender = makeDevice("10.0.0.9", { alias: "Sender" })
+	void fireRequest(sender, {
+		a: fileMeta("a", "message.txt", 5, { fileType: "text/plain", preview: "hello" })
+	})
+	expect(store.state.incomingRequest?.isMessage).toBe(true)
+	expect(store.state.incomingRequest?.message).toBe("hello")
+})
+
 test("tab cycling wraps", () => {
 	const { deps } = makeDeps()
 	const store = createTuiStore(info, deps)

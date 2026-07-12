@@ -446,7 +446,13 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 		}
 
 		const fileList = Object.values(files)
-		const isMessage = fileList.length === 1 && fileList[0]!.fileType === "text/plain"
+		// Match the official app: a request is a "message" only when the single text
+		// file carries an inline preview. A real .txt file has fileType text/plain but
+		// no preview and must be shown as a file, not an empty message.
+		const isMessage =
+			fileList.length === 1 &&
+			fileList[0]!.fileType === "text/plain" &&
+			fileList[0]!.preview != null
 		return new Promise<boolean>((resolve) => {
 			setState({
 				incomingRequest: {

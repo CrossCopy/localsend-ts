@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises"
 import { getDeviceInfo } from "../index.ts"
 import {
 	buildFileMetadata,
+	sendFileToDevice,
 	sendPathToDevice,
 	sendTextToDevice,
 	type DiscoveredDevice,
@@ -45,6 +46,30 @@ test("sendTextToDevice writes temp file, sends it, cleans up", async () => {
 	expect(result.ok).toBe(true)
 	expect(sentContent).toBe("hi there")
 	expect(existsSync(sentPath)).toBe(false)
+})
+
+test("sendFileToDevice surfaces the failure reason instead of a bare 'Upload failed'", async () => {
+	// 127.0.0.1:1 refuses immediately, so prepare-upload fails with a real error that
+	// must be preserved (not collapsed to a generic literal).
+	const dead: DiscoveredDevice = {
+		...info,
+		alias: "Dead",
+		ip: "127.0.0.1",
+		port: 1,
+		protocol: "http"
+	}
+	const result = await sendFileToDevice(info, dead, import.meta.path, false)
+	expect(result.ok).toBe(false)
+	expect(result.message).toMatch(/^Failed to prepare upload: .+/)
+})
+
+test("sendPathToDevice includes the underlying error when the send throws", async () => {
+	const throwing: SendFileFn = async () => {
+		throw new Error("kaboom")
+	}
+	const result = await sendPathToDevice(info, device, import.meta.path, throwing)
+	expect(result.ok).toBe(false)
+	expect(result.message).toContain("kaboom")
 })
 
 test("sendPathToDevice rejects a missing file without calling send", async () => {

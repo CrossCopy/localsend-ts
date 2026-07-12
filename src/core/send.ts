@@ -16,6 +16,7 @@ export class LocalSendClient {
 		process.env.LOCALSEND_INSECURE_TLS === undefined
 			? true
 			: process.env.LOCALSEND_INSECURE_TLS === "1"
+	private lastError: string | null = null
 
 	constructor(private deviceInfo: DeviceInfo) {
 		// Client will be created on-demand when making requests
@@ -28,6 +29,19 @@ export class LocalSendClient {
 		callback: (bytesUploaded: number, totalBytes: number, finished: boolean) => void
 	): void {
 		this.progressCallback = callback
+	}
+
+	/**
+	 * The reason the most recent prepareUpload/uploadFile failed, if any. Lets
+	 * callers surface a real diagnostic (HTTP status, TLS error, connection refused)
+	 * instead of a generic "failed" string. Reset at the start of each such call.
+	 */
+	getLastError(): string | null {
+		return this.lastError
+	}
+
+	private describeError(err: unknown): string {
+		return err instanceof Error ? err.message : String(err)
 	}
 
 	/**
@@ -68,6 +82,7 @@ export class LocalSendClient {
 		pin?: string
 	): Promise<PrepareUploadResponse | null> {
 		try {
+			this.lastError = null
 			// Ensure the data conforms to the expected types
 			const deviceInfo = {
 				...this.deviceInfo,
@@ -123,6 +138,7 @@ export class LocalSendClient {
 
 			return result.data
 		} catch (err) {
+			this.lastError = this.describeError(err)
 			console.error("Error preparing upload:", err)
 			return null
 		}
@@ -142,6 +158,7 @@ export class LocalSendClient {
 		filePath: string
 	): Promise<boolean> {
 		try {
+			this.lastError = null
 			const stats = await stat(filePath)
 			const url = `${targetDevice.protocol}://${targetDevice.ip}:${targetDevice.port}/api/localsend/v2/upload?sessionId=${sessionId}&fileId=${fileId}&token=${fileToken}`
 
@@ -170,8 +187,10 @@ export class LocalSendClient {
 			const response = await fetch(url, fetchOptions)
 
 			if (this.progressCallback) this.progressCallback(stats.size, stats.size, true)
+			if (!response.ok) this.lastError = `HTTP ${response.status}`
 			return response.ok
 		} catch (err) {
+			this.lastError = this.describeError(err)
 			console.error("Error uploading file:", err)
 			return false
 		}
@@ -417,6 +436,7 @@ export class LocalSendClient {
 
 		const response = await fetch(url.toString(), fetchOptions)
 		if (!response.ok) {
+			this.lastError = `HTTP ${response.status}`
 			return null
 		}
 

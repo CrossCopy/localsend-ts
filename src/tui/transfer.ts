@@ -15,6 +15,12 @@ export interface SendResult {
 	message: string
 }
 
+const errText = (err: unknown): string => (err instanceof Error ? err.message : String(err))
+
+/** Append a concrete reason to a base failure message when one is available. */
+const withReason = (base: string, reason: string | null | undefined): string =>
+	reason ? `${base}: ${reason}` : base
+
 export function buildFileMetadata(
 	filePath: string,
 	fileBuffer: Buffer,
@@ -52,7 +58,7 @@ export async function sendFileToDevice(
 		[fileMetadata.id]: fileMetadata
 	})
 	if (!uploadPrepare) {
-		return { ok: false, message: "Failed to prepare upload" }
+		return { ok: false, message: withReason("Failed to prepare upload", client.getLastError()) }
 	}
 
 	const fileToken = uploadPrepare.files?.[fileMetadata.id]
@@ -72,7 +78,7 @@ export async function sendFileToDevice(
 	)
 	return success
 		? { ok: true, message: "File sent successfully" }
-		: { ok: false, message: "Upload failed" }
+		: { ok: false, message: withReason("Upload failed", client.getLastError()) }
 }
 
 export type SendFileFn = typeof sendFileToDevice
@@ -87,8 +93,8 @@ export async function sendTextToDevice(
 	try {
 		await writeFile(tempFilePath, message)
 		return await send(deviceInfo, device, tempFilePath, true)
-	} catch {
-		return { ok: false, message: "Failed to send message" }
+	} catch (err) {
+		return { ok: false, message: withReason("Failed to send message", errText(err)) }
 	} finally {
 		try {
 			await unlink(tempFilePath)
@@ -109,7 +115,7 @@ export async function sendPathToDevice(
 	}
 	try {
 		return await send(deviceInfo, device, filePath, false)
-	} catch {
-		return { ok: false, message: "Upload failed" }
+	} catch (err) {
+		return { ok: false, message: withReason("Upload failed", errText(err)) }
 	}
 }

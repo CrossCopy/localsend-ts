@@ -27,8 +27,8 @@ const hintFor = (store: TuiStore): string => {
 			? "j/k move · a add file · t text · d remove · x clear · Tab → devices"
 			: "j/k move · Enter send · s rescan · i manual IP · f favorite · Tab → selection"
 	}
-	if (store.state.tab === "receive") return "Q cycle quick-save"
-	return "Tab/1-3 switch tabs · ? help · q quit"
+	if (store.state.tab === "receive") return "Shift+Q cycle quick-save · q quit"
+	return "Tab/1-3 switch tabs · q quit"
 }
 
 export const App = (props: { store: TuiStore }) => {
@@ -100,7 +100,9 @@ export const App = (props: { store: TuiStore }) => {
 		// 5. Tab-specific keys
 		if (store.state.tab === "send") return handleSendKeys(store, key)
 		if (store.state.tab === "receive") {
-			if (key.name === "q" || key.name === "Q" || key.sequence === "Q") store.cycleQuickSave()
+			// Plain `q` is intercepted above as quit; quick-save is Shift+Q, which arrives
+			// as sequence "Q" (or name "q" + shift), never as key.name === "Q".
+			if (key.sequence === "Q" || (key.name === "q" && key.shift)) store.cycleQuickSave()
 			return
 		}
 	})
