@@ -318,7 +318,7 @@ export const SettingsTab = (props: { store: TuiStore }) => {
 			{row("Save dir:", s().saveDir)}
 			{row("Protocol:", s().protocol)}
 			<text fg={colors.dim}>
-				Set alias and port with --alias / --port. Favorites and Quick Save persist.
+				Set these with --alias / --port / --save-dir. Favorites and Quick Save persist.
 			</text>
 		</box>
 	)
@@ -405,7 +405,7 @@ export const TransferOverlay = (props: { store: TuiStore }) => {
 						{`Files ${doneFiles()}/${files().length} · ${prettyBytes(sentBytes())}/${prettyBytes(
 							totalBytes()
 						)}${
-							session()?.direction === "receive"
+							session()?.direction === "receive" || (session()?.speed ?? 0) > 0
 								? ` · ${prettyBytes(session()?.speed ?? 0)}/s · ETA ${eta()}`
 								: ""
 						}`}

@@ -7,6 +7,7 @@ import { App } from "./tui/App.tsx"
 export interface TuiOptions {
 	alias?: string
 	port?: number
+	saveDir?: string
 }
 
 /** Build the store and render the OpenTUI dashboard. Called by `localsend` (no
@@ -14,7 +15,7 @@ export interface TuiOptions {
 export function runTui(opts: TuiOptions = {}): void {
 	const alias = opts.alias || `LocalSend TUI ${Math.floor(100 + Math.random() * 900)}`
 	const deviceInfo = getDeviceInfo({ alias, port: opts.port, enableDownloadApi: false })
-	const store = createTuiStore(deviceInfo)
+	const store = createTuiStore(deviceInfo, undefined, { saveDir: opts.saveDir })
 	render(() => <App store={store} />, { exitOnCtrlC: true })
 }
 

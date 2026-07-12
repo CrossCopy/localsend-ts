@@ -2,7 +2,13 @@ import { expect, test } from "bun:test"
 import { getDeviceInfo } from "../index.ts"
 import type { DeviceInfo, FileMetadata } from "../index.ts"
 import type { DiscoveredDevice } from "./transfer.ts"
-import { createTuiStore, type Persist, type PersistedConfig, type TuiDeps } from "./store.ts"
+import {
+	createTuiStore,
+	DEVICE_TTL_MS,
+	type Persist,
+	type PersistedConfig,
+	type TuiDeps
+} from "./store.ts"
 
 const info = getDeviceInfo({ alias: "TestDevice", port: 53317, enableDownloadApi: false })
 
@@ -39,6 +45,10 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 		sentTexts: [] as string[],
 		sentPaths: [] as string[]
 	}
+	// Mutable clock so tests can advance time (device TTL, send speed). Existing
+	// tests that ignore it still observe a stable 1000.
+	const clock = { t: 1000 }
+	let serverOptions: Record<string, unknown> | undefined
 	let discoveredCb: ((device: DeviceInfo) => void) | null = null
 	let requestHandler:
 		| ((info: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>)
@@ -54,6 +64,7 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 		}),
 		createScanner: () => ({ onDeviceDiscovered: () => {}, startScan: async () => {} }),
 		createServer: (_info, options) => {
+			serverOptions = options as Record<string, unknown> | undefined
 			requestHandler = options?.onTransferRequest ?? null
 			return {
 				start: async () => {
@@ -73,13 +84,15 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 			return { ok: true, message: "sent" }
 		},
 		persist: persistOverride?.persist ?? memoryPersist().persist,
-		now: () => 1000
+		now: () => clock.t
 	}
 	return {
 		deps,
 		calls,
+		clock,
 		emitDevice: (d: DeviceInfo) => discoveredCb?.(d),
-		fireRequest: (i: DeviceInfo, files: Record<string, FileMetadata>) => requestHandler?.(i, files)
+		fireRequest: (i: DeviceInfo, files: Record<string, FileMetadata>) => requestHandler?.(i, files),
+		serverOptions: () => serverOptions
 	}
 }
 
@@ -108,6 +121,49 @@ test("discovery dedupes devices by ip:port", async () => {
 	store.stopScanning()
 })
 
+test("a device not seen within the TTL is pruned", () => {
+	const { deps, clock } = makeDeps()
+	const store = createTuiStore(info, deps)
+	store.addDevice(makeDevice("10.0.0.5"))
+	expect(store.state.devices.length).toBe(1)
+	clock.t += DEVICE_TTL_MS + 1
+	store.pruneStaleDevices()
+	expect(store.state.devices.length).toBe(0)
+})
+
+test("a device re-seen within the TTL is kept alive", () => {
+	const { deps, clock } = makeDeps()
+	const store = createTuiStore(info, deps)
+	store.addDevice(makeDevice("10.0.0.5"))
+	clock.t += DEVICE_TTL_MS - 1
+	store.addDevice(makeDevice("10.0.0.5")) // re-announcement refreshes lastSeen
+	clock.t += 2
+	store.pruneStaleDevices()
+	expect(store.state.devices.length).toBe(1)
+})
+
+test("a manually added device is never pruned", async () => {
+	const { deps, clock } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.addManualAddress("192.168.1.50:53317")
+	clock.t += DEVICE_TTL_MS * 10
+	store.pruneStaleDevices()
+	expect(store.state.devices.length).toBe(1)
+})
+
+test("pruning stale devices clamps the selection index", () => {
+	const { deps, clock } = makeDeps()
+	const store = createTuiStore(info, deps)
+	store.addDevice(makeDevice("10.0.0.5"))
+	store.addDevice(makeDevice("10.0.0.6"))
+	store.moveDevice(1)
+	expect(store.state.deviceIndex).toBe(1)
+	clock.t += DEVICE_TTL_MS + 1
+	store.pruneStaleDevices()
+	expect(store.state.devices.length).toBe(0)
+	expect(store.state.deviceIndex).toBe(0)
+})
+
 test("boot starts the always-on server", async () => {
 	const { deps, calls } = makeDeps()
 	const store = createTuiStore(info, deps)
@@ -129,6 +185,21 @@ test("sending selection to a device marks files done and finishes", async () => 
 	expect(calls.sentPaths.length).toBe(1)
 	expect(store.state.session?.status).toBe("finished")
 	expect(store.state.session?.files.every((f) => f.status === "done")).toBe(true)
+})
+
+test("a completed send reports an aggregate transfer speed", async () => {
+	const { deps, clock } = makeDeps()
+	// Each file "takes" a second of wall-clock so an average speed is computable.
+	deps.sendPath = async () => {
+		clock.t += 1000
+		return { ok: true, message: "sent" }
+	}
+	const store = createTuiStore(info, deps)
+	store.addDevice(makeDevice("10.0.0.5"))
+	await store.addPath(import.meta.path)
+	await store.sendToDevice(store.selectedDevice()!)
+	expect(store.state.session?.status).toBe("finished")
+	expect(store.state.session?.speed).toBeGreaterThan(0)
 })
 
 test("sending with an empty selection sets an error and no session", async () => {
@@ -269,6 +340,21 @@ test("openInput defers so the trigger key is not captured by the input", async (
 	expect(store.state.inputMode).toBeNull()
 	await new Promise((resolve) => setTimeout(resolve, 5))
 	expect(store.state.inputMode).toBe("compose-text")
+})
+
+test("save directory defaults to ./received_files", () => {
+	const { deps } = makeDeps()
+	const store = createTuiStore(info, deps)
+	expect(store.state.settings.saveDir).toBe("./received_files")
+})
+
+test("an explicit save directory overrides the default and reaches the server", async () => {
+	const { deps, serverOptions } = makeDeps()
+	const store = createTuiStore(info, deps, { saveDir: "/tmp/custom-inbox" })
+	expect(store.state.settings.saveDir).toBe("/tmp/custom-inbox")
+	await store.boot()
+	expect(serverOptions()?.saveDirectory).toBe("/tmp/custom-inbox")
+	await store.cleanup()
 })
 
 test("manual address entry adds and focuses the device", async () => {

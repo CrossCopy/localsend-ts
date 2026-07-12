@@ -31,6 +31,10 @@ const main = defineCommand({
 		port: {
 			type: "string",
 			description: "Custom port number (TUI)"
+		},
+		saveDir: {
+			type: "string",
+			description: "Directory to save received files (TUI, default: ./received_files)"
 		}
 	},
 	subCommands: {
@@ -799,7 +803,8 @@ const main = defineCommand({
 		const portStr = args.port as string | undefined
 		runTui({
 			alias: args.alias as string | undefined,
-			port: portStr ? parseInt(portStr, 10) : undefined
+			port: portStr ? parseInt(portStr, 10) : undefined,
+			saveDir: args.saveDir as string | undefined
 		})
 	}
 })

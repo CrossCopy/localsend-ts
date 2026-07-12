@@ -204,7 +204,24 @@ export function visualId(fingerprint: string): string {
 
 // ── Store factory ──
 
-export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps) {
+/**
+ * How long a discovered device may go unseen before it is pruned from the list.
+ * Live peers re-announce (multicast) and answer every HTTP rescan (~5s), so they
+ * refresh well within this window; only genuinely offline devices age out.
+ * Manually entered addresses are pinned and never expire.
+ */
+export const DEVICE_TTL_MS = 30_000
+
+/** Non-identity startup options threaded from the CLI (e.g. `--save-dir`). */
+export interface TuiInit {
+	saveDir?: string
+}
+
+export function createTuiStore(
+	baseInfo: DeviceInfo,
+	deps: TuiDeps = defaultDeps,
+	init: TuiInit = {}
+) {
 	const persisted = deps.persist.load()
 
 	// Identity comes from CLI args / getDeviceInfo, never from persisted config —
@@ -213,7 +230,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 	const settings: TuiSettings = {
 		alias: baseInfo.alias,
 		port: baseInfo.port,
-		saveDir: "./received_files",
+		saveDir: init.saveDir ?? "./received_files",
 		protocol: baseInfo.protocol
 	}
 
@@ -243,6 +260,12 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 	let server: ServerLike | null = null
 	let scanInterval: ReturnType<typeof setInterval> | null = null
 	let cancelRequested = false
+
+	// Freshness tracking for device expiry, keyed by `ip:port`. `lastSeen` is
+	// refreshed on every discovery/scan hit; `pinnedDevices` holds manual entries
+	// that must never expire (they are never re-announced by a scan).
+	const lastSeen = new Map<string, number>()
+	const pinnedDevices = new Set<string>()
 
 	const persistNow = () => {
 		deps.persist.save({
@@ -328,13 +351,36 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 			return a.alias.localeCompare(b.alias)
 		})
 
-	const addDevice = (device: DeviceInfo) => {
+	const addDevice = (device: DeviceInfo, opts: { pinned?: boolean } = {}) => {
 		const ip = (device as DiscoveredDevice).ip
 		if (!ip) return
 		const key = `${ip}:${device.port}`
+		// Refresh freshness even for an already-known device so re-announcements
+		// keep a live peer from aging out.
+		lastSeen.set(key, deps.now())
+		if (opts.pinned) pinnedDevices.add(key)
 		if (state.devices.some((d) => `${d.ip}:${d.port}` === key)) return
 		const next = sortDevices([...state.devices, device as DiscoveredDevice])
 		setState({ devices: next })
+	}
+
+	/** Drop devices not seen within DEVICE_TTL_MS; pinned (manual) devices stay. */
+	const pruneStaleDevices = () => {
+		const cutoff = deps.now() - DEVICE_TTL_MS
+		const kept = state.devices.filter((d) => {
+			const key = `${d.ip}:${d.port}`
+			if (pinnedDevices.has(key)) return true
+			return (lastSeen.get(key) ?? 0) >= cutoff
+		})
+		if (kept.length === state.devices.length) return
+		const keptKeys = new Set(kept.map((d) => `${d.ip}:${d.port}`))
+		for (const d of state.devices) {
+			const key = `${d.ip}:${d.port}`
+			if (!keptKeys.has(key)) lastSeen.delete(key)
+		}
+		setState({ devices: kept })
+		const max = Math.max(0, kept.length - 1)
+		if (state.deviceIndex > max) setState({ deviceIndex: max })
 	}
 
 	const selectedDevice = (): DiscoveredDevice | null => state.devices[state.deviceIndex] ?? null
@@ -378,6 +424,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 			if (!scanInterval) {
 				scanInterval = setInterval(() => {
 					void scanner?.startScan?.()?.catch?.(() => {})
+					pruneStaleDevices()
 				}, 5000)
 			}
 		} catch {
@@ -389,6 +436,8 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 
 	const rescan = async () => {
 		setState({ devices: [], deviceIndex: 0 })
+		lastSeen.clear()
+		pinnedDevices.clear()
 		discovery?.announcePresence?.()
 		await startScanning()
 	}
@@ -596,6 +645,17 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 			}
 			if (result.ok) {
 				setState("session", "files", i, { status: "done", received: state.session!.files[i]!.size })
+				// A single-POST upload exposes no intra-file progress, so we report an
+				// aggregate average (bytes completed / elapsed) as each file settles —
+				// the same shape the receiver's transfer summary uses.
+				const elapsedMs = deps.now() - state.session!.startedAt
+				if (elapsedMs > 0) {
+					const doneBytes = state.session!.files.reduce(
+						(sum, f) => sum + (f.status === "done" ? f.size : 0),
+						0
+					)
+					setState("session", "speed", doneBytes / (elapsedMs / 1000))
+				}
 			} else {
 				hadError = true
 				setState("session", "files", i, "status", "failed")
@@ -692,7 +752,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 			download: false,
 			ip: host
 		}
-		addDevice(manual)
+		addDevice(manual, { pinned: true })
 		const idx = state.devices.findIndex((d) => d.ip === host && d.port === port)
 		if (idx >= 0) setState({ deviceIndex: idx, focusedPane: "devices" })
 		setStatus(`Added ${host}:${port}`, "success")
@@ -732,6 +792,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 		moveDevice,
 		toggleFavorite,
 		addDevice,
+		pruneStaleDevices,
 		addManualAddress,
 		// discovery
 		startScanning,
