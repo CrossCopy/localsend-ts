@@ -165,7 +165,7 @@ export class LocalSendServer {
 				port: this._deviceInfo.port,
 				fetch: this.app.fetch,
 				maxRequestBodySize: this.maxRequestBodySize,
-				tls: this.tls
+				tls: wantsHttps ? this.tls : undefined
 			})
 
 			const sizeInGB = Math.round(this.maxRequestBodySize / (1024 * 1024 * 1024))

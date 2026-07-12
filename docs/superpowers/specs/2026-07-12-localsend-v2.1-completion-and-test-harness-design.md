@@ -357,7 +357,7 @@ honest way to test discovery.
       Staging, `prepare-download`, `download`, minimal `/` page; client `prepareDownload`/`download`.
       Exit: download interop tests (incl. 60 MB) green over HTTP.
 
-- [ ] **Phase 4 — HTTPS (G2)**
+- [x] **Phase 4 — HTTPS (G2)**
       `crypto/cert.ts` (choose dep), fingerprint=SHA-256(cert) with **verified** format, TLS in all adapters.
       Exit: HTTP+HTTPS interop tests green; fingerprint format confirmed against `core` source.
 
@@ -379,8 +379,16 @@ honest way to test discovery.
 
 ## 9. Risks & Open Questions
 
-- **R1 — HTTPS fingerprint format.** Must match the app exactly (DER-vs-PEM, hex encoding). Verify against
-  `core/src/crypto/*` + oracle in Phase 4/5. Mitigation: dedicated conformance test.
+- **R1 — HTTPS fingerprint format. RESOLVED (Phase 4).** Matches the app exactly: SHA-256 of the
+  certificate's DER bytes (base64-decoded PEM body), encoded as uppercase hex. Verified directly
+  against `app/lib/util/security_helper.dart` (`calculateHashOfCertificate`) and its unit test
+  `app/test/unit/util/security_helper_test.dart`, which asserts the fixed-input hash
+  `247E5F7CF21DE14438EAE733E07AC5440593D0612570C7413674130608DF69A9` for a known certificate —
+  the same PEM→DER→SHA-256→uppercase-hex derivation `src/crypto/cert.ts`
+  (`certFingerprintSha256`) implements. `test/unit/cert.test.ts` covers this with an independent
+  recomputation self-check (not yet the literal official test vector — a follow-up could pin that
+  exact certificate/hash pair as a fixture). Oracle (Phase 6) will independently confirm against
+  real cert verification.
 - **R2 — Cross-runtime streaming upload.** `duplex:"half"` + stream bodies differ across Bun/Node/Deno.
   Mitigation: adapter-level abstraction + per-runtime interop test.
 - **R3 — Self-signed cert dependency.** Need a pure-JS generator that works in Bun/Deno too.

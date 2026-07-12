@@ -135,6 +135,7 @@ bun run cli            # Menu-driven interactive CLI
 | Download API     | `src/server/routes.ts`   | prepare-download / download endpoints   |
 | Download UI      | `src/server/web.ts`      | GET / (browser page & file streaming)   |
 | Share files      | `src/server/server.ts`   | LocalSendServer({ sharedFiles: [...] }) |
+| HTTPS mode       | `src/crypto/cert.ts`     | Self-signed cert + fingerprint          |
 | Hono server      | `src/api/hono-server.ts` | OpenAPI integration                     |
 | RPC client       | `src/hono-rpc.ts`        | Type-safe Hono client                   |
 | Discover devices | `src/discovery/*.ts`     | Multicast + HTTP fallback               |
@@ -156,6 +157,19 @@ pure logic, `test/conformance/` checks protocol/schema/wire-format behavior, and
 spins up a real server (via `test/helpers/harness.ts`) for end-to-end checks. Examples in
 `examples/` remain useful for manual, runnable demonstrations of a feature. Always run
 `bun run check-types` and `bun test` after changes.
+
+## HTTPS MODE
+
+`new LocalSendServer(info, { protocol: "https" })` auto-generates a self-signed
+certificate (RSA, CN "LocalSend User") on `start()` and sets
+`fingerprint = SHA-256(DER cert bytes) uppercase hex` on the device info — this matches
+the official app's `calculateHashOfCertificate` (see
+`references/localsend/app/lib/util/security_helper.dart`). Cert generation and
+fingerprinting live in `src/crypto/cert.ts` (`generateSelfSignedCert`,
+`certFingerprintSha256`); adapter-level TLS wiring lives in `src/server/adapters/*`.
+The adapter only receives `tls` when HTTPS is actually requested (device protocol or
+`options.protocol === "https"`), so plain HTTP servers never get a mismatched
+advertise/actual protocol.
 
 ## PROTOCOL REFERENCE
 
