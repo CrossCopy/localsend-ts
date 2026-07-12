@@ -60,71 +60,30 @@ export class LocalSendRpcClient {
 	): Promise<MessageResponse> {
 		const fileSize = file.size
 
-		if (fileSize > 50 * 1024 * 1024) {
-			const CHUNK_SIZE = 10 * 1024 * 1024
-			let offset = 0
-
-			while (offset < fileSize) {
-				const end = Math.min(offset + CHUNK_SIZE, fileSize)
-				const chunk = file.slice(offset, end)
-
-				if (onProgress) {
-					onProgress(offset, fileSize)
-				}
-
-				const res = await this.client.api.localsend.v2.upload.$post(
-					{
-						query: {
-							sessionId,
-							fileId,
-							token
-						}
-					},
-					{
-						body: chunk,
-						headers: {
-							"Content-Length": (end - offset).toString(),
-							"X-Content-Range": `bytes ${offset}-${end - 1}/${fileSize}`
-						}
-					} as any
-				)
-
-				if (!res.ok) throw new Error(`Failed to upload chunk: ${res.status}`)
-
-				offset = end
-			}
-
-			if (onProgress) {
-				onProgress(fileSize, fileSize)
-			}
-
-			return { message: "File upload complete" }
-		} else {
-			if (onProgress) {
-				onProgress(0, fileSize)
-			}
-
-			const res = await this.client.api.localsend.v2.upload.$post(
-				{
-					query: {
-						sessionId,
-						fileId,
-						token
-					}
-				} as any,
-				{
-					body: file
-				} as any
-			)
-
-			if (!res.ok) throw new Error(`Failed to upload file: ${res.status}`)
-
-			if (onProgress) {
-				onProgress(fileSize, fileSize)
-			}
-
-			return (await res.json()) as MessageResponse
+		if (onProgress) {
+			onProgress(0, fileSize)
 		}
+
+		const res = await this.client.api.localsend.v2.upload.$post(
+			{
+				query: {
+					sessionId,
+					fileId,
+					token
+				}
+			} as any,
+			{
+				body: file
+			} as any
+		)
+
+		if (!res.ok) throw new Error(`Failed to upload file: ${res.status}`)
+
+		if (onProgress) {
+			onProgress(fileSize, fileSize)
+		}
+
+		return (await res.json()) as MessageResponse
 	}
 
 	async cancelSession(sessionId: string): Promise<MessageResponse> {

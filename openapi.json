@@ -1,0 +1,868 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "LocalSend API",
+		"description": "LocalSend API",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/api/localsend/v2/info": {
+			"get": {
+				"operationId": "getApiLocalsendV2Info",
+				"description": "Get device information",
+				"responses": {
+					"200": {
+						"description": "Device information",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"alias": {
+											"type": "string"
+										},
+										"version": {
+											"type": "string"
+										},
+										"deviceModel": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"deviceType": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fingerprint": {
+											"type": "string"
+										},
+										"port": {
+											"type": "number"
+										},
+										"protocol": {
+											"anyOf": [
+												{
+													"const": "http"
+												},
+												{
+													"const": "https"
+												}
+											],
+											"default": "http"
+										},
+										"download": {
+											"type": "boolean",
+											"default": false
+										}
+									},
+									"required": [
+										"alias",
+										"version",
+										"fingerprint",
+										"port"
+									]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/localsend/v2/register": {
+			"post": {
+				"operationId": "postApiLocalsendV2Register",
+				"description": "Register device (for discovery)",
+				"responses": {
+					"200": {
+						"description": "Server device information",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"alias": {
+											"type": "string"
+										},
+										"version": {
+											"type": "string"
+										},
+										"deviceModel": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"deviceType": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fingerprint": {
+											"type": "string"
+										},
+										"port": {
+											"type": "number"
+										},
+										"protocol": {
+											"anyOf": [
+												{
+													"const": "http"
+												},
+												{
+													"const": "https"
+												}
+											],
+											"default": "http"
+										},
+										"download": {
+											"type": "boolean",
+											"default": false
+										}
+									},
+									"required": [
+										"alias",
+										"version",
+										"fingerprint",
+										"port"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/localsend/v2/prepare-upload": {
+			"post": {
+				"operationId": "postApiLocalsendV2PrepareUpload",
+				"description": "Prepare file upload",
+				"responses": {
+					"200": {
+						"description": "Upload preparation response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"sessionId": {
+											"type": "string"
+										},
+										"files": {
+											"type": "object",
+											"propertyNames": {
+												"type": "string"
+											},
+											"additionalProperties": {
+												"type": "string"
+											}
+										}
+									},
+									"required": [
+										"sessionId",
+										"files"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized (PIN required)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				},
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"info": {
+										"type": "object",
+										"properties": {
+											"alias": {
+												"type": "string"
+											},
+											"version": {
+												"type": "string"
+											},
+											"deviceModel": {
+												"anyOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"deviceType": {
+												"anyOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "null"
+													}
+												]
+											},
+											"fingerprint": {
+												"type": "string"
+											},
+											"port": {
+												"type": "number"
+											},
+											"protocol": {
+												"anyOf": [
+													{
+														"const": "http"
+													},
+													{
+														"const": "https"
+													}
+												],
+												"default": "http"
+											},
+											"download": {
+												"type": "boolean",
+												"default": false
+											}
+										},
+										"required": [
+											"alias",
+											"version",
+											"fingerprint",
+											"port"
+										]
+									},
+									"files": {
+										"type": "object",
+										"propertyNames": {
+											"type": "string"
+										},
+										"additionalProperties": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"fileName": {
+													"type": "string"
+												},
+												"size": {
+													"type": "number"
+												},
+												"fileType": {
+													"type": "string"
+												},
+												"sha256": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"preview": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"metadata": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"modified": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"accessed": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																}
+															},
+															"required": []
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"fileName",
+												"size",
+												"fileType"
+											]
+										}
+									}
+								},
+								"required": [
+									"info",
+									"files"
+								]
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "query",
+						"name": "pin",
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/api/localsend/v2/upload": {
+			"post": {
+				"operationId": "postApiLocalsendV2Upload",
+				"description": "Upload a file",
+				"responses": {
+					"200": {
+						"description": "File upload successful",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Session or file not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Payload too large",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "query",
+						"name": "sessionId",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "fileId",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "token",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				]
+			}
+		},
+		"/api/localsend/v2/cancel": {
+			"post": {
+				"operationId": "postApiLocalsendV2Cancel",
+				"description": "Cancel an upload session",
+				"responses": {
+					"200": {
+						"description": "Session cancelled successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Missing sessionId",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "query",
+						"name": "sessionId",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				]
+			}
+		},
+		"/api/localsend/v2/prepare-download": {
+			"post": {
+				"operationId": "postApiLocalsendV2PrepareDownload",
+				"description": "Prepare a reverse download (share-by-link)",
+				"responses": {
+					"200": {
+						"description": "Download metadata",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"info": {
+											"type": "object",
+											"properties": {
+												"alias": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"deviceModel": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"deviceType": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"fingerprint": {
+													"type": "string"
+												},
+												"port": {
+													"type": "number"
+												},
+												"protocol": {
+													"anyOf": [
+														{
+															"const": "http"
+														},
+														{
+															"const": "https"
+														}
+													],
+													"default": "http"
+												},
+												"download": {
+													"type": "boolean",
+													"default": false
+												}
+											},
+											"required": [
+												"alias",
+												"version",
+												"fingerprint",
+												"port"
+											]
+										},
+										"sessionId": {
+											"type": "string"
+										},
+										"files": {
+											"type": "object",
+											"propertyNames": {
+												"type": "string"
+											},
+											"additionalProperties": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"fileName": {
+														"type": "string"
+													},
+													"size": {
+														"type": "number"
+													},
+													"fileType": {
+														"type": "string"
+													},
+													"sha256": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"preview": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"metadata": {
+														"anyOf": [
+															{
+																"type": "object",
+																"properties": {
+																	"modified": {
+																		"anyOf": [
+																			{
+																				"type": "string"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		]
+																	},
+																	"accessed": {
+																		"anyOf": [
+																			{
+																				"type": "string"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		]
+																	}
+																},
+																"required": []
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"id",
+													"fileName",
+													"size",
+													"fileType"
+												]
+											}
+										}
+									},
+									"required": [
+										"info",
+										"sessionId",
+										"files"
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "PIN required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Nothing shared",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "query",
+						"name": "pin",
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/api/localsend/v2/download": {
+			"get": {
+				"operationId": "getApiLocalsendV2Download",
+				"description": "Download a shared file",
+				"responses": {
+					"200": {
+						"description": "Binary file"
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									]
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "query",
+						"name": "sessionId",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "fileId",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				]
+			}
+		}
+	},
+	"components": {}
+}

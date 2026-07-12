@@ -12,9 +12,14 @@
 	"scripts": {
 		"build": "bun build.ts",
 		"postbuild": "verify-package-export verify",
+		"openapi:dump": "bun tools/generate-openapi.ts",
 		"check-types": "tsc --noEmit",
 		"dev": "bun run --watch dev.ts",
 		"format": "prettier --write .",
+		"test": "bun test",
+		"test:e2e:docker": "LOCALSEND_E2E_DOCKER=1 bun test test/e2e-docker",
+		"oracle:build": "cd tools/oracle-rs && cargo build --release",
+		"test:oracle": "LOCALSEND_ORACLE=1 bun test test/oracle",
 		"cli": "bun src/cli-interactive.ts",
 		"cli:dev": "bun --watch src/cli-interactive.ts",
 		"tui": "bun src/cli.ts",
@@ -28,32 +33,35 @@
 		"./hono-rpc": "./src/hono-rpc.ts"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.28.1",
-		"@hey-api/openapi-ts": "^0.64.15",
+		"@changesets/cli": "^2.31.0",
+		"@hey-api/openapi-ts": "^0.99.0",
 		"@types/bun": "latest",
+		"@types/node-forge": "^1.3.14",
+		"citty": "^0.2.2",
 		"prettier": "^3.5.3",
+		"typescript": "^5.9.0",
 		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {
-		"typescript": "^5.0.0"
+		"typescript": ">=5.0.0"
 	},
 	"dependencies": {
 		"@hey-api/client-fetch": "^0.13.1",
-		"@hono/node-server": "^1.19.9",
-		"@hono/standard-validator": "^0.2.2",
-		"@scalar/hono-api-reference": "^0.9.33",
+		"@hono/node-server": "^2.0.8",
+		"@hono/standard-validator": "^0.2.3",
+		"@scalar/hono-api-reference": "^0.11.9",
 		"@standard-community/standard-openapi": "0.2.9",
 		"@types/cli-progress": "^3.11.6",
 		"@types/json-schema": "^7.0.15",
-		"@valibot/to-json-schema": "^1.5.0",
-		"citty": "^0.1.6",
+		"@valibot/to-json-schema": "^1.7.1",
 		"cli-progress": "^3.12.0",
-		"hono": "^4.11.4",
-		"hono-openapi": "^1.1.2",
+		"hono": "^4.12.29",
+		"hono-openapi": "^1.3.1",
+		"node-forge": "^1.4.0",
 		"openapi-types": "^12.1.3",
 		"pretty-bytes": "^7.1.0",
-		"undici": "^7.18.2",
-		"valibot": "^1.2.0"
+		"undici": "^8.7.0",
+		"valibot": "^1.4.2"
 	},
 	"optionalDependencies": {
 		"@opentui/core": "^0.4.3",
@@ -61,6 +69,8 @@
 		"solid-js": "^1.9.14"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"src",
+		"openapi.json"
 	]
 }

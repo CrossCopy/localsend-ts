@@ -35,8 +35,15 @@ export class MulticastDiscovery implements Discovery {
 	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void
 	private client: LocalSendClient
 	private interfaceAddresses: string[]
+	public readonly multicastAddress: string
+	public readonly multicastPort: number
 
-	constructor(private deviceInfo: DeviceInfo) {
+	constructor(
+		private deviceInfo: DeviceInfo,
+		options: { multicastAddress?: string; multicastPort?: number } = {}
+	) {
+		this.multicastAddress = options.multicastAddress ?? DEFAULT_CONFIG.MULTICAST_ADDRESS
+		this.multicastPort = options.multicastPort ?? DEFAULT_CONFIG.MULTICAST_PORT
 		this.socket = createSocket({ type: "udp4", reuseAddr: true })
 		this.client = new LocalSendClient(deviceInfo)
 		this.interfaceAddresses = getInterfaceAddresses()
@@ -94,21 +101,21 @@ export class MulticastDiscovery implements Discovery {
 			// Bind socket to the multicast port
 			this.socket.bind(
 				{
-					port: DEFAULT_CONFIG.MULTICAST_PORT,
+					port: this.multicastPort,
 					address: "0.0.0.0",
 					exclusive: false
 				},
 				() => {
 					if (DEBUG_DISCOVERY) {
 						console.log("[DISCOVER/UDP] Binding multicast socket", {
-							port: DEFAULT_CONFIG.MULTICAST_PORT,
+							port: this.multicastPort,
 							addresses: this.interfaceAddresses
 						})
 					}
 					// Join multicast group for each interface
 					if (this.interfaceAddresses.length === 0) {
 						try {
-							this.socket.addMembership(DEFAULT_CONFIG.MULTICAST_ADDRESS)
+							this.socket.addMembership(this.multicastAddress)
 							if (DEBUG_DISCOVERY) {
 								console.log("[DISCOVER/UDP] Joined multicast group (default interface)")
 							}
@@ -118,7 +125,7 @@ export class MulticastDiscovery implements Discovery {
 					} else {
 						for (const address of this.interfaceAddresses) {
 							try {
-								this.socket.addMembership(DEFAULT_CONFIG.MULTICAST_ADDRESS, address)
+								this.socket.addMembership(this.multicastAddress, address)
 								if (DEBUG_DISCOVERY) {
 									console.log("[DISCOVER/UDP] Joined multicast group", address)
 								}
@@ -230,13 +237,7 @@ export class MulticastDiscovery implements Discovery {
 		const buffer = Buffer.from(JSON.stringify(message))
 
 		if (this.interfaceAddresses.length === 0) {
-			this.socket.send(
-				buffer,
-				0,
-				buffer.length,
-				DEFAULT_CONFIG.MULTICAST_PORT,
-				DEFAULT_CONFIG.MULTICAST_ADDRESS
-			)
+			this.socket.send(buffer, 0, buffer.length, this.multicastPort, this.multicastAddress)
 			if (DEBUG_DISCOVERY) {
 				console.log("[DISCOVER/UDP] Sent multicast message (default interface)")
 			}
@@ -246,13 +247,7 @@ export class MulticastDiscovery implements Discovery {
 		for (const address of this.interfaceAddresses) {
 			try {
 				this.socket.setMulticastInterface(address)
-				this.socket.send(
-					buffer,
-					0,
-					buffer.length,
-					DEFAULT_CONFIG.MULTICAST_PORT,
-					DEFAULT_CONFIG.MULTICAST_ADDRESS
-				)
+				this.socket.send(buffer, 0, buffer.length, this.multicastPort, this.multicastAddress)
 				if (DEBUG_DISCOVERY) {
 					console.log("[DISCOVER/UDP] Sent multicast message", address)
 				}
@@ -280,6 +275,10 @@ export class MulticastDiscovery implements Discovery {
 	 * Stop discovery
 	 */
 	stop(): void {
-		this.socket.close()
+		try {
+			this.socket.close()
+		} catch (err) {
+			// Socket may not be bound if stop() is called before start()
+		}
 	}
 }

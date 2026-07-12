@@ -177,3 +177,7 @@ downloads/
 received_files/
 
 *.log
+references
+
+# Rust (tools/oracle-rs)
+tools/oracle-rs/target

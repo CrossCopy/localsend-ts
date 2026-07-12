@@ -1,0 +1,13 @@
+[package]
+name = "oracle"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "oracle"
+path = "src/main.rs"
+
+[dependencies]
+localsend = { path = "../../references/localsend/core", features = ["http"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
