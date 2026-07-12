@@ -27,7 +27,7 @@ bun examples/runtime-selector.ts                   # Test server adapters
 
 # Development
 bun run dev            # Watch mode for dev.ts
-bun run tui            # OpenTUI (Solid) dashboard TUI (= bun src/cli.ts --tui)
+bun run tui            # OpenTUI (Solid) dashboard TUI (= bun src/cli.ts, no subcommand)
 bun run cli            # Menu-driven interactive CLI
 ```
 
@@ -107,9 +107,9 @@ bun run cli            # Menu-driven interactive CLI
 │   ├── sdk/          # Auto-generated OpenAPI SDK (DO NOT EDIT)
 │   ├── utils/        # Device info, file operations
 │   ├── types.ts       # Protocol types via Valibot schemas (source of truth)
-│   ├── cli.ts        # CLI (send/receive/discover); `--tui` launches the TUI in-process
+│   ├── cli.ts        # CLI (send/receive/discover); no subcommand → launches the TUI in-process
 │   ├── cli-interactive.ts  # Menu-driven CLI
-│   ├── cli-tui.tsx   # OpenTUI (Solid) TUI entry (reached via `localsend --tui`)
+│   ├── cli-tui.tsx   # exports runTui() — the OpenTUI (Solid) dashboard (bare `localsend` / `--tui`)
 │   ├── tui/          # TUI internals: store, components, transfer, theme
 │   └── hono-rpc.ts   # Type-safe Hono RPC client
 ├── examples/         # Functional examples (serve as integration tests)

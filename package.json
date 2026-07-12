@@ -17,8 +17,8 @@
 		"format": "prettier --write .",
 		"cli": "bun src/cli-interactive.ts",
 		"cli:dev": "bun --watch src/cli-interactive.ts",
-		"tui": "bun src/cli.ts --tui",
-		"tui:dev": "bun --watch src/cli.ts --tui"
+		"tui": "bun src/cli.ts",
+		"tui:dev": "bun --watch src/cli.ts"
 	},
 	"exports": {
 		".": "./src/index.ts",

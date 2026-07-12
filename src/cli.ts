@@ -19,6 +19,20 @@ const main = defineCommand({
 		version: "0.1.0",
 		description: "LocalSend JS CLI"
 	},
+	args: {
+		tui: {
+			type: "boolean",
+			description: "Launch the interactive TUI dashboard (default when no subcommand is given)"
+		},
+		alias: {
+			type: "string",
+			description: "Device alias (TUI)"
+		},
+		port: {
+			type: "string",
+			description: "Custom port number (TUI)"
+		}
+	},
 	subCommands: {
 		send: defineCommand({
 			meta: {
@@ -751,39 +765,43 @@ const main = defineCommand({
 			}
 		})
 	},
-	run({ args }) {
-		console.log("Please use a subcommand: send | receive | discover")
-		console.log("Examples:")
-		console.log("  localsend send 192.168.1.100 ./file.txt")
-		console.log("  localsend receive --saveDir ./downloads")
-		console.log("  localsend discover --timeout 10")
+	// No subcommand → open the TUI dashboard (like a GUI app's default window).
+	// `--help` and the subcommands are handled by citty before this runs, so this
+	// fires only for bare `localsend` (or `localsend --tui`). OpenTUI's renderer
+	// needs FFI — Bun has it built in, Node only in v26.4+ (node:ffi) — so the TUI
+	// module is imported lazily here and normal CLI use never loads OpenTUI.
+	async run({ args }) {
+		const nodeFfi = "node:ffi" // experimental module, no TS types, may be absent
+		const hasFfi =
+			typeof process.versions.bun === "string" ||
+			(await import(nodeFfi).then(
+				() => true,
+				() => false
+			))
+		if (!hasFfi) {
+			if (args.tui) {
+				console.error(
+					"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started\n" +
+						"with --experimental-ffi. Install Bun from https://bun.sh and run:  localsend"
+				)
+				process.exit(1)
+			}
+			console.log("Please use a subcommand: send | receive | discover")
+			console.log("Examples:")
+			console.log("  localsend send 192.168.1.100 ./file.txt")
+			console.log("  localsend receive --saveDir ./downloads")
+			console.log("  localsend discover --timeout 10")
+			console.log("")
+			console.log("Tip: run `localsend` under Bun (or Node ≥26.4) to open the interactive TUI.")
+			return
+		}
+		const { runTui } = await import("./cli-tui.tsx")
+		const portStr = args.port as string | undefined
+		runTui({
+			alias: args.alias as string | undefined,
+			port: portStr ? parseInt(portStr, 10) : undefined
+		})
 	}
 })
 
-// `localsend --tui` launches the OpenTUI/Solid dashboard in-process instead of a
-// CLI subcommand. OpenTUI's renderer needs FFI to load its native core; Bun has
-// it built in, Node exposes it only in v26.4+ (as `node:ffi`). Importing OpenTUI
-// is inert (no renderer is created until render()), so we don't touch it for
-// normal CLI use and gate on FFI availability — never on a specific runtime.
-if (process.argv.includes("--tui")) {
-	const nodeFfi = "node:ffi" // string indirection: experimental module, no TS types, may be absent
-	const hasFfi =
-		typeof process.versions.bun === "string" ||
-		(await import(nodeFfi).then(
-			() => true,
-			() => false
-		))
-	if (!hasFfi) {
-		console.error(
-			"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started with\n" +
-				"--experimental-ffi. Install Bun from https://bun.sh and run:  bun localsend --tui"
-		)
-		process.exit(1)
-	}
-	// Hide --tui from the TUI's own (citty) arg parser, then run it in-process.
-	const i = process.argv.indexOf("--tui")
-	process.argv.splice(i, 1)
-	await import("./cli-tui.tsx")
-} else {
-	runMain(main)
-}
+runMain(main)
