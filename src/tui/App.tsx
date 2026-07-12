@@ -64,8 +64,14 @@ export const App = (props: { store: TuiStore }) => {
 				store.state.session.status !== "sending" && store.state.session.status !== "waiting"
 			if (key.name === "c") store.cancelSession()
 			else if (key.name === "r") void store.retryFailed()
-			else if (key.name === "escape" || (settled && (key.name === "return" || key.name === "q")))
+			else if (key.name === "escape") {
+				// Only tear down a settled session. Mid-transfer, Escape cancels instead —
+				// closing would null `session` while runSendQueue still reads it (crash).
+				if (settled) store.closeSession()
+				else store.cancelSession()
+			} else if (settled && (key.name === "return" || key.name === "q")) {
 				store.closeSession()
+			}
 			return
 		}
 

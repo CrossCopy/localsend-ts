@@ -779,20 +779,20 @@ const main = defineCommand({
 				() => false
 			))
 		if (!hasFfi) {
-			if (args.tui) {
-				console.error(
-					"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started\n" +
-						"with --experimental-ffi. Install Bun from https://bun.sh and run:  localsend"
-				)
-				process.exit(1)
-			}
-			console.log("Please use a subcommand: send | receive | discover")
-			console.log("Examples:")
+			// Bare `localsend` is documented to open the TUI, so on an FFI-less runtime
+			// lead with the same TUI/Bun guidance (not generic subcommand help) — else the
+			// default launch looks broken on the common npm/Node path. `--tui` is an
+			// explicit request, so it exits non-zero; a bare launch is informational.
+			console.error(
+				"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started\n" +
+					"with --experimental-ffi. Install Bun from https://bun.sh and run:  localsend"
+			)
+			if (args.tui) process.exit(1)
+			console.log("")
+			console.log("Or use a CLI subcommand: send | receive | discover")
 			console.log("  localsend send 192.168.1.100 ./file.txt")
 			console.log("  localsend receive --saveDir ./downloads")
 			console.log("  localsend discover --timeout 10")
-			console.log("")
-			console.log("Tip: run `localsend` under Bun (or Node ≥26.4) to open the interactive TUI.")
 			return
 		}
 		const { runTui } = await import("./cli-tui.tsx")

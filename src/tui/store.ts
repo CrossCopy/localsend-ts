@@ -581,6 +581,13 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 				item.kind === "file"
 					? await deps.sendPath(deviceInfo, device, item.path)
 					: await deps.sendText(deviceInfo, device, item.content)
+			// Re-check after the await: if the user hit cancel while this file was in
+			// flight, honor it now instead of marking it done and finishing the queue
+			// (the underlying upload has no abort, but the session reflects the cancel).
+			if (cancelRequested) {
+				setState("session", { status: "canceledBySender", doneAt: deps.now() })
+				return
+			}
 			if (result.ok) {
 				setState("session", "files", i, { status: "done", received: state.session!.files[i]!.size })
 			} else {

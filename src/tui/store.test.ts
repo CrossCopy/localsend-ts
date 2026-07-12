@@ -161,6 +161,21 @@ test("failed file yields finishedWithErrors and retry re-sends", async () => {
 	expect(calls.sentPaths.length).toBe(2)
 })
 
+test("cancel while the only file is in flight ends canceledBySender, not finished", async () => {
+	const { deps } = makeDeps()
+	const store = createTuiStore(info, deps)
+	store.addDevice(makeDevice("10.0.0.5"))
+	await store.addPath(import.meta.path)
+	// Simulate the user pressing `c` while this single file is uploading.
+	deps.sendPath = async () => {
+		store.cancelSession()
+		return { ok: true, message: "sent" }
+	}
+	await store.sendToDevice(store.selectedDevice()!)
+	expect(store.state.session?.status).toBe("canceledBySender")
+	expect(store.state.session?.files[0]?.status).not.toBe("done")
+})
+
 test("incoming request is held for consent when quickSave is off", async () => {
 	const { deps, fireRequest } = makeDeps()
 	const store = createTuiStore(info, deps)
