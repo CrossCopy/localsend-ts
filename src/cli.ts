@@ -19,6 +19,20 @@ const main = defineCommand({
 		version: "0.1.0",
 		description: "LocalSend JS CLI"
 	},
+	args: {
+		tui: {
+			type: "boolean",
+			description: "Launch the interactive TUI dashboard (default when no subcommand is given)"
+		},
+		alias: {
+			type: "string",
+			description: "Device alias (TUI)"
+		},
+		port: {
+			type: "string",
+			description: "Custom port number (TUI)"
+		}
+	},
 	subCommands: {
 		send: defineCommand({
 			meta: {
@@ -751,12 +765,42 @@ const main = defineCommand({
 			}
 		})
 	},
-	run({ args }) {
-		console.log("Please use a subcommand: send | receive | discover")
-		console.log("Examples:")
-		console.log("  localsend send 192.168.1.100 ./file.txt")
-		console.log("  localsend receive --saveDir ./downloads")
-		console.log("  localsend discover --timeout 10")
+	// No subcommand → open the TUI dashboard (like a GUI app's default window).
+	// `--help` and the subcommands are handled by citty before this runs, so this
+	// fires only for bare `localsend` (or `localsend --tui`). OpenTUI's renderer
+	// needs FFI — Bun has it built in, Node only in v26.4+ (node:ffi) — so the TUI
+	// module is imported lazily here and normal CLI use never loads OpenTUI.
+	async run({ args }) {
+		const nodeFfi = "node:ffi" // experimental module, no TS types, may be absent
+		const hasFfi =
+			typeof process.versions.bun === "string" ||
+			(await import(nodeFfi).then(
+				() => true,
+				() => false
+			))
+		if (!hasFfi) {
+			// Bare `localsend` is documented to open the TUI, so on an FFI-less runtime
+			// lead with the same TUI/Bun guidance (not generic subcommand help) — else the
+			// default launch looks broken on the common npm/Node path. `--tui` is an
+			// explicit request, so it exits non-zero; a bare launch is informational.
+			console.error(
+				"The LocalSend TUI needs a runtime with FFI: Bun, or Node.js ≥ 26.4 started\n" +
+					"with --experimental-ffi. Install Bun from https://bun.sh and run:  localsend"
+			)
+			if (args.tui) process.exit(1)
+			console.log("")
+			console.log("Or use a CLI subcommand: send | receive | discover")
+			console.log("  localsend send 192.168.1.100 ./file.txt")
+			console.log("  localsend receive --saveDir ./downloads")
+			console.log("  localsend discover --timeout 10")
+			return
+		}
+		const { runTui } = await import("./cli-tui.tsx")
+		const portStr = args.port as string | undefined
+		runTui({
+			alias: args.alias as string | undefined,
+			port: portStr ? parseInt(portStr, 10) : undefined
+		})
 	}
 })
 

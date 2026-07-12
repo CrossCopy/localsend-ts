@@ -29,7 +29,7 @@ bun examples/runtime-selector.ts                   # Test server adapters
 
 # Development
 bun run dev            # Watch mode for dev.ts
-bun run tui            # React Ink TUI (recommended CLI)
+bun run tui            # OpenTUI (Solid) dashboard TUI (= bun src/cli.ts, no subcommand)
 bun run cli            # Menu-driven interactive CLI
 ```
 
@@ -136,9 +136,10 @@ that starts only `LocalSendServer` without `MulticastDiscovery`, then `app.reque
 │   ├── sdk/          # Auto-generated OpenAPI SDK (DO NOT EDIT)
 │   ├── utils/        # Device info, file operations
 │   ├── types.ts      # Re-exports src/protocol/types.ts
-│   ├── cli.ts        # Traditional CLI (send/receive/discover)
+│   ├── cli.ts        # CLI (send/receive/discover); no subcommand → OpenTUI dashboard (--tui)
 │   ├── cli-interactive.ts  # Menu-driven CLI
-│   ├── cli-tui.tsx   # React Ink TUI (recommended)
+│   ├── cli-tui.tsx   # exports runTui() — OpenTUI (Solid) dashboard, launched by cli.ts
+│   ├── tui/          # TUI internals: store, components, transfer, theme
 │   └── hono-rpc.ts   # Type-safe Hono RPC client
 ├── test/
 │   ├── unit/         # Pure logic (files, sessions, collisions)

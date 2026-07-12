@@ -168,6 +168,24 @@ Run `npx localsend <command> --help` for the full set of flags (custom alias/por
 `--autoAccept`, `--saveDir`, etc). The package also ships `localsend-interactive`, a menu-driven
 CLI for interactive send/receive/discover sessions.
 
+### TUI dashboard
+
+Running `localsend` with **no subcommand** opens a full **TUI dashboard** (Send / Receive /
+Settings) built with [OpenTUI](https://opentui.com) + Solid.js, modeled on the official LocalSend
+app — content-first send, an always-on receiver with incoming-transfer consent, live device
+scanning, per-file transfer progress, and favorites:
+
+```bash
+localsend                                   # bare command → TUI dashboard
+localsend --tui --alias "My Device" --port 8080   # explicit, with options
+```
+
+`localsend --help` and `localsend send|receive|discover` stay the plain CLI. The TUI needs a
+runtime with FFI for OpenTUI's native renderer — **Bun** (recommended), or **Node.js ≥ 26.4** with
+`--experimental-ffi`; under an older Node, `localsend --tui` prints how to run it under Bun while
+the rest of the CLI works everywhere. The dashboard is bundled into `dist/cli.js` at build time, so
+no separate TUI binary ships.
+
 ## Protocol compliance
 
 | Endpoint                             | Method | Status                                        |
