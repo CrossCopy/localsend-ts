@@ -5,7 +5,7 @@ import type {
 	FileMetadata
 } from "../protocol/types.ts"
 import { createReadStream } from "node:fs"
-import { stat } from "node:fs/promises"
+import { stat, unlink } from "node:fs/promises"
 import { Readable } from "node:stream"
 
 export class LocalSendClient {
@@ -245,6 +245,9 @@ export class LocalSendClient {
 			return true
 		} catch (err) {
 			console.error("Error downloading file:", err)
+			// Best-effort cleanup: don't leave a partially-written file on disk
+			// if the stream errored mid-transfer.
+			await unlink(outPath).catch(() => {})
 			return false
 		}
 	}
