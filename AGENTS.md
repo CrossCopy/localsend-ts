@@ -27,7 +27,7 @@ bun examples/runtime-selector.ts                   # Test server adapters
 
 # Development
 bun run dev            # Watch mode for dev.ts
-bun run tui            # React Ink TUI (recommended CLI)
+bun run tui            # OpenTUI (Solid) dashboard TUI (recommended CLI)
 bun run cli            # Menu-driven interactive CLI
 ```
 
@@ -109,7 +109,8 @@ bun run cli            # Menu-driven interactive CLI
 │   ├── types.ts       # Protocol types via Valibot schemas (source of truth)
 │   ├── cli.ts        # Traditional CLI (send/receive/discover)
 │   ├── cli-interactive.ts  # Menu-driven CLI
-│   ├── cli-tui.tsx   # React Ink TUI (recommended)
+│   ├── cli-tui.tsx   # OpenTUI (Solid) TUI entry (recommended)
+│   ├── tui/          # TUI internals: store, components, transfer, theme
 │   └── hono-rpc.ts   # Type-safe Hono RPC client
 ├── examples/         # Functional examples (serve as integration tests)
 ├── build.ts          # Custom build: spawns hono-receiver to generate SDK

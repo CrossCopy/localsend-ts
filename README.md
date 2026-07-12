@@ -36,14 +36,17 @@ bun src/cli-tui.tsx
 npm run tui -- --port 8080 --alias "My Device"
 ```
 
-The TUI provides a sophisticated interface built with **Ink (React for CLI)** featuring:
+> Requires [Bun](https://bun.sh) — the TUI uses OpenTUI's native renderer and a Bun preload for the Solid JSX transform. `npm run tui` works because the script itself invokes `bun`.
 
-- **Real-time device scanning** - Continuously discover LocalSend devices
-- **Device selection** - Navigate and select from discovered devices
-- **Send text messages** - Interactive text input and sending
-- **Send files** - File path input with validation
-- **Receiver mode** - Real-time file receiving with progress
-- **Settings** - Dynamic device configuration
+The TUI provides a dashboard interface built with **OpenTUI (Solid.js)**, modeled on the official LocalSend app, featuring:
+
+- **Tab dashboard** - Send / Receive / Settings, switchable with `1`/`2`/`3` or `Tab`
+- **Always-on receiver** - discoverable and ready to accept transfers the moment it launches
+- **Content-first send** - build a selection (files with `a`, text with `t`), then press `Enter` on a nearby device to send
+- **Real-time device scanning** - continuously discover LocalSend devices; `s` rescans, `i` adds a device by IP, `f` toggles a favorite
+- **Incoming consent** - each incoming transfer prompts Accept/Decline, with a Quick Save mode (`off`/`favorites`/`on`) to auto-accept
+- **Transfer progress** - per-file status, overall progress, speed and ETA, with cancel/retry
+- **Persistent settings** - alias, favorites, and Quick Save mode persist across runs
 
 ### Simple Interactive CLI
 

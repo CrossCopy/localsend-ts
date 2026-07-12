@@ -1,22 +1,35 @@
 #!/usr/bin/env bun
-import { render, useKeyboard, useRenderer } from "@opentui/solid"
+import { render } from "@opentui/solid"
+import { defineCommand, runMain } from "citty"
+import { getDeviceInfo } from "./index.ts"
+import { createTuiStore } from "./tui/store.ts"
+import { App } from "./tui/App.tsx"
 
-const App = () => {
-	const renderer = useRenderer()
-	useKeyboard((key) => {
-		if (key.name === "q" || key.name === "escape") {
-			renderer.destroy()
-			process.exit(0)
+const main = defineCommand({
+	meta: {
+		name: "localsend-tui",
+		version: "0.1.0",
+		description: "LocalSend Interactive TUI (OpenTUI + Solid)"
+	},
+	args: {
+		port: {
+			type: "string",
+			description: "Custom port number"
+		},
+		alias: {
+			type: "string",
+			description: "Custom device alias"
 		}
-	})
-	return (
-		<box flexDirection="column" padding={1}>
-			<text fg="#00FFFF">
-				<b>🌐 LocalSend TUI</b>
-			</text>
-			<text fg="#808080">OpenTUI migration in progress — press q to quit</text>
-		</box>
-	)
-}
+	},
+	async run({ args }) {
+		const portString = args.port as string | undefined
+		const port = portString ? parseInt(portString, 10) : undefined
+		const alias =
+			(args.alias as string | undefined) || `LocalSend TUI ${Math.floor(100 + Math.random() * 900)}`
+		const deviceInfo = getDeviceInfo({ alias, port, enableDownloadApi: false })
+		const store = createTuiStore(deviceInfo)
+		render(() => <App store={store} />, { exitOnCtrlC: true })
+	}
+})
 
-render(() => <App />)
+runMain(main)

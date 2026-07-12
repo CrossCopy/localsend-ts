@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js"
 import prettyBytes from "pretty-bytes"
+import { createTextAttributes } from "@opentui/core"
 import { colors, formatEta, progressBar } from "./theme.ts"
 import {
 	deviceGlyph,
@@ -9,6 +10,8 @@ import {
 	type SessionFile,
 	type TuiStore
 } from "./store.ts"
+
+const BOLD = createTextAttributes({ bold: true })
 
 const fileStatusGlyph: Record<SessionFile["status"], string> = {
 	queued: "⏳",
@@ -28,7 +31,7 @@ export const TabBar = (props: { store: TuiStore }) => {
 	]
 	return (
 		<box flexDirection="row" paddingLeft={1} paddingRight={1} gap={1}>
-			<text fg={colors.accent} attributes={1}>
+			<text fg={colors.accent} attributes={BOLD}>
 				LocalSend
 			</text>
 			<For each={tabs}>
@@ -244,7 +247,7 @@ export const ReceiveTab = (props: { store: TuiStore }) => {
 				paddingLeft={1}
 				paddingRight={1}
 			>
-				<text fg={colors.accent} attributes={1}>
+				<text fg={colors.accent} attributes={BOLD}>
 					{s().settings.alias}
 				</text>
 				<text fg={colors.dim}>
@@ -307,7 +310,7 @@ export const SettingsTab = (props: { store: TuiStore }) => {
 	)
 	return (
 		<box flexDirection="column" flexGrow={1} paddingLeft={2} paddingRight={2} gap={1}>
-			<text fg={colors.yellow} attributes={1}>
+			<text fg={colors.yellow} attributes={BOLD}>
 				Settings
 			</text>
 			{row("Alias:", s().alias)}
