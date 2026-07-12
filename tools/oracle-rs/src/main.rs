@@ -14,6 +14,7 @@ use tokio::sync::mpsc;
 use localsend::http::client::LsHttpClientV2;
 use localsend::http::dto::ProtocolType;
 use localsend::http::dto_v2::{PrepareUploadRequestDtoV2, ProtocolTypeV2, RegisterDtoV2};
+use localsend::model::discovery::DeviceType;
 use localsend::model::transfer::FileDto;
 
 #[tokio::main]
@@ -49,17 +50,17 @@ async fn main() -> Result<()> {
     // Build the sender's device info (RegisterDtoV2's `protocol` field is ProtocolTypeV2,
     // distinct from the ProtocolType used in client method calls below).
     //
-    // NOTE: `device_type` is left as `None`. The reference core crate serializes
-    // `DeviceType` as SCREAMING_SNAKE_CASE (e.g. "HEADLESS"), but the LocalSend wire
-    // protocol (and this repo's TS server) expects lowercase values (e.g. "headless") --
-    // see src/protocol/types.ts. Since `device_type` is optional and unused by the
-    // receiver's accept/prepare-upload logic, omitting it avoids that reference-crate
-    // serde mismatch without touching references/.
+    // `device_type` is `Some(DeviceType::Headless)`. The reference core crate serializes
+    // `DeviceType` as SCREAMING_SNAKE_CASE (e.g. "HEADLESS"), which differs from the
+    // lowercase values used elsewhere in the LocalSend wire protocol (e.g. "headless") --
+    // see src/protocol/types.ts. This repo's TS server now tolerates unknown/uppercase
+    // deviceType values (falling back to "desktop" if truly unrecognized, but correctly
+    // lowercasing "HEADLESS" -> "headless"), so this exercises that leniency end-to-end.
     let info = RegisterDtoV2 {
         alias,
         version: "2.1".to_string(),
         device_model: Some("oracle".to_string()),
-        device_type: None,
+        device_type: Some(DeviceType::Headless),
         fingerprint: "oracle-fingerprint".to_string(),
         port: 53318,
         protocol: ProtocolTypeV2::Http,
