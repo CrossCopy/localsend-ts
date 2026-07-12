@@ -110,15 +110,15 @@ import { SEPIA_MATRIX, TargetChannel } from "@opentui/core"
 
 // Affect only three cells at custom strengths
 const cellMask = new Float32Array([
-  5,
-  2,
-  1.0, // full sepia at (5,2)
-  6,
-  2,
-  0.5, // half sepia at (6,2)
-  7,
-  2,
-  0.25, // subtle sepia at (7,2)
+	5,
+	2,
+	1.0, // full sepia at (5,2)
+	6,
+	2,
+	0.5, // half sepia at (6,2)
+	7,
+	2,
+	0.25 // subtle sepia at (7,2)
 ])
 
 frameBuffer.colorMatrix(SEPIA_MATRIX, cellMask, 1.0, TargetChannel.FG)
@@ -130,29 +130,29 @@ frameBuffer.colorMatrix(SEPIA_MATRIX, cellMask, 1.0, TargetChannel.FG)
 import { TargetChannel } from "@opentui/core"
 
 function createSaturationMatrix(saturation: number): Float32Array {
-  const rw = 0.299
-  const gw = 0.587
-  const bw = 0.114
-  const inv = 1 - saturation
+	const rw = 0.299
+	const gw = 0.587
+	const bw = 0.114
+	const inv = 1 - saturation
 
-  return new Float32Array([
-    rw * inv + saturation,
-    gw * inv,
-    bw * inv,
-    0,
-    rw * inv,
-    gw * inv + saturation,
-    bw * inv,
-    0,
-    rw * inv,
-    gw * inv,
-    bw * inv + saturation,
-    0,
-    0,
-    0,
-    0,
-    1,
-  ])
+	return new Float32Array([
+		rw * inv + saturation,
+		gw * inv,
+		bw * inv,
+		0,
+		rw * inv,
+		gw * inv + saturation,
+		bw * inv,
+		0,
+		rw * inv,
+		gw * inv,
+		bw * inv + saturation,
+		0,
+		0,
+		0,
+		0,
+		1
+	])
 }
 
 const saturation = createSaturationMatrix(1.25)

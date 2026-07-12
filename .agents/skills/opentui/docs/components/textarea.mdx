@@ -18,14 +18,14 @@ import { TextareaRenderable, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const textarea = new TextareaRenderable(renderer, {
-  id: "notes",
-  width: 50,
-  height: 6,
-  placeholder: "Type notes here...",
-  backgroundColor: "#1a1a1a",
-  focusedBackgroundColor: "#222222",
-  textColor: "#FFFFFF",
-  cursorColor: "#00FF88",
+	id: "notes",
+	width: 50,
+	height: 6,
+	placeholder: "Type notes here...",
+	backgroundColor: "#1a1a1a",
+	focusedBackgroundColor: "#222222",
+	textColor: "#FFFFFF",
+	cursorColor: "#00FF88"
 })
 
 renderer.root.add(textarea)
@@ -40,12 +40,12 @@ Bind a submit action and listen for `onSubmit`:
 import { TextareaRenderable } from "@opentui/core"
 
 const textarea = new TextareaRenderable(renderer, {
-  width: 50,
-  height: 6,
-  onSubmit: () => {
-    console.log("Submitted:", textarea.plainText)
-  },
-  keyBindings: [{ name: "return", ctrl: true, action: "submit" }],
+	width: 50,
+	height: 6,
+	onSubmit: () => {
+		console.log("Submitted:", textarea.plainText)
+	},
+	keyBindings: [{ name: "return", ctrl: true, action: "submit" }]
 })
 ```
 
@@ -53,10 +53,10 @@ const textarea = new TextareaRenderable(renderer, {
 
 ```typescript
 const textarea = new TextareaRenderable(renderer, {
-  width: 40,
-  height: 4,
-  placeholder: "Type here",
-  placeholderColor: "#666666",
+	width: 40,
+	height: 4,
+	placeholder: "Type here",
+	placeholderColor: "#666666"
 })
 ```
 
@@ -163,13 +163,13 @@ The `traits` property lets an editor advertise intent to a host UI — which bui
 import { EditBufferRenderableEvents, type EditorTraits } from "@opentui/core"
 
 textarea.traits = {
-  capture: ["escape", "submit"], // consume these before host binds
-  suspend: false,
-  status: "Composing reply",
+	capture: ["escape", "submit"], // consume these before host binds
+	suspend: false,
+	status: "Composing reply"
 } satisfies EditorTraits
 
 textarea.on(EditBufferRenderableEvents.TRAITS_CHANGED, (traits) => {
-  updateFooter(traits.status ?? "")
+	updateFooter(traits.status ?? "")
 })
 ```
 

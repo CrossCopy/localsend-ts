@@ -18,9 +18,9 @@ import { createCliRenderer, TextRenderable, BoxRenderable } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const greeting = new TextRenderable(renderer, {
-  id: "greeting",
-  content: "Hello, OpenTUI!",
-  fg: "#00FF00",
+	id: "greeting",
+	content: "Hello, OpenTUI!",
+	fg: "#00FF00"
 })
 
 renderer.root.add(greeting)
@@ -56,9 +56,9 @@ Renderables form a tree structure. Use `add()` and `remove()` to manage children
 
 ```typescript
 const container = new BoxRenderable(renderer, {
-  id: "container",
-  flexDirection: "column",
-  padding: 1,
+	id: "container",
+	flexDirection: "column",
+	padding: 1
 })
 
 const title = new TextRenderable(renderer, { id: "title", content: "My App" })
@@ -98,30 +98,30 @@ All renderables support Yoga flexbox properties:
 
 ```typescript
 const panel = new BoxRenderable(renderer, {
-  id: "panel",
+	id: "panel",
 
-  // Sizing
-  width: 40,
-  height: "50%",
-  minWidth: 20,
-  maxHeight: 30,
+	// Sizing
+	width: 40,
+	height: "50%",
+	minWidth: 20,
+	maxHeight: 30,
 
-  // Flex behavior
-  flexGrow: 1,
-  flexShrink: 0,
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "flex-start",
+	// Flex behavior
+	flexGrow: 1,
+	flexShrink: 0,
+	flexDirection: "column",
+	justifyContent: "center",
+	alignItems: "flex-start",
 
-  // Positioning
-  position: "absolute",
-  left: 10,
-  top: 5,
+	// Positioning
+	position: "absolute",
+	left: 10,
+	top: 5,
 
-  // Spacing
-  padding: 2,
-  paddingTop: 1,
-  margin: 1,
+	// Spacing
+	padding: 2,
+	paddingTop: 1,
+	margin: 1
 })
 ```
 
@@ -133,8 +133,8 @@ Interactive renderables can receive keyboard focus:
 
 ```typescript
 const input = new InputRenderable(renderer, {
-  id: "username",
-  placeholder: "Enter username...",
+	id: "username",
+	placeholder: "Enter username..."
 })
 
 renderer.root.add(input)
@@ -159,11 +159,11 @@ Listen for focus changes:
 import { RenderableEvents } from "@opentui/core"
 
 input.on(RenderableEvents.FOCUSED, () => {
-  console.log("Input focused")
+	console.log("Input focused")
 })
 
 input.on(RenderableEvents.BLURRED, () => {
-  console.log("Input blurred")
+	console.log("Input blurred")
 })
 ```
 
@@ -173,11 +173,11 @@ A renderable can also react to focus living inside one of its descendants throug
 
 ```typescript
 const panel = new BoxRenderable(renderer, {
-  id: "panel",
-  focusable: true,
-  borderColor: "#444",
-  focusedBorderColor: "#00AAFF",
-  flexDirection: "column",
+	id: "panel",
+	focusable: true,
+	borderColor: "#444",
+	focusedBorderColor: "#00AAFF",
+	flexDirection: "column"
 })
 
 const input = new InputRenderable(renderer, { id: "panel-input" })
@@ -196,17 +196,17 @@ Handle mouse interactions via options:
 
 ```typescript
 const button = new BoxRenderable(renderer, {
-  id: "button",
-  border: true,
-  onMouseDown: (event) => {
-    console.log("Clicked at", event.x, event.y)
-  },
-  onMouseOver: (event) => {
-    button.borderColor = "#FFFF00"
-  },
-  onMouseOut: (event) => {
-    button.borderColor = "#FFFFFF"
-  },
+	id: "button",
+	border: true,
+	onMouseDown: (event) => {
+		console.log("Clicked at", event.x, event.y)
+	},
+	onMouseOver: (event) => {
+		button.borderColor = "#FFFF00"
+	},
+	onMouseOut: (event) => {
+		button.borderColor = "#FFFFFF"
+	}
 })
 ```
 
@@ -228,15 +228,15 @@ For focusable renderables:
 const textDecoder = new TextDecoder()
 
 const input = new InputRenderable(renderer, {
-  id: "input",
-  onKeyDown: (key) => {
-    if (key.name === "escape") {
-      input.blur()
-    }
-  },
-  onPaste: (event) => {
-    console.log("Pasted:", textDecoder.decode(event.bytes))
-  },
+	id: "input",
+	onKeyDown: (key) => {
+		if (key.name === "escape") {
+			input.blur()
+		}
+	},
+	onPaste: (event) => {
+		console.log("Pasted:", textDecoder.decode(event.bytes))
+	}
 })
 ```
 
@@ -270,9 +270,9 @@ Control layering order for overlapping elements:
 
 ```typescript
 const overlay = new BoxRenderable(renderer, {
-  id: "overlay",
-  position: "absolute",
-  zIndex: 100, // Higher values render on top
+	id: "overlay",
+	position: "absolute",
+	zIndex: 100 // Higher values render on top
 })
 ```
 
@@ -282,15 +282,15 @@ For animations, extend the Renderable class and override `onUpdate`:
 
 ```typescript
 class AnimatedBox extends BoxRenderable {
-  onUpdate(deltaTime) {
-    // Update animation state
-    this.translateX += 1
-  }
+	onUpdate(deltaTime) {
+		// Update animation state
+		this.translateX += 1
+	}
 }
 
 const box = new AnimatedBox(renderer, {
-  id: "anim-box",
-  live: true, // Enable continuous rendering
+	id: "anim-box",
+	live: true // Enable continuous rendering
 })
 ```
 
@@ -314,12 +314,12 @@ Enable offscreen rendering for complex content and use hooks to draw to the buff
 import { RGBA } from "@opentui/core"
 
 const complex = new BoxRenderable(renderer, {
-  id: "complex",
-  buffered: true, // Render to offscreen buffer first
-  renderAfter: (buffer) => {
-    // Draw directly to the buffer (or offscreen buffer if buffered=true)
-    buffer.fillRect(0, 0, 10, 5, RGBA.fromHex("#FF0000"))
-  },
+	id: "complex",
+	buffered: true, // Render to offscreen buffer first
+	renderAfter: (buffer) => {
+		// Draw directly to the buffer (or offscreen buffer if buffered=true)
+		buffer.fillRect(0, 0, 10, 5, RGBA.fromHex("#FF0000"))
+	}
 })
 ```
 
@@ -331,25 +331,25 @@ Override these methods in custom renderables:
 
 ```typescript
 class CustomRenderable extends Renderable {
-  // Called each frame before rendering
-  onUpdate(deltaTime: number) {
-    // Update state, animations, etc.
-  }
+	// Called each frame before rendering
+	onUpdate(deltaTime: number) {
+		// Update state, animations, etc.
+	}
 
-  // Called when dimensions change
-  onResize(width: number, height: number) {
-    // Respond to size changes
-  }
+	// Called when dimensions change
+	onResize(width: number, height: number) {
+		// Respond to size changes
+	}
 
-  // Called when removed from parent
-  onRemove() {
-    // Cleanup
-  }
+	// Called when removed from parent
+	onRemove() {
+		// Cleanup
+	}
 
-  // Override for custom rendering
-  renderSelf(buffer: OptimizedBuffer, deltaTime: number) {
-    // Draw to buffer
-  }
+	// Override for custom rendering
+	renderSelf(buffer: OptimizedBuffer, deltaTime: number) {
+		// Draw to buffer
+	}
 }
 ```
 

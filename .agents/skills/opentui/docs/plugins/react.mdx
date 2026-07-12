@@ -37,9 +37,9 @@ If plugins need additional host-resolved modules, configure runtime support befo
 import { ensureRuntimePluginSupport } from "@opentui/react/runtime-plugin-support/configure"
 
 ensureRuntimePluginSupport({
-  additional: {
-    "my-runtime-module": { marker: "ok" },
-  },
+	additional: {
+		"my-runtime-module": { marker: "ok" }
+	}
 })
 ```
 
@@ -50,7 +50,7 @@ import { runtimeModules as threeRuntimeModules } from "@opentui/three/runtime-mo
 import { ensureRuntimePluginSupport } from "@opentui/react/runtime-plugin-support/configure"
 
 ensureRuntimePluginSupport({
-  additional: threeRuntimeModules,
+	additional: threeRuntimeModules
 })
 ```
 
@@ -74,7 +74,7 @@ import { createCliRenderer } from "@opentui/core"
 import { createReactSlotRegistry, createRoot, Slot } from "@opentui/react"
 
 type Slots = {
-  statusbar: { user: string }
+	statusbar: { user: string }
 }
 
 const context = { appName: "react-app", version: "1.0.0" }
@@ -83,22 +83,22 @@ const renderer = await createCliRenderer()
 const registry = createReactSlotRegistry<Slots, typeof context>(renderer, context)
 
 const unregister = registry.register({
-  id: "clock-plugin",
-  slots: {
-    statusbar(ctx, props) {
-      return <text>{`${ctx.appName}:${props.user}`}</text>
-    },
-  },
+	id: "clock-plugin",
+	slots: {
+		statusbar(ctx, props) {
+			return <text>{`${ctx.appName}:${props.user}`}</text>
+		}
+	}
 })
 
 const AppSlot = Slot<Slots, typeof context>
 
 function App() {
-  return (
-    <AppSlot registry={registry} name="statusbar" user="sam" mode="replace">
-      <text>fallback-statusbar</text>
-    </AppSlot>
-  )
+	return (
+		<AppSlot registry={registry} name="statusbar" user="sam" mode="replace">
+			<text>fallback-statusbar</text>
+		</AppSlot>
+	)
 }
 
 createRoot(renderer).render(<App />)
@@ -133,9 +133,9 @@ const AppSlot = createSlot(registry)
 
 ```tsx
 const Slot = createSlot(registry, {
-  pluginFailurePlaceholder(failure) {
-    return <text>{`plugin-error:${failure.pluginId}:${failure.phase}`}</text>
-  },
+	pluginFailurePlaceholder(failure) {
+		return <text>{`plugin-error:${failure.pluginId}:${failure.phase}`}</text>
+	}
 })
 ```
 
@@ -147,7 +147,7 @@ Plugins that throw during the initial render call are caught inline. Plugins tha
 
 ```tsx
 registry.onPluginError((event) => {
-  console.error(event.pluginId, event.phase, event.source, event.error.message)
+	console.error(event.pluginId, event.phase, event.source, event.error.message)
 })
 ```
 

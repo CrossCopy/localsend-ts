@@ -18,20 +18,20 @@ import { DiffRenderable, SyntaxStyle, RGBA, createCliRenderer } from "@opentui/c
 const renderer = await createCliRenderer()
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  default: { fg: RGBA.fromHex("#E6EDF3") },
-  string: { fg: RGBA.fromHex("#A5D6FF") },
-  keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
+	default: { fg: RGBA.fromHex("#E6EDF3") },
+	string: { fg: RGBA.fromHex("#A5D6FF") },
+	keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true }
 })
 
 const diff = new DiffRenderable(renderer, {
-  id: "diff",
-  width: "100%",
-  height: 16,
-  diff: `diff --git a/app.ts b/app.ts\nindex 1111111..2222222 100644\n--- a/app.ts\n+++ b/app.ts\n@@ -1,3 +1,3 @@\n-const a = 1\n+const a = 2\n`,
-  view: "split",
-  filetype: "typescript",
-  syntaxStyle,
-  showLineNumbers: true,
+	id: "diff",
+	width: "100%",
+	height: 16,
+	diff: `diff --git a/app.ts b/app.ts\nindex 1111111..2222222 100644\n--- a/app.ts\n+++ b/app.ts\n@@ -1,3 +1,3 @@\n-const a = 1\n+const a = 2\n`,
+	view: "split",
+	filetype: "typescript",
+	syntaxStyle,
+	showLineNumbers: true
 })
 
 renderer.root.add(diff)
@@ -47,11 +47,11 @@ When `view: "split"` is active, you can link the vertical scroll of both panes. 
 
 ```typescript
 const diff = new DiffRenderable(renderer, {
-  id: "diff",
-  view: "split",
-  syncScroll: true,
-  diff: patch,
-  syntaxStyle,
+	id: "diff",
+	view: "split",
+	syncScroll: true,
+	diff: patch,
+	syntaxStyle
 })
 
 // Toggle at runtime

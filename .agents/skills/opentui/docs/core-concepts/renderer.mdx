@@ -19,8 +19,8 @@ Create a renderer with the async factory function:
 import { createCliRenderer } from "@opentui/core"
 
 const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
-  targetFps: 30,
+	exitOnCtrlC: true,
+	targetFps: 30
 })
 ```
 
@@ -74,7 +74,7 @@ renderer exits. This is the standard mode for full-screen TUI applications.
 
 ```typescript
 const renderer = await createCliRenderer({
-  screenMode: "alternate-screen",
+	screenMode: "alternate-screen"
 })
 ```
 
@@ -84,7 +84,7 @@ Renders on the terminal's main screen without switching buffers. OpenTUI still r
 
 ```typescript
 const renderer = await createCliRenderer({
-  screenMode: "main-screen",
+	screenMode: "main-screen"
 })
 ```
 
@@ -96,8 +96,8 @@ The `footerHeight` option controls how many rows the footer requests (default: 1
 
 ```typescript
 const renderer = await createCliRenderer({
-  screenMode: "split-footer",
-  footerHeight: 20,
+	screenMode: "split-footer",
+	footerHeight: 20
 })
 
 // Change footer height at runtime
@@ -122,8 +122,8 @@ The default depends on the screen mode: `"capture-stdout"` for split-footer, `"p
 ```typescript
 // Captured stdout appears above the footer
 const renderer = await createCliRenderer({
-  screenMode: "split-footer",
-  externalOutputMode: "capture-stdout",
+	screenMode: "split-footer",
+	externalOutputMode: "capture-stdout"
 })
 
 // Switch at runtime
@@ -136,12 +136,12 @@ Pass `stdin` and `stdout` to run OpenTUI over another transport, such as SSH, a 
 
 ```typescript
 const renderer = await createCliRenderer({
-  stdin,
-  stdout,
-  width: cols,
-  height: rows,
-  exitOnCtrlC: false,
-  exitSignals: [],
+	stdin,
+	stdout,
+	width: cols,
+	height: rows,
+	exitOnCtrlC: false,
+	exitSignals: []
 })
 ```
 
@@ -163,9 +163,9 @@ If you need plain `console.*` behavior, set `OTUI_USE_CONSOLE=false`.
 
 ```typescript
 const renderer = await createCliRenderer({
-  screenMode: "split-footer",
-  externalOutputMode: "capture-stdout",
-  consoleMode: "disabled",
+	screenMode: "split-footer",
+	externalOutputMode: "capture-stdout",
+	consoleMode: "disabled"
 })
 ```
 
@@ -183,24 +183,24 @@ Render a renderable tree into an off-screen buffer and commit it as one scrollba
 import { TextRenderable } from "@opentui/core"
 
 renderer.writeToScrollback((ctx) => {
-  const root = new TextRenderable(ctx.renderContext, {
-    id: "api-response",
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: ctx.width,
-    height: 1,
-    content: "api responded in 12ms",
-    fg: "#8BD5CA",
-  })
+	const root = new TextRenderable(ctx.renderContext, {
+		id: "api-response",
+		position: "absolute",
+		left: 0,
+		top: 0,
+		width: ctx.width,
+		height: 1,
+		content: "api responded in 12ms",
+		fg: "#8BD5CA"
+	})
 
-  return {
-    root,
-    width: ctx.width,
-    height: 1,
-    startOnNewLine: true,
-    trailingNewline: true,
-  }
+	return {
+		root,
+		width: ctx.width,
+		height: 1,
+		startOnNewLine: true,
+		trailingNewline: true
+	}
 })
 ```
 
@@ -235,13 +235,13 @@ For streaming output that you want to render many times before committing (token
 const surface = renderer.createScrollbackSurface({ startOnNewLine: true })
 
 const code = new CodeRenderable(surface.renderContext, {
-  id: "streamed-code",
-  content: "",
-  filetype: "typescript",
-  syntaxStyle,
-  width: "100%",
-  streaming: true,
-  treeSitterClient,
+	id: "streamed-code",
+	content: "",
+	filetype: "typescript",
+	syntaxStyle,
+	width: "100%",
+	streaming: true,
+	treeSitterClient
 })
 surface.root.add(code)
 
@@ -274,7 +274,9 @@ Every renderer has a `root` property. It is a special `RootRenderable` at the to
 import { Box, Text } from "@opentui/core"
 
 // Add components to the root
-renderer.root.add(Box({ width: 40, height: 10, borderStyle: "rounded" }, Text({ content: "Hello, OpenTUI!" })))
+renderer.root.add(
+	Box({ width: 40, height: 10, borderStyle: "rounded" }, Text({ content: "Hello, OpenTUI!" }))
+)
 ```
 
 The root renderable fills the entire terminal and adjusts when you resize it.
@@ -345,8 +347,8 @@ content visible after shutdown, set `clearOnShutdown: false`:
 
 ```typescript
 const renderer = await createCliRenderer({
-  screenMode: "split-footer",
-  clearOnShutdown: false,
+	screenMode: "split-footer",
+	clearOnShutdown: false
 })
 ```
 
@@ -395,26 +397,26 @@ Use `renderer.on(event, callback)` to subscribe:
 ```typescript
 // Terminal resized
 renderer.on("resize", (width, height) => {
-  console.log(`Terminal size: ${width}x${height}`)
+	console.log(`Terminal size: ${width}x${height}`)
 })
 
 // Terminal focus events
 renderer.on("focus", () => {
-  console.log("Terminal gained focus")
+	console.log("Terminal gained focus")
 })
 
 renderer.on("blur", () => {
-  console.log("Terminal lost focus")
+	console.log("Terminal lost focus")
 })
 
 // Renderer destroyed
 renderer.on("destroy", () => {
-  console.log("Renderer destroyed")
+	console.log("Renderer destroyed")
 })
 
 // Text selection completed
 renderer.on("selection", (selection) => {
-  console.log("Selected text:", selection.getSelectedText())
+	console.log("Selected text:", selection.getSelectedText())
 })
 ```
 
@@ -433,7 +435,7 @@ import { type ThemeMode } from "@opentui/core"
 const mode = renderer.themeMode
 
 renderer.on("theme_mode", (nextMode: ThemeMode) => {
-  console.log("Theme mode changed:", nextMode)
+	console.log("Theme mode changed:", nextMode)
 })
 ```
 
@@ -478,8 +480,8 @@ OpenTUI can set and clear the terminal's clipboard via OSC 52. This works across
 import { ClipboardTarget } from "@opentui/core"
 
 if (renderer.isOsc52Supported()) {
-  renderer.copyToClipboardOSC52("https://opentui.dev")
-  renderer.clearClipboardOSC52()
+	renderer.copyToClipboardOSC52("https://opentui.dev")
+	renderer.clearClipboardOSC52()
 }
 
 // Target specific OSC 52 selections
@@ -511,7 +513,7 @@ Subscribe to raw OSC sequences the terminal emits — palette queries, cursor po
 
 ```typescript
 const unsubscribe = renderer.subscribeOsc((sequence) => {
-  // sequence is the full ESC ] ... BEL / ST payload
+	// sequence is the full ESC ] ... BEL / ST payload
 })
 
 // later
@@ -538,9 +540,9 @@ renderer.setCursorStyle({ style: "default" }) // Reset to terminal's native curs
 
 // Cursor style with color
 renderer.setCursorStyle({
-  style: "block",
-  blinking: true,
-  color: RGBA.fromHex("#FF0000"),
+	style: "block",
+	blinking: true,
+	color: RGBA.fromHex("#FF0000")
 })
 
 // Cursor style with mouse pointer
@@ -548,9 +550,9 @@ renderer.setCursorStyle({
 // Types of mouse pointers available: "default", "pointer", "text", "crosshair", "move",
 // "not-allowed"
 renderer.setCursorStyle({
-  style: "block",
-  blinking: false,
-  cursor: "pointer",
+	style: "block",
+	blinking: false,
+	cursor: "pointer"
 })
 ```
 
@@ -560,11 +562,11 @@ Add custom input handlers:
 
 ```typescript
 renderer.addInputHandler((sequence) => {
-  if (sequence === "\x1b[A") {
-    // Up arrow - handle and consume
-    return true
-  }
-  return false // Let other handlers process
+	if (sequence === "\x1b[A") {
+		// Up arrow - handle and consume
+		return true
+	}
+	return false // Let other handlers process
 })
 ```
 
@@ -581,8 +583,8 @@ renderer.toggleDebugOverlay()
 import { DebugOverlayCorner } from "@opentui/core"
 
 renderer.configureDebugOverlay({
-  enabled: true,
-  corner: DebugOverlayCorner.topRight,
+	enabled: true,
+	corner: DebugOverlayCorner.topRight
 })
 ```
 

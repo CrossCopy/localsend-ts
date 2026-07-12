@@ -14,10 +14,10 @@ OpenTUI includes a built-in console overlay that captures all `console.log`, `co
 import { createCliRenderer, ConsolePosition } from "@opentui/core"
 
 const renderer = await createCliRenderer({
-  consoleOptions: {
-    position: ConsolePosition.BOTTOM,
-    sizePercent: 30,
-  },
+	consoleOptions: {
+		position: ConsolePosition.BOTTOM,
+		sizePercent: 30
+	}
 })
 
 // These appear in the overlay instead of stdout
@@ -36,14 +36,14 @@ console.warn("Warnings appear in yellow")
 
 ```typescript
 const renderer = await createCliRenderer({
-  consoleOptions: {
-    position: ConsolePosition.BOTTOM, // Position on screen
-    sizePercent: 30, // Size as percentage of terminal
-    colorInfo: "#00FFFF", // Color for console.info
-    colorWarn: "#FFFF00", // Color for console.warn
-    colorError: "#FF0000", // Color for console.error
-    startInDebugMode: false, // Show file/line info in logs
-  },
+	consoleOptions: {
+		position: ConsolePosition.BOTTOM, // Position on screen
+		sizePercent: 30, // Size as percentage of terminal
+		colorInfo: "#00FFFF", // Color for console.info
+		colorWarn: "#FFFF00", // Color for console.warn
+		colorError: "#FF0000", // Color for console.error
+		startInDebugMode: false // Show file/line info in logs
+	}
 })
 ```
 
@@ -86,15 +86,15 @@ Add a keyboard shortcut to toggle the console:
 
 ```typescript
 renderer.keyInput.on("keypress", (key) => {
-  // Toggle with backtick key
-  if (key.name === "`") {
-    renderer.console.toggle()
-  }
+	// Toggle with backtick key
+	if (key.name === "`") {
+		renderer.console.toggle()
+	}
 
-  // Or with a modifier
-  if (key.ctrl && key.name === "l") {
-    renderer.console.toggle()
-  }
+	// Or with a modifier
+	if (key.ctrl && key.name === "l") {
+		renderer.console.toggle()
+	}
 })
 ```
 

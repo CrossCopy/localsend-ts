@@ -19,12 +19,12 @@ import { Audio } from "@opentui/core"
 const audio = Audio.create({ autoStart: false })
 
 audio.on("error", (error, context) => {
-  console.error(`${context.action}: ${error.message}`)
+	console.error(`${context.action}: ${error.message}`)
 })
 
 const sound = await audio.loadSoundFile("click.wav")
 if (sound != null && audio.start()) {
-  audio.play(sound, { volume: 0.8, pan: 0, loop: false })
+	audio.play(sound, { volume: 0.8, pan: 0, loop: false })
 }
 
 audio.dispose()
@@ -79,7 +79,7 @@ const clickBytes = await file(clickPath).bytes()
 const click = audio.loadSound(clickBytes)
 
 if (click != null && audio.start()) {
-  audio.play(click)
+	audio.play(click)
 }
 ```
 
@@ -99,11 +99,11 @@ const devices = audio.listPlaybackDevices() ?? []
 const device = devices.find((item) => item.isDefault) ?? devices[0]
 
 if (device) {
-  audio.selectPlaybackDevice(device.index)
+	audio.selectPlaybackDevice(device.index)
 }
 
 if (!audio.start()) {
-  console.error("No playback device available")
+	console.error("No playback device available")
 }
 ```
 

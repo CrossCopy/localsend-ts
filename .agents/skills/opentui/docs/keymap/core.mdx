@@ -55,20 +55,20 @@ Host key events must satisfy `KeymapEvent`:
 
 ```ts
 keymap.registerLayer({
-  commands: [
-    { name: "save-file", title: "Save File", run() {} },
-    { name: "quit", run() {} },
-  ],
+	commands: [
+		{ name: "save-file", title: "Save File", run() {} },
+		{ name: "quit", run() {} }
+	]
 })
 
 keymap.registerLayer({
-  target: editor,
-  targetMode: "focus-within",
-  priority: 10,
-  bindings: [
-    { key: "ctrl+s", cmd: "save-file", desc: "Save file" },
-    { key: "q", cmd: "quit", preventDefault: false },
-  ],
+	target: editor,
+	targetMode: "focus-within",
+	priority: 10,
+	bindings: [
+		{ key: "ctrl+s", cmd: "save-file", desc: "Save file" },
+		{ key: "q", cmd: "quit", preventDefault: false }
+	]
 })
 ```
 
@@ -194,18 +194,18 @@ Field compilers can validate and normalize values before publishing attrs. They 
 
 ```ts
 keymap.registerLayerFields({
-  name(value, ctx) {
-    ctx.attr("name", String(value).trim())
-  },
+	name(value, ctx) {
+		ctx.attr("name", String(value).trim())
+	}
 })
 
 keymap.registerCommandFields({
-  enabled(value, ctx) {
-    ctx.activeWhen(() => value === true)
-  },
-  title(value, ctx) {
-    ctx.attr("title", String(value).trim())
-  },
+	enabled(value, ctx) {
+		ctx.activeWhen(() => value === true)
+	},
+	title(value, ctx) {
+		ctx.attr("title", String(value).trim())
+	}
 })
 ```
 
@@ -223,14 +223,14 @@ Commands reserve only `name` and `run`. Other top-level properties are custom co
 
 ```ts
 keymap.registerLayer({
-  commands: [
-    {
-      name: "save-file",
-      namespace: "file",
-      title: "Save File",
-      run() {},
-    },
-  ],
+	commands: [
+		{
+			name: "save-file",
+			namespace: "file",
+			title: "Save File",
+			run() {}
+		}
+	]
 })
 
 // getCommands()[0] is the same command object:
@@ -269,8 +269,8 @@ Example:
 import { commandBindings } from "@opentui/keymap/extras"
 
 const bindings = commandBindings({
-  "  save-file  ": "ctrl+s",
-  ":write session.log": "<leader>s",
+	"  save-file  ": "ctrl+s",
+	":write session.log": "<leader>s"
 })
 
 // => [
@@ -285,12 +285,14 @@ keymap.registerLayer({ bindings })
 import { formatCommandBindings, formatKeySequence } from "@opentui/keymap/extras"
 
 formatKeySequence(keymap.parseKeySequence("<leader>s"), {
-  tokenDisplay: { leader: "space" },
-  modifierAliases: { meta: "alt" },
-  keyNameAliases: { pageup: "pgup", pagedown: "pgdn", delete: "del" },
+	tokenDisplay: { leader: "space" },
+	modifierAliases: { meta: "alt" },
+	keyNameAliases: { pageup: "pgup", pagedown: "pgdn", delete: "del" }
 })
 
-formatCommandBindings(keymap.getCommandBindings({ visibility: "registered", commands: ["save-file"] }).get("save-file"))
+formatCommandBindings(
+	keymap.getCommandBindings({ visibility: "registered", commands: ["save-file"] }).get("save-file")
+)
 ```
 
 `createBindingLookup()` is an opinionated config-to-keymap transformation for flat command config. Keys are command names and become `binding.cmd`. Values can be `false`, `"none"`, a key, a full binding object, or arrays of keys/binding objects. `false`, `"none"`, and empty arrays emit no bindings.
@@ -303,24 +305,24 @@ Use `commandMap` when user-facing config names should differ from internal comma
 import { createBindingLookup } from "@opentui/keymap/extras"
 
 const bindings = createBindingLookup(
-  {
-    show_palette: "ctrl+p",
-    exit_app: ["ctrl+c", "<leader>q"],
-    debug_app: "none",
-    paste_prompt: { key: "ctrl+v", preventDefault: false },
-    prompt_history_previous: "up",
-    prompt_history_next: "down",
-  },
-  {
-    bindingDefaults({ binding }) {
-      if (binding.group !== undefined) return
-      return { group: "App" }
-    },
-    commandMap: {
-      show_palette: "app.palette.show",
-      exit_app: "app.exit",
-    },
-  },
+	{
+		show_palette: "ctrl+p",
+		exit_app: ["ctrl+c", "<leader>q"],
+		debug_app: "none",
+		paste_prompt: { key: "ctrl+v", preventDefault: false },
+		prompt_history_previous: "up",
+		prompt_history_next: "down"
+	},
+	{
+		bindingDefaults({ binding }) {
+			if (binding.group !== undefined) return
+			return { group: "App" }
+		},
+		commandMap: {
+			show_palette: "app.palette.show",
+			exit_app: "app.exit"
+		}
+	}
 )
 
 keymap.registerLayer({ bindings: bindings.gather("app", ["app.palette.show", "app.exit"]) })
@@ -404,8 +406,8 @@ Use `getCommandBindings()` when a UI already knows the commands it wants to labe
 
 ```ts
 const bindingsByCommand = keymap.getCommandBindings({
-  visibility: "registered",
-  commands: ["file.save", "app.quit"],
+	visibility: "registered",
+	commands: ["file.save", "app.quit"]
 })
 
 const saveBindings = bindingsByCommand.get("file.save") ?? []
@@ -431,14 +433,14 @@ Layer custom fields remain available as raw `GraphLayer.fields`; compiled layer 
 import { getGraphSnapshot } from "@opentui/keymap/extras/graph"
 
 keymap.registerLayerFields({
-  name(value, ctx) {
-    ctx.attr("name", String(value).trim())
-  },
+	name(value, ctx) {
+		ctx.attr("name", String(value).trim())
+	}
 })
 
 keymap.registerLayer({
-  name: "Global",
-  bindings: [{ key: "?", cmd: "toggle-help" }],
+	name: "Global",
+	bindings: [{ key: "?", cmd: "toggle-help" }]
 })
 
 const snapshot = getGraphSnapshot(keymap)
@@ -524,11 +526,11 @@ Same-layer exact/prefix ambiguity is only allowed when at least one disambiguati
 
 ```ts
 keymap.appendDisambiguationResolver((ctx) => {
-  if (ctx.sequence.length === 1) {
-    return ctx.continueSequence()
-  }
+	if (ctx.sequence.length === 1) {
+		return ctx.continueSequence()
+	}
 
-  return ctx.runExact()
+	return ctx.runExact()
 })
 ```
 

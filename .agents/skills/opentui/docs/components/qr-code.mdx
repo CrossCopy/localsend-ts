@@ -25,10 +25,10 @@ import { QRCodeRenderable } from "@opentui/qrcode"
 const renderer = await createCliRenderer()
 
 const qr = new QRCodeRenderable(renderer, {
-  id: "docs-link",
-  content: "https://opentui.com/docs/getting-started",
-  quietZone: 4,
-  scale: 2,
+	id: "docs-link",
+	content: "https://opentui.com/docs/getting-started",
+	quietZone: 4,
+	scale: 2
 })
 
 renderer.root.add(qr)
@@ -43,13 +43,13 @@ import { registerQRCode } from "@opentui/qrcode/react"
 registerQRCode()
 
 createRoot(renderer).render(
-  <qr-code
-    content="https://opentui.com/docs/getting-started"
-    quietZone={4}
-    scale={2}
-    foregroundColor="#111827"
-    backgroundColor="#ffffff"
-  />,
+	<qr-code
+		content="https://opentui.com/docs/getting-started"
+		quietZone={4}
+		scale={2}
+		foregroundColor="#111827"
+		backgroundColor="#ffffff"
+	/>
 )
 ```
 
@@ -62,13 +62,13 @@ import { registerQRCode } from "@opentui/qrcode/solid"
 registerQRCode()
 
 render(() => (
-  <qr_code
-    content="https://opentui.com/docs/getting-started"
-    quietZone={4}
-    scale={2}
-    foregroundColor="#111827"
-    backgroundColor="#ffffff"
-  />
+	<qr_code
+		content="https://opentui.com/docs/getting-started"
+		quietZone={4}
+		scale={2}
+		foregroundColor="#111827"
+		backgroundColor="#ffffff"
+	/>
 ))
 ```
 
@@ -78,10 +78,10 @@ render(() => (
 
 ```typescript
 const qr = new QRCodeRenderable(renderer, {
-  content: "opentui.com",
-  quietZone: 4,
-  scale: 2,
-  fit: "contain",
+	content: "opentui.com",
+	quietZone: 4,
+	scale: 2,
+	fit: "contain"
 })
 ```
 
@@ -95,9 +95,9 @@ When a container is too small to render even a scale-1 QR code, show fallback te
 
 ```typescript
 const qr = new QRCodeRenderable(renderer, {
-  content: "https://opentui.com/docs/getting-started",
-  fallbackContent: "Resize for QR",
-  fallbackColor: "#94a3b8",
+	content: "https://opentui.com/docs/getting-started",
+	fallbackContent: "Resize for QR",
+	fallbackColor: "#94a3b8"
 })
 ```
 
@@ -109,8 +109,8 @@ Set `errorCorrectionLevel` with the QR package error correction enum:
 import { ErrorCorrectionLevel, QRCodeRenderable } from "@opentui/qrcode"
 
 const qr = new QRCodeRenderable(renderer, {
-  content: "opentui.com",
-  errorCorrectionLevel: ErrorCorrectionLevel.H,
+	content: "opentui.com",
+	errorCorrectionLevel: ErrorCorrectionLevel.H
 })
 ```
 

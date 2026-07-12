@@ -18,12 +18,12 @@ import { BoxRenderable, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const panel = new BoxRenderable(renderer, {
-  id: "panel",
-  width: 30,
-  height: 10,
-  backgroundColor: "#333366",
-  borderStyle: "double",
-  borderColor: "#FFFFFF",
+	id: "panel",
+	width: 30,
+	height: 10,
+	backgroundColor: "#333366",
+	borderStyle: "double",
+	borderColor: "#FFFFFF"
 })
 
 renderer.root.add(panel)
@@ -37,15 +37,15 @@ import { Box, Text, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 renderer.root.add(
-  Box(
-    {
-      width: 30,
-      height: 10,
-      backgroundColor: "#333366",
-      borderStyle: "rounded",
-    },
-    Text({ content: "Inside the box!" }),
-  ),
+	Box(
+		{
+			width: 30,
+			height: 10,
+			backgroundColor: "#333366",
+			borderStyle: "rounded"
+		},
+		Text({ content: "Inside the box!" })
+	)
 )
 ```
 
@@ -54,26 +54,26 @@ renderer.root.add(
 ```typescript
 // No border
 {
-  border: false
+	border: false
 }
 
 // Simple border (default style)
 {
-  border: true
+	border: true
 }
 
 // Specific border styles
 {
-  borderStyle: "single"
+	borderStyle: "single"
 } // Single line: ┌─┐│└─┘
 {
-  borderStyle: "double"
+	borderStyle: "double"
 } // Double line: ╔═╗║╚═╝
 {
-  borderStyle: "rounded"
+	borderStyle: "rounded"
 } // Rounded corners: ╭─╮│╰─╯
 {
-  borderStyle: "heavy"
+	borderStyle: "heavy"
 } // Heavy lines: ┏━┓┃┗━┛
 ```
 
@@ -83,15 +83,15 @@ Add a title and bottom title to the box border:
 
 ```typescript
 const panel = new BoxRenderable(renderer, {
-  id: "settings",
-  width: 40,
-  height: 15,
-  borderStyle: "rounded",
-  title: "Settings",
-  titleColor: "yellow",
-  titleAlignment: "center",
-  bottomTitle: "Footer",
-  bottomTitleAlignment: "center",
+	id: "settings",
+	width: 40,
+	height: 15,
+	borderStyle: "rounded",
+	title: "Settings",
+	titleColor: "yellow",
+	titleAlignment: "center",
+	bottomTitle: "Footer",
+	bottomTitleAlignment: "center"
 })
 ```
 
@@ -99,23 +99,23 @@ const panel = new BoxRenderable(renderer, {
 
 ```typescript
 {
-  titleAlignment: "left"
+	titleAlignment: "left"
 } // ┌─ Title ────────┐
 {
-  titleAlignment: "center"
+	titleAlignment: "center"
 } // ┌──── Title ─────┐
 {
-  titleAlignment: "right"
+	titleAlignment: "right"
 } // ┌────────── Title ┐
 
 {
-  bottomTitleAlignment: "left"
+	bottomTitleAlignment: "left"
 } // └─ Title ────────┘
 {
-  bottomTitleAlignment: "center"
+	bottomTitleAlignment: "center"
 } // └──── Title ─────┘
 {
-  bottomTitleAlignment: "right"
+	bottomTitleAlignment: "right"
 } // └────────── Title ┘
 ```
 
@@ -125,18 +125,18 @@ Box works as a flex container for child elements:
 
 ```typescript
 const container = Box(
-  {
-    flexDirection: "column",
-    justifyContent: "space-between",
-    alignItems: "stretch",
-    width: 50,
-    height: 20,
-    padding: 1,
-    gap: 1,
-  },
-  Text({ content: "Header" }),
-  Box({ flexGrow: 1, backgroundColor: "#222" }, Text({ content: "Content area" })),
-  Text({ content: "Footer" }),
+	{
+		flexDirection: "column",
+		justifyContent: "space-between",
+		alignItems: "stretch",
+		width: 50,
+		height: 20,
+		padding: 1,
+		gap: 1
+	},
+	Text({ content: "Header" }),
+	Box({ flexGrow: 1, backgroundColor: "#222" }, Text({ content: "Content area" })),
+	Text({ content: "Footer" })
 )
 ```
 
@@ -146,20 +146,20 @@ Handle mouse interactions on the box:
 
 ```typescript
 const button = new BoxRenderable(renderer, {
-  id: "button",
-  width: 12,
-  height: 3,
-  border: true,
-  backgroundColor: "#444",
-  onMouseDown: () => {
-    console.log("Button clicked!")
-  },
-  onMouseOver: () => {
-    button.backgroundColor = "#666"
-  },
-  onMouseOut: () => {
-    button.backgroundColor = "#444"
-  },
+	id: "button",
+	width: 12,
+	height: 3,
+	border: true,
+	backgroundColor: "#444",
+	onMouseDown: () => {
+		console.log("Button clicked!")
+	},
+	onMouseOver: () => {
+		button.backgroundColor = "#666"
+	},
+	onMouseOut: () => {
+		button.backgroundColor = "#444"
+	}
 })
 ```
 
@@ -190,30 +190,30 @@ const button = new BoxRenderable(renderer, {
 import { Box, Text, t, bold, fg } from "@opentui/core"
 
 function Card(props: { title: string; description: string }) {
-  return Box(
-    {
-      width: 40,
-      borderStyle: "rounded",
-      borderColor: "#666",
-      padding: 1,
-      margin: 1,
-    },
-    Text({
-      content: t`${bold(fg("#00FFFF")(props.title))}`,
-    }),
-    Text({
-      content: props.description,
-      fg: "#AAAAAA",
-    }),
-  )
+	return Box(
+		{
+			width: 40,
+			borderStyle: "rounded",
+			borderColor: "#666",
+			padding: 1,
+			margin: 1
+		},
+		Text({
+			content: t`${bold(fg("#00FFFF")(props.title))}`
+		}),
+		Text({
+			content: props.description,
+			fg: "#AAAAAA"
+		})
+	)
 }
 
 renderer.root.add(
-  Box(
-    { flexDirection: "row", flexWrap: "wrap" },
-    Card({ title: "Feature 1", description: "Description of feature 1" }),
-    Card({ title: "Feature 2", description: "Description of feature 2" }),
-    Card({ title: "Feature 3", description: "Description of feature 3" }),
-  ),
+	Box(
+		{ flexDirection: "row", flexWrap: "wrap" },
+		Card({ title: "Feature 1", description: "Description of feature 1" }),
+		Card({ title: "Feature 2", description: "Description of feature 2" }),
+		Card({ title: "Feature 3", description: "Description of feature 3" })
+	)
 )
 ```

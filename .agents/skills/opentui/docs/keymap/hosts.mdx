@@ -102,15 +102,15 @@ const renderer = await createCliRenderer()
 const keymap = createDefaultOpenTuiKeymap(renderer)
 
 keymap.registerLayer({
-  commands: [
-    {
-      name: "quit",
-      run() {
-        renderer.destroy()
-      },
-    },
-  ],
-  bindings: [{ key: "q", cmd: "quit" }],
+	commands: [
+		{
+			name: "quit",
+			run() {
+				renderer.destroy()
+			}
+		}
+	],
+	bindings: [{ key: "q", cmd: "quit" }]
 })
 ```
 
@@ -187,15 +187,15 @@ const root = document.getElementById("app")!
 const keymap = createDefaultHtmlKeymap(root)
 
 keymap.registerLayer({
-  commands: [
-    {
-      name: "toggle-help",
-      run() {
-        document.body.classList.toggle("help-open")
-      },
-    },
-  ],
-  bindings: [{ key: "?", cmd: "toggle-help" }],
+	commands: [
+		{
+			name: "toggle-help",
+			run() {
+				document.body.classList.toggle("help-open")
+			}
+		}
+	],
+	bindings: [{ key: "?", cmd: "toggle-help" }]
 })
 ```
 

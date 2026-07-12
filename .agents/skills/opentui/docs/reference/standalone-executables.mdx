@@ -14,14 +14,14 @@ Linux uses the glibc native package by default. For musl builds, define `process
 
 ```ts
 await Bun.build({
-  entrypoints: ["./app.ts"],
-  compile: {
-    target: "bun-linux-x64-musl",
-    outfile: "./app-linux-x64-musl",
-  },
-  define: {
-    "process.env.OPENTUI_LIBC": JSON.stringify("musl"),
-  },
+	entrypoints: ["./app.ts"],
+	compile: {
+		target: "bun-linux-x64-musl",
+		outfile: "./app-linux-x64-musl"
+	},
+	define: {
+		"process.env.OPENTUI_LIBC": JSON.stringify("musl")
+	}
 })
 ```
 

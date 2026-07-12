@@ -28,19 +28,19 @@ A binding can target a named command, an inline handler, or a specific key event
 
 ```ts
 ;[
-  { key: "x", cmd: "save-file" },
-  { key: "ctrl+x", event: "release", cmd: "cut" },
-  { key: "dd", cmd: "delete-line" },
-  { key: "<leader>s", cmd: ":write session.log" },
-  { key: "?", cmd: "toggle-help" },
-  {
-    key: "ctrl+k",
-    cmd({ keymap }) {
-      keymap.setData("palette.open", true)
-    },
-  },
-  { key: "escape", event: "release", cmd: "close-help" },
-  { key: { name: "return", ctrl: true }, cmd: "submit" },
+	{ key: "x", cmd: "save-file" },
+	{ key: "ctrl+x", event: "release", cmd: "cut" },
+	{ key: "dd", cmd: "delete-line" },
+	{ key: "<leader>s", cmd: ":write session.log" },
+	{ key: "?", cmd: "toggle-help" },
+	{
+		key: "ctrl+k",
+		cmd({ keymap }) {
+			keymap.setData("palette.open", true)
+		}
+	},
+	{ key: "escape", event: "release", cmd: "close-help" },
+	{ key: { name: "return", ctrl: true }, cmd: "submit" }
 ]
 ```
 
@@ -118,7 +118,7 @@ Tokens are named single-stroke aliases used inside binding strings. Registration
 keymap.registerToken({ name: "leader", key: { name: "space" } })
 
 keymap.registerLayer({
-  bindings: [{ key: "<leader>s", cmd: "save-file" }],
+	bindings: [{ key: "<leader>s", cmd: "save-file" }]
 })
 ```
 
@@ -134,32 +134,32 @@ Sequence patterns are runtime captures used inside binding strings. Registration
 import type { Command, KeymapEvent } from "@opentui/keymap"
 
 interface CountPayload {
-  count?: number
+	count?: number
 }
 
 keymap.registerSequencePattern({
-  name: "count",
-  match(event) {
-    return /^\d$/.test(event.name) ? { value: event.name, display: event.name } : undefined
-  },
-  finalize(values) {
-    return Number(values.join(""))
-  },
+	name: "count",
+	match(event) {
+		return /^\d$/.test(event.name) ? { value: event.name, display: event.name } : undefined
+	},
+	finalize(values) {
+		return Number(values.join(""))
+	}
 })
 
 const moveDownCommand: Command<object, KeymapEvent, CountPayload | undefined> = {
-  name: "move-down",
-  run({ payload }) {
-    moveDown(payload?.count ?? 1)
-  },
+	name: "move-down",
+	run({ payload }) {
+		moveDown(payload?.count ?? 1)
+	}
 }
 
 keymap.registerLayer({
-  commands: [moveDownCommand],
-  bindings: [
-    { key: "j", cmd: "move-down" },
-    { key: "{count}j", cmd: "move-down" },
-  ],
+	commands: [moveDownCommand],
+	bindings: [
+		{ key: "j", cmd: "move-down" },
+		{ key: "{count}j", cmd: "move-down" }
+	]
 })
 ```
 
@@ -175,17 +175,17 @@ Bindings can carry custom fields, but those fields only mean something after you
 
 ```ts
 keymap.registerBindingFields({
-  mode(value, ctx) {
-    ctx.require("vim.mode", value)
-    ctx.attr("mode", value)
-  },
+	mode(value, ctx) {
+		ctx.require("vim.mode", value)
+		ctx.attr("mode", value)
+	}
 })
 
 keymap.registerToken({ name: "leader", key: { name: "space" } })
 
 keymap.registerLayer({
-  commands: [{ name: "write-file", run() {} }],
-  bindings: [{ key: "<leader>w", mode: "normal", cmd: "write-file" }],
+	commands: [{ name: "write-file", run() {} }],
+	bindings: [{ key: "<leader>w", mode: "normal", cmd: "write-file" }]
 })
 ```
 
@@ -197,14 +197,14 @@ Layer fields follow the same compiler model. Register them with `registerLayerFi
 
 ```ts
 keymap.registerLayerFields({
-  name(value, ctx) {
-    ctx.attr("name", String(value).trim())
-  },
+	name(value, ctx) {
+		ctx.attr("name", String(value).trim())
+	}
 })
 
 keymap.registerLayer({
-  name: "Global",
-  bindings: [{ key: "?", cmd: "toggle-help" }],
+	name: "Global",
+	bindings: [{ key: "?", cmd: "toggle-help" }]
 })
 ```
 
@@ -223,10 +223,10 @@ Fields can affect behavior. Metadata does not. A field compiler can make a recor
 
 ```ts
 keymap.registerBindingFields({
-  mode(value, ctx) {
-    ctx.require("vim.mode", value)
-    ctx.attr("mode", value)
-  },
+	mode(value, ctx) {
+		ctx.require("vim.mode", value)
+		ctx.attr("mode", value)
+	}
 })
 ```
 
@@ -236,9 +236,9 @@ Metadata can use a different name from the field when an addon wants to validate
 
 ```ts
 keymap.registerCommandFields({
-  title(value, ctx) {
-    ctx.attr("label", String(value).trim())
-  },
+	title(value, ctx) {
+		ctx.attr("label", String(value).trim())
+	}
 })
 ```
 
@@ -266,21 +266,21 @@ Runtime data is useful for application-specific modes that only exist to control
 
 ```ts
 keymap.registerLayerFields({
-  appMode(value, ctx) {
-    ctx.require("app.mode", value)
-  },
+	appMode(value, ctx) {
+		ctx.require("app.mode", value)
+	}
 })
 
 keymap.setData("app.mode", "base")
 
 keymap.registerLayer({
-  appMode: "base",
-  bindings: [{ key: "ctrl+p", cmd: "palette.open" }],
+	appMode: "base",
+	bindings: [{ key: "ctrl+p", cmd: "palette.open" }]
 })
 
 keymap.registerLayer({
-  appMode: "palette",
-  bindings: [{ key: "escape", cmd: "palette.close" }],
+	appMode: "palette",
+	bindings: [{ key: "escape", cmd: "palette.close" }]
 })
 ```
 

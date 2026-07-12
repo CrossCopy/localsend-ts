@@ -18,25 +18,25 @@ import { CodeRenderable, createCliRenderer, SyntaxStyle, RGBA } from "@opentui/c
 const renderer = await createCliRenderer()
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
-  string: { fg: RGBA.fromHex("#A5D6FF") },
-  comment: { fg: RGBA.fromHex("#8B949E"), italic: true },
-  number: { fg: RGBA.fromHex("#79C0FF") },
-  function: { fg: RGBA.fromHex("#D2A8FF") },
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
+	string: { fg: RGBA.fromHex("#A5D6FF") },
+	comment: { fg: RGBA.fromHex("#8B949E"), italic: true },
+	number: { fg: RGBA.fromHex("#79C0FF") },
+	function: { fg: RGBA.fromHex("#D2A8FF") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 const code = new CodeRenderable(renderer, {
-  id: "code",
-  content: `function hello() {
+	id: "code",
+	content: `function hello() {
   // This is a comment
   const message = "Hello, world!"
   return message
 }`,
-  filetype: "javascript",
-  syntaxStyle,
-  width: 50,
-  height: 10,
+	filetype: "javascript",
+	syntaxStyle,
+	width: 50,
+	height: 10
 })
 
 renderer.root.add(code)
@@ -50,20 +50,20 @@ import { Code, Box, createCliRenderer, SyntaxStyle, RGBA } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
-  string: { fg: RGBA.fromHex("#A5D6FF") },
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
+	string: { fg: RGBA.fromHex("#A5D6FF") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 renderer.root.add(
-  Box(
-    { border: true, width: 50, height: 10 },
-    Code({
-      content: 'const x = "hello"',
-      filetype: "javascript",
-      syntaxStyle,
-    }),
-  ),
+	Box(
+		{ border: true, width: 50, height: 10 },
+		Code({
+			content: 'const x = "hello"',
+			filetype: "javascript",
+			syntaxStyle
+		})
+	)
 )
 ```
 
@@ -75,37 +75,37 @@ Use `SyntaxStyle.fromStyles()` to define colors and attributes for syntax tokens
 import { SyntaxStyle, RGBA, parseColor } from "@opentui/core"
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  // Basic tokens
-  keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
-  "keyword.import": { fg: RGBA.fromHex("#FF7B72"), bold: true },
-  "keyword.operator": { fg: RGBA.fromHex("#FF7B72") },
+	// Basic tokens
+	keyword: { fg: RGBA.fromHex("#FF7B72"), bold: true },
+	"keyword.import": { fg: RGBA.fromHex("#FF7B72"), bold: true },
+	"keyword.operator": { fg: RGBA.fromHex("#FF7B72") },
 
-  string: { fg: RGBA.fromHex("#A5D6FF") },
-  comment: { fg: RGBA.fromHex("#8B949E"), italic: true },
-  number: { fg: RGBA.fromHex("#79C0FF") },
-  boolean: { fg: RGBA.fromHex("#79C0FF") },
-  constant: { fg: RGBA.fromHex("#79C0FF") },
+	string: { fg: RGBA.fromHex("#A5D6FF") },
+	comment: { fg: RGBA.fromHex("#8B949E"), italic: true },
+	number: { fg: RGBA.fromHex("#79C0FF") },
+	boolean: { fg: RGBA.fromHex("#79C0FF") },
+	constant: { fg: RGBA.fromHex("#79C0FF") },
 
-  // Functions and types
-  function: { fg: RGBA.fromHex("#D2A8FF") },
-  "function.call": { fg: RGBA.fromHex("#D2A8FF") },
-  "function.method.call": { fg: RGBA.fromHex("#D2A8FF") },
-  type: { fg: RGBA.fromHex("#FFA657") },
-  constructor: { fg: RGBA.fromHex("#FFA657") },
+	// Functions and types
+	function: { fg: RGBA.fromHex("#D2A8FF") },
+	"function.call": { fg: RGBA.fromHex("#D2A8FF") },
+	"function.method.call": { fg: RGBA.fromHex("#D2A8FF") },
+	type: { fg: RGBA.fromHex("#FFA657") },
+	constructor: { fg: RGBA.fromHex("#FFA657") },
 
-  // Variables and properties
-  variable: { fg: RGBA.fromHex("#E6EDF3") },
-  "variable.member": { fg: RGBA.fromHex("#79C0FF") },
-  property: { fg: RGBA.fromHex("#79C0FF") },
+	// Variables and properties
+	variable: { fg: RGBA.fromHex("#E6EDF3") },
+	"variable.member": { fg: RGBA.fromHex("#79C0FF") },
+	property: { fg: RGBA.fromHex("#79C0FF") },
 
-  // Operators and punctuation
-  operator: { fg: RGBA.fromHex("#FF7B72") },
-  punctuation: { fg: RGBA.fromHex("#F0F6FC") },
-  "punctuation.bracket": { fg: RGBA.fromHex("#F0F6FC") },
-  "punctuation.delimiter": { fg: RGBA.fromHex("#C9D1D9") },
+	// Operators and punctuation
+	operator: { fg: RGBA.fromHex("#FF7B72") },
+	punctuation: { fg: RGBA.fromHex("#F0F6FC") },
+	"punctuation.bracket": { fg: RGBA.fromHex("#F0F6FC") },
+	"punctuation.delimiter": { fg: RGBA.fromHex("#C9D1D9") },
 
-  // Default fallback
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	// Default fallback
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 ```
 
@@ -137,11 +137,11 @@ Enable streaming mode when content arrives incrementally, like LLM output:
 
 ```typescript
 const code = new CodeRenderable(renderer, {
-  id: "streaming-code",
-  content: "",
-  filetype: "typescript",
-  syntaxStyle,
-  streaming: true, // Enable streaming mode
+	id: "streaming-code",
+	content: "",
+	filetype: "typescript",
+	syntaxStyle,
+	streaming: true // Enable streaming mode
 })
 
 // Later, append content
@@ -157,13 +157,13 @@ Enable text selection for copy operations:
 
 ```typescript
 const code = new CodeRenderable(renderer, {
-  id: "code",
-  content: sourceCode,
-  filetype: "typescript",
-  syntaxStyle,
-  selectable: true,
-  selectionBg: "#264F78",
-  selectionFg: "#FFFFFF",
+	id: "code",
+	content: sourceCode,
+	filetype: "typescript",
+	syntaxStyle,
+	selectable: true,
+	selectionBg: "#264F78",
+	selectionFg: "#FFFFFF"
 })
 ```
 
@@ -173,11 +173,11 @@ The `conceal` option controls whether certain syntax elements (like markdown for
 
 ```typescript
 const code = new CodeRenderable(renderer, {
-  id: "markdown",
-  content: "# Heading\n**bold** text",
-  filetype: "markdown",
-  syntaxStyle,
-  conceal: true, // Hide formatting characters
+	id: "markdown",
+	content: "# Heading\n**bold** text",
+	filetype: "markdown",
+	syntaxStyle,
+	conceal: true // Hide formatting characters
 })
 ```
 
@@ -186,36 +186,42 @@ const code = new CodeRenderable(renderer, {
 Use `LineNumberRenderable` to add line numbers:
 
 ```typescript
-import { CodeRenderable, LineNumberRenderable, RGBA, ScrollBoxRenderable, SyntaxStyle } from "@opentui/core"
+import {
+	CodeRenderable,
+	LineNumberRenderable,
+	RGBA,
+	ScrollBoxRenderable,
+	SyntaxStyle
+} from "@opentui/core"
 
 const sourceCode = "const answer = 42\nconsole.log(answer)\n"
 const syntaxStyle = SyntaxStyle.fromStyles({
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 const code = new CodeRenderable(renderer, {
-  id: "code",
-  content: sourceCode,
-  filetype: "typescript",
-  syntaxStyle,
-  width: "100%",
+	id: "code",
+	content: sourceCode,
+	filetype: "typescript",
+	syntaxStyle,
+	width: "100%"
 })
 
 const lineNumbers = new LineNumberRenderable(renderer, {
-  id: "code-with-lines",
-  target: code,
-  minWidth: 3,
-  paddingRight: 1,
-  fg: "#6b7280",
-  bg: "#161b22",
-  width: "100%",
+	id: "code-with-lines",
+	target: code,
+	minWidth: 3,
+	paddingRight: 1,
+	fg: "#6b7280",
+	bg: "#161b22",
+	width: "100%"
 })
 
 // Wrap in ScrollBox for scrolling
 const scrollbox = new ScrollBoxRenderable(renderer, {
-  id: "scrollbox",
-  width: 60,
-  height: 20,
+	id: "scrollbox",
+	width: 60,
+	height: 20
 })
 scrollbox.add(lineNumbers)
 renderer.root.add(scrollbox)
@@ -263,18 +269,18 @@ For markdown highlighting, use markup-prefixed style names:
 
 ```typescript
 const markdownStyle = SyntaxStyle.fromStyles({
-  "markup.heading": { fg: RGBA.fromHex("#58A6FF"), bold: true },
-  "markup.heading.1": { fg: RGBA.fromHex("#00FF88"), bold: true, underline: true },
-  "markup.heading.2": { fg: RGBA.fromHex("#00D7FF"), bold: true },
-  "markup.bold": { fg: RGBA.fromHex("#F0F6FC"), bold: true },
-  "markup.strong": { fg: RGBA.fromHex("#F0F6FC"), bold: true },
-  "markup.italic": { fg: RGBA.fromHex("#F0F6FC"), italic: true },
-  "markup.list": { fg: RGBA.fromHex("#FF7B72") },
-  "markup.quote": { fg: RGBA.fromHex("#8B949E"), italic: true },
-  "markup.raw": { fg: RGBA.fromHex("#A5D6FF") },
-  "markup.raw.block": { fg: RGBA.fromHex("#A5D6FF") },
-  "markup.link": { fg: RGBA.fromHex("#58A6FF"), underline: true },
-  "markup.link.url": { fg: RGBA.fromHex("#58A6FF"), underline: true },
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	"markup.heading": { fg: RGBA.fromHex("#58A6FF"), bold: true },
+	"markup.heading.1": { fg: RGBA.fromHex("#00FF88"), bold: true, underline: true },
+	"markup.heading.2": { fg: RGBA.fromHex("#00D7FF"), bold: true },
+	"markup.bold": { fg: RGBA.fromHex("#F0F6FC"), bold: true },
+	"markup.strong": { fg: RGBA.fromHex("#F0F6FC"), bold: true },
+	"markup.italic": { fg: RGBA.fromHex("#F0F6FC"), italic: true },
+	"markup.list": { fg: RGBA.fromHex("#FF7B72") },
+	"markup.quote": { fg: RGBA.fromHex("#8B949E"), italic: true },
+	"markup.raw": { fg: RGBA.fromHex("#A5D6FF") },
+	"markup.raw.block": { fg: RGBA.fromHex("#A5D6FF") },
+	"markup.link": { fg: RGBA.fromHex("#58A6FF"), underline: true },
+	"markup.link.url": { fg: RGBA.fromHex("#58A6FF"), underline: true },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 ```

@@ -21,26 +21,26 @@ import { BoxRenderable, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const container = new BoxRenderable(renderer, {
-  id: "container",
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  width: "100%",
-  height: 10,
+	id: "container",
+	flexDirection: "row",
+	justifyContent: "space-between",
+	alignItems: "center",
+	width: "100%",
+	height: 10
 })
 
 const leftPanel = new BoxRenderable(renderer, {
-  id: "left",
-  flexGrow: 1,
-  height: 10,
-  backgroundColor: "#444",
+	id: "left",
+	flexGrow: 1,
+	height: 10,
+	backgroundColor: "#444"
 })
 
 const rightPanel = new BoxRenderable(renderer, {
-  id: "right",
-  width: 20,
-  height: 10,
-  backgroundColor: "#666",
+	id: "right",
+	width: 20,
+	height: 10,
+	backgroundColor: "#666"
 })
 
 container.add(leftPanel)
@@ -55,20 +55,20 @@ Control the direction of child elements:
 ```typescript
 // Vertical layout (default)
 {
-  flexDirection: "column"
+	flexDirection: "column"
 }
 
 // Horizontal layout
 {
-  flexDirection: "row"
+	flexDirection: "row"
 }
 
 // Reversed directions
 {
-  flexDirection: "row-reverse"
+	flexDirection: "row-reverse"
 }
 {
-  flexDirection: "column-reverse"
+	flexDirection: "column-reverse"
 }
 ```
 
@@ -78,22 +78,22 @@ Align children along the main axis:
 
 ```typescript
 {
-  justifyContent: "flex-start"
+	justifyContent: "flex-start"
 } // Pack at start
 {
-  justifyContent: "flex-end"
+	justifyContent: "flex-end"
 } // Pack at end
 {
-  justifyContent: "center"
+	justifyContent: "center"
 } // Center children
 {
-  justifyContent: "space-between"
+	justifyContent: "space-between"
 } // Even spacing, no edge gaps
 {
-  justifyContent: "space-around"
+	justifyContent: "space-around"
 } // Even spacing with edge gaps
 {
-  justifyContent: "space-evenly"
+	justifyContent: "space-evenly"
 } // Truly even spacing
 ```
 
@@ -103,19 +103,19 @@ Align children along the cross axis:
 
 ```typescript
 {
-  alignItems: "flex-start"
+	alignItems: "flex-start"
 } // Align to start
 {
-  alignItems: "flex-end"
+	alignItems: "flex-end"
 } // Align to end
 {
-  alignItems: "center"
+	alignItems: "center"
 } // Center on cross axis
 {
-  alignItems: "stretch"
+	alignItems: "stretch"
 } // Stretch to fill (default)
 {
-  alignItems: "baseline"
+	alignItems: "baseline"
 } // Align baselines
 ```
 
@@ -211,29 +211,29 @@ The same layout properties work with the declarative API:
 import { Box, Text } from "@opentui/core"
 
 renderer.root.add(
-  Box(
-    {
-      flexDirection: "row",
-      width: "100%",
-      height: 10,
-    },
-    Box(
-      {
-        flexGrow: 1,
-        backgroundColor: "#333",
-        padding: 1,
-      },
-      Text({ content: "Left Panel" }),
-    ),
-    Box(
-      {
-        width: 20,
-        backgroundColor: "#555",
-        padding: 1,
-      },
-      Text({ content: "Right Panel" }),
-    ),
-  ),
+	Box(
+		{
+			flexDirection: "row",
+			width: "100%",
+			height: 10
+		},
+		Box(
+			{
+				flexGrow: 1,
+				backgroundColor: "#333",
+				padding: 1
+			},
+			Text({ content: "Left Panel" })
+		),
+		Box(
+			{
+				width: 20,
+				backgroundColor: "#555",
+				padding: 1
+			},
+			Text({ content: "Right Panel" })
+		)
+	)
 )
 ```
 
@@ -245,11 +245,11 @@ Listen for terminal resize events to create responsive layouts:
 const renderer = await createCliRenderer()
 
 renderer.on("resize", (width, height) => {
-  // Update layout based on new dimensions
-  if (width < 80) {
-    container.flexDirection = "column"
-  } else {
-    container.flexDirection = "row"
-  }
+	// Update layout based on new dimensions
+	if (width < 80) {
+		container.flexDirection = "column"
+	} else {
+		container.flexDirection = "row"
+	}
 })
 ```

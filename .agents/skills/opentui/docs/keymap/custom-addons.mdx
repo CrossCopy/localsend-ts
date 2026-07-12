@@ -19,25 +19,25 @@ If you want the shipped addon inventory instead, see [Built-in Addons](/docs/key
 import type { Keymap, KeymapEvent } from "@opentui/keymap"
 
 export function registerModeField<TTarget extends object, TEvent extends KeymapEvent>(
-  keymap: Keymap<TTarget, TEvent>,
+	keymap: Keymap<TTarget, TEvent>
 ): () => void {
-  const offField = keymap.registerBindingFields({
-    mode(value, ctx) {
-      ctx.require("app.mode", value)
-      ctx.attr("mode", value)
-    },
-  })
+	const offField = keymap.registerBindingFields({
+		mode(value, ctx) {
+			ctx.require("app.mode", value)
+			ctx.attr("mode", value)
+		}
+	})
 
-  const offIntercept = keymap.intercept("key", ({ event, setData }) => {
-    if (event.name === "escape") {
-      setData("app.mode", "normal")
-    }
-  })
+	const offIntercept = keymap.intercept("key", ({ event, setData }) => {
+		if (event.name === "escape") {
+			setData("app.mode", "normal")
+		}
+	})
 
-  return () => {
-    offIntercept()
-    offField()
-  }
+	return () => {
+		offIntercept()
+		offField()
+	}
 }
 ```
 
@@ -107,14 +107,14 @@ Fields can be behavior, metadata or both. Compiled metadata is only metadata.
 
 ```ts
 keymap.registerBindingFields({
-  mode(value, ctx) {
-    ctx.require("app.mode", value)
-    ctx.attr("mode", value)
-  },
+	mode(value, ctx) {
+		ctx.require("app.mode", value)
+		ctx.attr("mode", value)
+	}
 })
 
 keymap.registerLayer({
-  bindings: [{ key: "x", mode: "normal", cmd() {} }],
+	bindings: [{ key: "x", mode: "normal", cmd() {} }]
 })
 ```
 
@@ -134,9 +134,9 @@ The attr name does not have to match the field name. That is useful when an addo
 
 ```ts
 keymap.registerCommandFields({
-  title(value, ctx) {
-    ctx.attr("label", String(value).trim())
-  },
+	title(value, ctx) {
+		ctx.attr("label", String(value).trim())
+	}
 })
 ```
 
@@ -144,9 +144,9 @@ Use same-name attrs when the field already is the public metadata shape:
 
 ```ts
 keymap.registerCommandFields({
-  desc(value, ctx) {
-    ctx.attr("desc", String(value).trim())
-  },
+	desc(value, ctx) {
+		ctx.attr("desc", String(value).trim())
+	}
 })
 ```
 
@@ -154,9 +154,9 @@ Use no attr when the field is behavior-only:
 
 ```ts
 keymap.registerCommandFields({
-  enabled(value, ctx) {
-    ctx.activeWhen(() => value === true)
-  },
+	enabled(value, ctx) {
+		ctx.activeWhen(() => value === true)
+	}
 })
 ```
 
@@ -176,9 +176,9 @@ Use `require(...)` for keymap-owned state such as modes:
 
 ```ts
 keymap.registerBindingFields({
-  mode(value, ctx) {
-    ctx.require("app.mode", value)
-  },
+	mode(value, ctx) {
+		ctx.require("app.mode", value)
+	}
 })
 
 keymap.setData("app.mode", "insert")
@@ -188,9 +188,9 @@ Use `activeWhen(...)` for derived or external state:
 
 ```ts
 keymap.registerBindingFields({
-  hasSelection(_value, ctx) {
-    ctx.activeWhen(() => editor.selection.length > 0)
-  },
+	hasSelection(_value, ctx) {
+		ctx.activeWhen(() => editor.selection.length > 0)
+	}
 })
 ```
 
@@ -198,8 +198,8 @@ keymap.registerBindingFields({
 
 ```ts
 interface ReactiveMatcher {
-  get(): boolean
-  subscribe(onChange: () => void): () => void
+	get(): boolean
+	subscribe(onChange: () => void): () => void
 }
 ```
 
@@ -239,8 +239,8 @@ Return expansion objects to replace one binding string with many, or `undefined`
 
 ```ts
 keymap.appendBindingExpander(({ input }) => {
-  if (input !== "save") return undefined
-  return [{ key: "ctrl+s", displays: ["save"] }]
+	if (input !== "save") return undefined
+	return [{ key: "ctrl+s", displays: ["save"] }]
 })
 ```
 
@@ -317,10 +317,10 @@ Return an explicit command result from `run()` when the command wants a specific
 
 ```ts
 return {
-  name: ":write",
-  run() {
-    return { ok: false, reason: "invalid-args" }
-  },
+	name: ":write",
+	run() {
+		return { ok: false, reason: "invalid-args" }
+	}
 }
 ```
 
@@ -457,8 +457,8 @@ const { keymap, host, diagnostics, cleanup } = createTestKeymap({ defaultKeys: t
 
 registerMyAddon(keymap)
 keymap.registerLayer({
-  commands: [{ name: "save", run() {} }],
-  bindings: [{ key: "x", cmd: "save" }],
+	commands: [{ name: "save", run() {} }],
+	bindings: [{ key: "x", cmd: "save" }]
 })
 
 host.press("x")

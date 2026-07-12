@@ -18,19 +18,19 @@ import { SelectRenderable, SelectRenderableEvents, createCliRenderer } from "@op
 const renderer = await createCliRenderer()
 
 const menu = new SelectRenderable(renderer, {
-  id: "menu",
-  width: 30,
-  height: 8,
-  options: [
-    { name: "New File", description: "Create a new file" },
-    { name: "Open File", description: "Open an existing file" },
-    { name: "Save", description: "Save current file" },
-    { name: "Exit", description: "Exit the application" },
-  ],
+	id: "menu",
+	width: 30,
+	height: 8,
+	options: [
+		{ name: "New File", description: "Create a new file" },
+		{ name: "Open File", description: "Open an existing file" },
+		{ name: "Save", description: "Save current file" },
+		{ name: "Exit", description: "Exit the application" }
+	]
 })
 
 menu.on(SelectRenderableEvents.ITEM_SELECTED, (index, option) => {
-  console.log("Selected:", option.name)
+	console.log("Selected:", option.name)
 })
 
 menu.focus()
@@ -45,13 +45,13 @@ import { Select, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const menu = Select({
-  width: 30,
-  height: 8,
-  options: [
-    { name: "Option 1", description: "First option" },
-    { name: "Option 2", description: "Second option" },
-    { name: "Option 3", description: "Third option" },
-  ],
+	width: 30,
+	height: 8,
+	options: [
+		{ name: "Option 1", description: "First option" },
+		{ name: "Option 2", description: "Second option" },
+		{ name: "Option 3", description: "Third option" }
+	]
 })
 
 menu.focus()
@@ -79,7 +79,7 @@ Fires when the user presses Enter on an option:
 import { SelectRenderableEvents } from "@opentui/core"
 
 menu.on(SelectRenderableEvents.ITEM_SELECTED, (index: number, option: SelectOption) => {
-  console.log(`Selected index ${index}: ${option.name}`)
+	console.log(`Selected index ${index}: ${option.name}`)
 })
 ```
 
@@ -89,8 +89,8 @@ Fires when the highlighted item changes:
 
 ```typescript
 menu.on(SelectRenderableEvents.SELECTION_CHANGED, (index: number, option: SelectOption) => {
-  console.log(`Highlighted: ${option.name}`)
-  // Update a preview pane, for example
+	console.log(`Highlighted: ${option.name}`)
+	// Update a preview pane, for example
 })
 ```
 
@@ -98,9 +98,9 @@ menu.on(SelectRenderableEvents.SELECTION_CHANGED, (index: number, option: Select
 
 ```typescript
 interface SelectOption {
-  name: string // Display text
-  description: string // Displays below the name when showDescription is true
-  value?: any // Optional value
+	name: string // Display text
+	description: string // Displays below the name when showDescription is true
+	value?: any // Optional value
 }
 ```
 
@@ -151,24 +151,24 @@ import { Box, Select, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const fileMenu = Select({
-  width: 25,
-  height: 12,
-  options: [
-    { name: "New", description: "Create new file (Ctrl+N)" },
-    { name: "Open...", description: "Open file (Ctrl+O)" },
-    { name: "Save", description: "Save file (Ctrl+S)" },
-    { name: "Save As...", description: "Save with new name" },
-    { name: "---", description: "" }, // Separator (visual only)
-    { name: "Exit", description: "Quit application (Ctrl+Q)" },
-  ],
+	width: 25,
+	height: 12,
+	options: [
+		{ name: "New", description: "Create new file (Ctrl+N)" },
+		{ name: "Open...", description: "Open file (Ctrl+O)" },
+		{ name: "Save", description: "Save file (Ctrl+S)" },
+		{ name: "Save As...", description: "Save with new name" },
+		{ name: "---", description: "" }, // Separator (visual only)
+		{ name: "Exit", description: "Quit application (Ctrl+Q)" }
+	]
 })
 
 const menuPanel = Box(
-  {
-    borderStyle: "single",
-    borderColor: "#666",
-  },
-  fileMenu,
+	{
+		borderStyle: "single",
+		borderColor: "#666"
+	},
+	fileMenu
 )
 
 fileMenu.focus()
@@ -195,8 +195,8 @@ menu.selectCurrent() // Trigger selection of current item
 
 // Update options dynamically
 menu.options = [
-  { name: "New Option 1", description: "First" },
-  { name: "New Option 2", description: "Second" },
+	{ name: "New Option 1", description: "First" },
+	{ name: "New Option 2", description: "Second" }
 ]
 
 // Toggle display options

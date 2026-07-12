@@ -18,9 +18,9 @@ import { FrameBufferRenderable, RGBA, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const canvas = new FrameBufferRenderable(renderer, {
-  id: "canvas",
-  width: 50,
-  height: 20,
+	id: "canvas",
+	width: 50,
+	height: 20
 })
 
 // Draw on the frame buffer
@@ -38,10 +38,10 @@ import { FrameBuffer, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 renderer.root.add(
-  FrameBuffer({
-    width: 50,
-    height: 20,
-  }),
+	FrameBuffer({
+		width: 50,
+		height: 20
+	})
 )
 ```
 
@@ -53,12 +53,12 @@ Set a single cell's content and colors:
 
 ```typescript
 canvas.frameBuffer.setCell(
-  x, // X position
-  y, // Y position
-  char, // Character to display
-  fg, // Foreground color (RGBA)
-  bg, // Background color (RGBA)
-  attributes, // Text attributes (optional, default: 0)
+	x, // X position
+	y, // Y position
+	char, // Character to display
+	fg, // Foreground color (RGBA)
+	bg, // Background color (RGBA)
+	attributes // Text attributes (optional, default: 0)
 )
 
 // Example
@@ -81,12 +81,12 @@ Draw a string of text at a position:
 
 ```typescript
 canvas.frameBuffer.drawText(
-  text, // String to draw
-  x, // Starting X position
-  y, // Y position
-  fg, // Text color (RGBA)
-  bg, // Background color (RGBA, optional)
-  attributes, // Text attributes (optional, default: 0)
+	text, // String to draw
+	x, // Starting X position
+	y, // Y position
+	fg, // Text color (RGBA)
+	bg, // Background color (RGBA, optional)
+	attributes // Text attributes (optional, default: 0)
 )
 
 // Example
@@ -99,11 +99,11 @@ Fill a rectangular area with a color:
 
 ```typescript
 canvas.frameBuffer.fillRect(
-  x, // X position
-  y, // Y position
-  width, // Rectangle width
-  height, // Rectangle height
-  color, // Fill color (RGBA)
+	x, // X position
+	y, // Y position
+	width, // Rectangle width
+	height, // Rectangle height
+	color // Fill color (RGBA)
 )
 
 // Example: Draw a red rectangle
@@ -116,13 +116,13 @@ Copy another frame buffer onto this one:
 
 ```typescript
 canvas.frameBuffer.drawFrameBuffer(
-  destX, // Destination X
-  destY, // Destination Y
-  sourceBuffer, // Source FrameBuffer (OptimizedBuffer)
-  sourceX, // Source X offset (optional)
-  sourceY, // Source Y offset (optional)
-  sourceWidth, // Width to copy (optional)
-  sourceHeight, // Height to copy (optional)
+	destX, // Destination X
+	destY, // Destination Y
+	sourceBuffer, // Source FrameBuffer (OptimizedBuffer)
+	sourceX, // Source X offset (optional)
+	sourceY, // Source Y offset (optional)
+	sourceWidth, // Width to copy (optional)
+	sourceHeight // Height to copy (optional)
 )
 ```
 
@@ -162,12 +162,12 @@ import { FrameBufferRenderable, RGBA, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const gameCanvas = new FrameBufferRenderable(renderer, {
-  id: "game",
-  width: 40,
-  height: 20,
-  position: "absolute",
-  left: 5,
-  top: 2,
+	id: "game",
+	width: 40,
+	height: 20,
+	position: "absolute",
+	left: 5,
+	top: 2
 })
 
 // Game state
@@ -175,46 +175,46 @@ let playerX = 20
 let playerY = 10
 
 function render() {
-  const fb = gameCanvas.frameBuffer
-  const BG = RGBA.fromHex("#111111")
+	const fb = gameCanvas.frameBuffer
+	const BG = RGBA.fromHex("#111111")
 
-  // Clear the canvas
-  fb.fillRect(0, 0, 40, 20, BG)
+	// Clear the canvas
+	fb.fillRect(0, 0, 40, 20, BG)
 
-  // Draw border
-  for (let x = 0; x < 40; x++) {
-    fb.setCell(x, 0, "-", RGBA.fromHex("#444444"), BG)
-    fb.setCell(x, 19, "-", RGBA.fromHex("#444444"), BG)
-  }
-  for (let y = 0; y < 20; y++) {
-    fb.setCell(0, y, "|", RGBA.fromHex("#444444"), BG)
-    fb.setCell(39, y, "|", RGBA.fromHex("#444444"), BG)
-  }
+	// Draw border
+	for (let x = 0; x < 40; x++) {
+		fb.setCell(x, 0, "-", RGBA.fromHex("#444444"), BG)
+		fb.setCell(x, 19, "-", RGBA.fromHex("#444444"), BG)
+	}
+	for (let y = 0; y < 20; y++) {
+		fb.setCell(0, y, "|", RGBA.fromHex("#444444"), BG)
+		fb.setCell(39, y, "|", RGBA.fromHex("#444444"), BG)
+	}
 
-  // Draw player
-  fb.setCell(playerX, playerY, "@", RGBA.fromHex("#00FF00"), BG)
+	// Draw player
+	fb.setCell(playerX, playerY, "@", RGBA.fromHex("#00FF00"), BG)
 
-  // Draw score
-  fb.drawText("Score: 0", 2, 0, RGBA.fromHex("#FFFF00"))
+	// Draw score
+	fb.drawText("Score: 0", 2, 0, RGBA.fromHex("#FFFF00"))
 }
 
 // Handle input
 renderer.keyInput.on("keypress", (key) => {
-  switch (key.name) {
-    case "up":
-      playerY = Math.max(1, playerY - 1)
-      break
-    case "down":
-      playerY = Math.min(18, playerY + 1)
-      break
-    case "left":
-      playerX = Math.max(1, playerX - 1)
-      break
-    case "right":
-      playerX = Math.min(38, playerX + 1)
-      break
-  }
-  render()
+	switch (key.name) {
+		case "up":
+			playerY = Math.max(1, playerY - 1)
+			break
+		case "down":
+			playerY = Math.min(18, playerY + 1)
+			break
+		case "left":
+			playerX = Math.max(1, playerX - 1)
+			break
+		case "right":
+			playerX = Math.min(38, playerX + 1)
+			break
+	}
+	render()
 })
 
 render()
@@ -227,17 +227,17 @@ renderer.root.add(gameCanvas)
 const EMPTY_BG = RGBA.fromHex("#222222")
 
 function drawProgressBar(fb, x, y, width, progress, color) {
-  const filled = Math.floor(width * progress)
+	const filled = Math.floor(width * progress)
 
-  // Draw filled portion
-  for (let i = 0; i < filled; i++) {
-    fb.setCell(x + i, y, "█", color, EMPTY_BG)
-  }
+	// Draw filled portion
+	for (let i = 0; i < filled; i++) {
+		fb.setCell(x + i, y, "█", color, EMPTY_BG)
+	}
 
-  // Draw empty portion
-  for (let i = filled; i < width; i++) {
-    fb.setCell(x + i, y, "░", RGBA.fromHex("#333333"), EMPTY_BG)
-  }
+	// Draw empty portion
+	for (let i = filled; i < width; i++) {
+		fb.setCell(x + i, y, "░", RGBA.fromHex("#333333"), EMPTY_BG)
+	}
 }
 
 // Usage
@@ -257,11 +257,11 @@ const GREEN = RGBA.fromHex("#00FF00")
 const BG = RGBA.fromHex("#000000")
 
 for (let i = 0; i < 100; i++) {
-  fb.setCell(i, 5, "*", RED, BG)
+	fb.setCell(i, 5, "*", RED, BG)
 }
 
 // Avoid: Creating new RGBA objects in loops
 for (let i = 0; i < 100; i++) {
-  fb.setCell(i, 5, "*", RGBA.fromHex("#FF0000"), RGBA.fromHex("#000000")) // Creates 200 objects
+	fb.setCell(i, 5, "*", RGBA.fromHex("#FF0000"), RGBA.fromHex("#000000")) // Creates 200 objects
 }
 ```

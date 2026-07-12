@@ -14,7 +14,10 @@ skill:
 import { createTestRenderer } from "@opentui/core/testing"
 import { Text } from "@opentui/core"
 
-const { renderer, renderOnce, captureCharFrame } = await createTestRenderer({ width: 40, height: 10 })
+const { renderer, renderOnce, captureCharFrame } = await createTestRenderer({
+	width: 40,
+	height: 10
+})
 
 renderer.root.add(Text({ content: "Hello" }))
 await renderOnce()

@@ -33,28 +33,28 @@ const renderer = await createCliRenderer()
 const keymap = createDefaultOpenTuiKeymap(renderer)
 
 function App() {
-  useBindings(() => ({
-    commands: [
-      {
-        name: "quit",
-        run() {
-          renderer.destroy()
-        },
-      },
-    ],
-    bindings: [{ key: "q", cmd: "quit" }],
-  }))
+	useBindings(() => ({
+		commands: [
+			{
+				name: "quit",
+				run() {
+					renderer.destroy()
+				}
+			}
+		],
+		bindings: [{ key: "q", cmd: "quit" }]
+	}))
 
-  return <text>Press q to quit</text>
+	return <text>Press q to quit</text>
 }
 
 await render(
-  () => (
-    <KeymapProvider keymap={keymap}>
-      <App />
-    </KeymapProvider>
-  ),
-  renderer,
+	() => (
+		<KeymapProvider keymap={keymap}>
+			<App />
+		</KeymapProvider>
+	),
+	renderer
 )
 ```
 
@@ -114,8 +114,8 @@ Use this when an addon field expects a `ReactiveMatcher`, for example the shippe
 
 ```tsx
 useBindings(() => ({
-  enabled: reactiveMatcherFromSignal(mode, (value) => value === "normal"),
-  bindings: [{ key: "x", cmd: "delete-line" }],
+	enabled: reactiveMatcherFromSignal(mode, (value) => value === "normal"),
+	bindings: [{ key: "x", cmd: "delete-line" }]
 }))
 ```
 

@@ -18,10 +18,10 @@ import { ASCIIFontRenderable, RGBA, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const title = new ASCIIFontRenderable(renderer, {
-  id: "title",
-  text: "OPENTUI",
-  font: "tiny",
-  color: RGBA.fromInts(255, 255, 255, 255),
+	id: "title",
+	text: "OPENTUI",
+	font: "tiny",
+	color: RGBA.fromInts(255, 255, 255, 255)
 })
 
 renderer.root.add(title)
@@ -35,11 +35,11 @@ import { ASCIIFont, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 renderer.root.add(
-  ASCIIFont({
-    text: "HELLO",
-    font: "block",
-    color: "#00FF00",
-  }),
+	ASCIIFont({
+		text: "HELLO",
+		font: "block",
+		color: "#00FF00"
+	})
 )
 ```
 
@@ -50,37 +50,37 @@ OpenTUI includes several ASCII art font styles:
 ```typescript
 // Small, compact font
 {
-  font: "tiny"
+	font: "tiny"
 }
 
 // Block style font
 {
-  font: "block"
+	font: "block"
 }
 
 // Shaded style font
 {
-  font: "shade"
+	font: "shade"
 }
 
 // Slick style font
 {
-  font: "slick"
+	font: "slick"
 }
 
 // Large font
 {
-  font: "huge"
+	font: "huge"
 }
 
 // Grid style font
 {
-  font: "grid"
+	font: "grid"
 }
 
 // Pallet style font
 {
-  font: "pallet"
+	font: "pallet"
 }
 ```
 
@@ -90,12 +90,12 @@ Position the ASCII text anywhere on screen:
 
 ```typescript
 const title = new ASCIIFontRenderable(renderer, {
-  id: "title",
-  text: "TITLE",
-  font: "block",
-  color: RGBA.fromHex("#FFFF00"),
-  x: 10,
-  y: 2,
+	id: "title",
+	text: "TITLE",
+	font: "block",
+	color: RGBA.fromHex("#FFFF00"),
+	x: 10,
+	y: 2
 })
 ```
 
@@ -121,26 +121,26 @@ import { Box, ASCIIFont, Text, createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 const welcomeScreen = Box(
-  {
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ASCIIFont({
-    text: "OPENTUI",
-    font: "huge",
-    color: "#00FFFF",
-  }),
-  Text({
-    content: "Terminal UI Framework",
-    fg: "#888888",
-  }),
-  Text({
-    content: "Press any key to continue...",
-    fg: "#444444",
-  }),
+	{
+		width: "100%",
+		height: "100%",
+		flexDirection: "column",
+		alignItems: "center",
+		justifyContent: "center"
+	},
+	ASCIIFont({
+		text: "OPENTUI",
+		font: "huge",
+		color: "#00FFFF"
+	}),
+	Text({
+		content: "Terminal UI Framework",
+		fg: "#888888"
+	}),
+	Text({
+		content: "Press any key to continue...",
+		fg: "#444444"
+	})
 )
 
 renderer.root.add(welcomeScreen)
@@ -152,16 +152,16 @@ Update the text content dynamically:
 
 ```typescript
 const counter = new ASCIIFontRenderable(renderer, {
-  id: "counter",
-  text: "0",
-  font: "block",
-  color: RGBA.fromHex("#FF0000"),
+	id: "counter",
+	text: "0",
+	font: "block",
+	color: RGBA.fromHex("#FF0000")
 })
 
 let count = 0
 setInterval(() => {
-  count++
-  counter.text = count.toString()
+	count++
+	counter.text = count.toString()
 }, 1000)
 ```
 
@@ -173,19 +173,19 @@ Create gradient-like effects by positioning multiple ASCII fonts:
 import { Box, ASCIIFont } from "@opentui/core"
 
 const gradientTitle = Box(
-  {},
-  ASCIIFont({
-    text: "HELLO",
-    font: "block",
-    color: "#FF0000",
-  }),
-  // Overlay with offset for shadow effect
-  ASCIIFont({
-    text: "HELLO",
-    font: "block",
-    color: "#880000",
-    left: 1,
-    top: 1,
-  }),
+	{},
+	ASCIIFont({
+		text: "HELLO",
+		font: "block",
+		color: "#FF0000"
+	}),
+	// Overlay with offset for shadow effect
+	ASCIIFont({
+		text: "HELLO",
+		font: "block",
+		color: "#880000",
+		left: 1,
+		top: 1
+	})
 )
 ```

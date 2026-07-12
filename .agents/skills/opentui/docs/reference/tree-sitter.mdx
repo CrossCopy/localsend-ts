@@ -16,13 +16,15 @@ Use `addDefaultParsers()` before creating clients:
 import { addDefaultParsers, getTreeSitterClient } from "@opentui/core"
 
 addDefaultParsers([
-  {
-    filetype: "python",
-    wasm: "https://github.com/tree-sitter/tree-sitter-python/releases/download/v0.23.6/tree-sitter-python.wasm",
-    queries: {
-      highlights: ["https://raw.githubusercontent.com/tree-sitter/tree-sitter-python/master/queries/highlights.scm"],
-    },
-  },
+	{
+		filetype: "python",
+		wasm: "https://github.com/tree-sitter/tree-sitter-python/releases/download/v0.23.6/tree-sitter-python.wasm",
+		queries: {
+			highlights: [
+				"https://raw.githubusercontent.com/tree-sitter/tree-sitter-python/master/queries/highlights.scm"
+			]
+		}
+	}
 ])
 
 const client = getTreeSitterClient()
@@ -38,11 +40,13 @@ const client = new TreeSitterClient({ dataPath: "./cache" })
 await client.initialize()
 
 client.addFiletypeParser({
-  filetype: "rust",
-  wasm: "https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.23.2/tree-sitter-rust.wasm",
-  queries: {
-    highlights: ["https://raw.githubusercontent.com/tree-sitter/tree-sitter-rust/master/queries/highlights.scm"],
-  },
+	filetype: "rust",
+	wasm: "https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.23.2/tree-sitter-rust.wasm",
+	queries: {
+		highlights: [
+			"https://raw.githubusercontent.com/tree-sitter/tree-sitter-rust/master/queries/highlights.scm"
+		]
+	}
 })
 ```
 
@@ -50,17 +54,17 @@ client.addFiletypeParser({
 
 ```typescript
 interface FiletypeParserOptions {
-  filetype: string
-  aliases?: string[]
-  wasm: string
-  queries: {
-    highlights: string[]
-    injections?: string[]
-  }
-  injectionMapping?: {
-    nodeTypes?: Record<string, string>
-    infoStringMap?: Record<string, string>
-  }
+	filetype: string
+	aliases?: string[]
+	wasm: string
+	queries: {
+		highlights: string[]
+		injections?: string[]
+	}
+	injectionMapping?: {
+		nodeTypes?: Record<string, string>
+		infoStringMap?: Record<string, string>
+	}
 }
 ```
 
@@ -75,26 +79,26 @@ Use `queries.injections` to highlight embedded languages.
 
 ```typescript
 client.addFiletypeParser({
-  filetype: "markdown",
-  wasm: "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown.wasm",
-  queries: {
-    highlights: ["./assets/markdown/highlights.scm"],
-    injections: [
-      "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/markdown/injections.scm",
-    ],
-  },
-  injectionMapping: {
-    nodeTypes: {
-      inline: "markdown_inline",
-      pipe_table_cell: "markdown_inline",
-    },
-    infoStringMap: {
-      js: "javascript",
-      jsx: "javascriptreact",
-      ts: "typescript",
-      tsx: "typescriptreact",
-    },
-  },
+	filetype: "markdown",
+	wasm: "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown.wasm",
+	queries: {
+		highlights: ["./assets/markdown/highlights.scm"],
+		injections: [
+			"https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/markdown/injections.scm"
+		]
+	},
+	injectionMapping: {
+		nodeTypes: {
+			inline: "markdown_inline",
+			pipe_table_cell: "markdown_inline"
+		},
+		infoStringMap: {
+			js: "javascript",
+			jsx: "javascriptreact",
+			ts: "typescript",
+			tsx: "typescriptreact"
+		}
+	}
 })
 ```
 
@@ -107,13 +111,13 @@ import pythonWasm from "./parsers/tree-sitter-python.wasm" with { type: "file" }
 import pythonHighlights from "./queries/python/highlights.scm" with { type: "file" }
 
 addDefaultParsers([
-  {
-    filetype: "python",
-    wasm: pythonWasm,
-    queries: {
-      highlights: [pythonHighlights],
-    },
-  },
+	{
+		filetype: "python",
+		wasm: pythonWasm,
+		queries: {
+			highlights: [pythonHighlights]
+		}
+	}
 ])
 ```
 
@@ -125,9 +129,9 @@ Use the `updateAssets` utility to download parsers and generate imports.
 
 ```json
 {
-  "scripts": {
-    "prebuild": "bun node_modules/@opentui/core/lib/tree-sitter/update-assets.js --config ./parsers-config.json --assets ./src/parsers --output ./src/parsers.ts"
-  }
+	"scripts": {
+		"prebuild": "bun node_modules/@opentui/core/lib/tree-sitter/update-assets.js --config ./parsers-config.json --assets ./src/parsers --output ./src/parsers.ts"
+	}
 }
 ```
 
@@ -137,9 +141,9 @@ Use the `updateAssets` utility to download parsers and generate imports.
 import { updateAssets } from "@opentui/core/tree-sitter/update-assets"
 
 await updateAssets({
-  configPath: "./parsers-config.json",
-  assetsDir: "./src/parsers",
-  outputPath: "./src/parsers.ts",
+	configPath: "./parsers-config.json",
+	assetsDir: "./src/parsers",
+	outputPath: "./src/parsers.ts"
 })
 ```
 
@@ -152,15 +156,15 @@ const client = getTreeSitterClient()
 await client.initialize()
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 const code = new CodeRenderable(renderer, {
-  id: "code",
-  content: "const x = 1",
-  filetype: "typescript",
-  syntaxStyle,
-  treeSitterClient: client,
+	id: "code",
+	content: "const x = 1",
+	filetype: "typescript",
+	syntaxStyle,
+	treeSitterClient: client
 })
 ```
 
@@ -170,7 +174,7 @@ Parser and query files are cached in the client `dataPath`. Set a custom cache d
 
 ```typescript
 const client = new TreeSitterClient({
-  dataPath: "./my-cache",
+	dataPath: "./my-cache"
 })
 ```
 

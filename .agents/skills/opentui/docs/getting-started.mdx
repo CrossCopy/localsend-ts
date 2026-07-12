@@ -42,14 +42,14 @@ Create `index.ts`:
 import { createCliRenderer, Text } from "@opentui/core"
 
 const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
+	exitOnCtrlC: true
 })
 
 renderer.root.add(
-  Text({
-    content: "Hello, OpenTUI!",
-    fg: "#00FF00",
-  }),
+	Text({
+		content: "Hello, OpenTUI!",
+		fg: "#00FF00"
+	})
 )
 ```
 
@@ -69,15 +69,15 @@ Components nest naturally. Here's a bordered panel with content:
 import { createCliRenderer, Box, Text } from "@opentui/core"
 
 const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
+	exitOnCtrlC: true
 })
 
 renderer.root.add(
-  Box(
-    { borderStyle: "rounded", padding: 1, flexDirection: "column", gap: 1 },
-    Text({ content: "Welcome", fg: "#FFFF00" }),
-    Text({ content: "Press Ctrl+C to exit" }),
-  ),
+	Box(
+		{ borderStyle: "rounded", padding: 1, flexDirection: "column", gap: 1 },
+		Text({ content: "Welcome", fg: "#FFFF00" }),
+		Text({ content: "Press Ctrl+C to exit" })
+	)
 )
 ```
 

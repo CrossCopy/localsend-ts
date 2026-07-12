@@ -41,13 +41,13 @@ Slot names map to the props each slot receives. The host context is a shared obj
 import type { PluginContext } from "@opentui/core"
 
 type AppSlots = {
-  statusbar: { user: string }
-  sidebar: { section: "left" | "right" }
+	statusbar: { user: string }
+	sidebar: { section: "left" | "right" }
 }
 
 interface AppContext extends PluginContext {
-  appName: string
-  version: string
+	appName: string
+	version: string
 }
 ```
 
@@ -59,13 +59,17 @@ The context can be any object. `PluginContext` is a type alias for `object` — 
 import { createSlotRegistry } from "@opentui/core"
 
 type AppSlots = {
-  statusbar: { user: string }
-  sidebar: { section: "left" | "right" }
+	statusbar: { user: string }
+	sidebar: { section: "left" | "right" }
 }
 
 const context = { appName: "my-app", version: "1.0.0" }
 
-const registry = createSlotRegistry<string, AppSlots, typeof context>(renderer, "my-app:plugins", context)
+const registry = createSlotRegistry<string, AppSlots, typeof context>(
+	renderer,
+	"my-app:plugins",
+	context
+)
 ```
 
 The first type parameter (`TNode`) is the node type your framework returns — `BaseRenderable` for core, `ReactNode` for React, `JSX.Element` for Solid. The framework-specific helpers fill this in for you.
@@ -102,19 +106,19 @@ All `create*SlotRegistry` functions accept an optional `SlotRegistryOptions` obj
 
 ```typescript
 const unregister = registry.register({
-  id: "clock-plugin",
-  order: 0,
-  setup(ctx, renderer) {
-    // called once on registration — initialize resources here
-  },
-  dispose() {
-    // called when the plugin is unregistered — clean up resources here
-  },
-  slots: {
-    statusbar(ctx, props) {
-      return `${ctx.appName}:${props.user}`
-    },
-  },
+	id: "clock-plugin",
+	order: 0,
+	setup(ctx, renderer) {
+		// called once on registration — initialize resources here
+	},
+	dispose() {
+		// called when the plugin is unregistered — clean up resources here
+	},
+	slots: {
+		statusbar(ctx, props) {
+			return `${ctx.appName}:${props.user}`
+		}
+	}
 })
 
 // later: remove this plugin
@@ -192,7 +196,7 @@ Registries expose plugin error events:
 
 ```typescript
 registry.onPluginError((event) => {
-  console.error(event.pluginId, event.phase, event.source, event.error.message)
+	console.error(event.pluginId, event.phase, event.source, event.error.message)
 })
 ```
 

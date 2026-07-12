@@ -18,17 +18,17 @@ import { MarkdownRenderable, SyntaxStyle, RGBA, createCliRenderer } from "@opent
 const renderer = await createCliRenderer()
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  "markup.heading.1": { fg: RGBA.fromHex("#58A6FF"), bold: true },
-  "markup.list": { fg: RGBA.fromHex("#FF7B72") },
-  "markup.raw": { fg: RGBA.fromHex("#A5D6FF") },
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	"markup.heading.1": { fg: RGBA.fromHex("#58A6FF"), bold: true },
+	"markup.list": { fg: RGBA.fromHex("#FF7B72") },
+	"markup.raw": { fg: RGBA.fromHex("#A5D6FF") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 const markdown = new MarkdownRenderable(renderer, {
-  id: "readme",
-  width: 60,
-  content: "# Hello\n\n- One\n- Two\n\n```ts\nconst x = 1\n```",
-  syntaxStyle,
+	id: "readme",
+	width: 60,
+	content: "# Hello\n\n- One\n- Two\n\n```ts\nconst x = 1\n```",
+	syntaxStyle
 })
 
 renderer.root.add(markdown)
@@ -58,9 +58,9 @@ Hide markdown markers (backticks, emphasis markers, etc.) when `conceal` is true
 
 ```typescript
 const markdown = new MarkdownRenderable(renderer, {
-  content: "**bold** and `code`",
-  syntaxStyle,
-  conceal: true,
+	content: "**bold** and `code`",
+	syntaxStyle,
+	conceal: true
 })
 ```
 
@@ -72,9 +72,9 @@ Enable streaming mode for incremental updates. Keep it `true` while appending ch
 
 ```typescript
 const markdown = new MarkdownRenderable(renderer, {
-  content: "",
-  syntaxStyle,
-  streaming: true,
+	content: "",
+	syntaxStyle,
+	streaming: true
 })
 
 markdown.content += "# Live log\n"
@@ -92,14 +92,14 @@ To use it, render with `internalBlockMode: "top-level"`. The renderable keeps ea
 import { MarkdownRenderable, RGBA, SyntaxStyle } from "@opentui/core"
 
 const syntaxStyle = SyntaxStyle.fromStyles({
-  default: { fg: RGBA.fromHex("#E6EDF3") },
+	default: { fg: RGBA.fromHex("#E6EDF3") }
 })
 
 const md = new MarkdownRenderable(renderer, {
-  content: "",
-  syntaxStyle,
-  streaming: true,
-  internalBlockMode: "top-level",
+	content: "",
+	syntaxStyle,
+	streaming: true,
+	internalBlockMode: "top-level"
 })
 
 md.content = "# Title\n\nPara 1"
@@ -117,20 +117,20 @@ Markdown tables support `tableOptions` for style, sizing, wrapping, borders, and
 
 ```typescript
 const markdown = new MarkdownRenderable(renderer, {
-  content: "| Service | Status |\n| --- | --- |\n| api | ok |",
-  syntaxStyle,
-  tableOptions: {
-    style: "grid",
-    widthMode: "full",
-    columnFitter: "balanced",
-    wrapMode: "word",
-    cellPadding: 1,
-    borders: true,
-    outerBorder: true,
-    borderStyle: "rounded",
-    borderColor: "#6b7280",
-    selectable: true,
-  },
+	content: "| Service | Status |\n| --- | --- |\n| api | ok |",
+	syntaxStyle,
+	tableOptions: {
+		style: "grid",
+		widthMode: "full",
+		columnFitter: "balanced",
+		wrapMode: "word",
+		cellPadding: 1,
+		borders: true,
+		outerBorder: true,
+		borderStyle: "rounded",
+		borderColor: "#6b7280",
+		selectable: true
+	}
 })
 ```
 
@@ -164,14 +164,14 @@ Override rendering for a token and fall back to default rendering:
 
 ```typescript
 const markdown = new MarkdownRenderable(renderer, {
-  content: "# Title\n\nHello",
-  syntaxStyle,
-  renderNode: (token, context) => {
-    if (token.type === "heading") {
-      return context.defaultRender()
-    }
-    return undefined
-  },
+	content: "# Title\n\nHello",
+	syntaxStyle,
+	renderNode: (token, context) => {
+		if (token.type === "heading") {
+			return context.defaultRender()
+		}
+		return undefined
+	}
 })
 ```
 
@@ -180,36 +180,41 @@ const markdown = new MarkdownRenderable(renderer, {
 Use `createMarkdownCodeBlockRenderer` when you only want to replace specific fenced-code languages. The language key is matched against the normalized fence info string, so a `tsx` fence maps to `typescriptreact`, and custom DSL names like `taskflow` can be matched directly.
 
 ````typescript
-import { BoxRenderable, MarkdownRenderable, TextRenderable, createMarkdownCodeBlockRenderer } from "@opentui/core"
+import {
+	BoxRenderable,
+	MarkdownRenderable,
+	TextRenderable,
+	createMarkdownCodeBlockRenderer
+} from "@opentui/core"
 
 const renderTaskFlow = (renderer) => (token) => {
-  const steps = token.text
-    .split("\n")
-    .filter((line) => line.startsWith("step "))
-    .map((line) => line.slice("step ".length))
+	const steps = token.text
+		.split("\n")
+		.filter((line) => line.startsWith("step "))
+		.map((line) => line.slice("step ".length))
 
-  const card = new BoxRenderable(renderer, {
-    border: true,
-    borderStyle: "rounded",
-    borderColor: "#38BDF8",
-    paddingX: 1,
-    flexDirection: "column",
-    width: "100%",
-  })
+	const card = new BoxRenderable(renderer, {
+		border: true,
+		borderStyle: "rounded",
+		borderColor: "#38BDF8",
+		paddingX: 1,
+		flexDirection: "column",
+		width: "100%"
+	})
 
-  for (const step of steps) {
-    card.add(new TextRenderable(renderer, { content: `- ${step}`, width: "100%" }))
-  }
+	for (const step of steps) {
+		card.add(new TextRenderable(renderer, { content: `- ${step}`, width: "100%" }))
+	}
 
-  return card
+	return card
 }
 
 const markdown = new MarkdownRenderable(renderer, {
-  content: "```taskflow\nstep Parse markdown done\nstep Render widget active\n```",
-  syntaxStyle,
-  renderNode: createMarkdownCodeBlockRenderer({
-    taskflow: renderTaskFlow(renderer),
-  }),
+	content: "```taskflow\nstep Parse markdown done\nstep Render widget active\n```",
+	syntaxStyle,
+	renderNode: createMarkdownCodeBlockRenderer({
+		taskflow: renderTaskFlow(renderer)
+	})
 })
 ````
 

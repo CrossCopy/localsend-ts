@@ -182,9 +182,9 @@ You can use transparent cells and alpha blending for layered effects:
 import { FrameBufferRenderable, RGBA } from "@opentui/core"
 
 const canvas = new FrameBufferRenderable(renderer, {
-  id: "canvas",
-  width: 50,
-  height: 20,
+	id: "canvas",
+	width: 50,
+	height: 20
 })
 
 // Draw with alpha blending
@@ -203,11 +203,11 @@ Combine colors with text attributes:
 import { TextRenderable, TextAttributes, RGBA } from "@opentui/core"
 
 const styledText = new TextRenderable(renderer, {
-  id: "styled",
-  content: "Important",
-  fg: RGBA.fromHex("#FFFF00"),
-  bg: RGBA.fromHex("#333333"),
-  attributes: TextAttributes.BOLD | TextAttributes.UNDERLINE,
+	id: "styled",
+	content: "Important",
+	fg: RGBA.fromHex("#FFFF00"),
+	bg: RGBA.fromHex("#333333"),
+	attributes: TextAttributes.BOLD | TextAttributes.UNDERLINE
 })
 ```
 

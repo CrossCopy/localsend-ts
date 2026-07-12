@@ -18,11 +18,11 @@ import { createCliRenderer, Box, Text, Input } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 renderer.root.add(
-  Box(
-    { width: 40, height: 10, borderStyle: "rounded", padding: 1 },
-    Text({ content: "Welcome!" }),
-    Input({ placeholder: "Enter your name..." }),
-  ),
+	Box(
+		{ width: 40, height: 10, borderStyle: "rounded", padding: 1 },
+		Text({ content: "Welcome!" }),
+		Input({ placeholder: "Enter your name..." })
+	)
 )
 ```
 
@@ -34,22 +34,22 @@ Most core Renderable classes have matching construct functions:
 
 ```typescript
 import {
-  ASCIIFont,
-  Box,
-  Code,
-  FrameBuffer,
-  Input,
-  ScrollBox,
-  Select,
-  SyntaxStyle,
-  TabSelect,
-  Text,
-  RGBA,
+	ASCIIFont,
+	Box,
+	Code,
+	FrameBuffer,
+	Input,
+	ScrollBox,
+	Select,
+	SyntaxStyle,
+	TabSelect,
+	Text,
+	RGBA
 } from "@opentui/core"
 
 // These create VNodes, not actual Renderables
 const syntaxStyle = SyntaxStyle.fromStyles({
-  default: { fg: RGBA.fromHex("#FFFFFF") },
+	default: { fg: RGBA.fromHex("#FFFFFF") }
 })
 const box = Box({ border: true })
 const text = Text({ content: "Hello" })
@@ -84,19 +84,19 @@ Create reusable components by writing functions that return VNodes:
 
 ```typescript
 function LabeledInput(props: { label: string; placeholder: string }) {
-  return Box(
-    { flexDirection: "row", gap: 1 },
-    Text({ content: props.label }),
-    Input({ placeholder: props.placeholder, width: 20 }),
-  )
+	return Box(
+		{ flexDirection: "row", gap: 1 },
+		Text({ content: props.label }),
+		Input({ placeholder: props.placeholder, width: 20 })
+	)
 }
 
 renderer.root.add(
-  Box(
-    { flexDirection: "column", padding: 1 },
-    LabeledInput({ label: "Name:", placeholder: "Enter name..." }),
-    LabeledInput({ label: "Email:", placeholder: "Enter email..." }),
-  ),
+	Box(
+		{ flexDirection: "column", padding: 1 },
+		LabeledInput({ label: "Name:", placeholder: "Enter name..." }),
+		LabeledInput({ label: "Email:", placeholder: "Enter email..." })
+	)
 )
 ```
 
@@ -130,24 +130,28 @@ Composite components often need outer method calls to reach a specific inner com
 import { delegate, Box, Text, Input } from "@opentui/core"
 
 function LabeledInput(props: { id: string; label: string; placeholder: string }) {
-  return delegate(
-    {
-      focus: `${props.id}-input`, // Route focus() to the input
-      value: `${props.id}-input`, // Route value property access
-    },
-    Box(
-      { flexDirection: "row" },
-      Text({ content: props.label }),
-      Input({
-        id: `${props.id}-input`,
-        placeholder: props.placeholder,
-        width: 20,
-      }),
-    ),
-  )
+	return delegate(
+		{
+			focus: `${props.id}-input`, // Route focus() to the input
+			value: `${props.id}-input` // Route value property access
+		},
+		Box(
+			{ flexDirection: "row" },
+			Text({ content: props.label }),
+			Input({
+				id: `${props.id}-input`,
+				placeholder: props.placeholder,
+				width: 20
+			})
+		)
+	)
 }
 
-const username = LabeledInput({ id: "username", label: "Username:", placeholder: "Enter username..." })
+const username = LabeledInput({
+	id: "username",
+	label: "Username:",
+	placeholder: "Enter username..."
+})
 
 // This actually focuses the nested Input, not the outer Box
 username.focus()
@@ -161,13 +165,13 @@ The mapping object's keys are method or property names, and the values are desce
 
 ```typescript
 delegate(
-  {
-    focus: "inner-input", // .focus() -> find descendant "inner-input" and call focus()
-    blur: "inner-input", // .blur() -> same
-    add: "content-area", // .add() -> add children to "content-area" instead
-    value: "inner-input", // .value get/set -> proxy to "inner-input"
-  },
-  vnode,
+	{
+		focus: "inner-input", // .focus() -> find descendant "inner-input" and call focus()
+		blur: "inner-input", // .blur() -> same
+		add: "content-area", // .add() -> add children to "content-area" instead
+		value: "inner-input" // .value get/set -> proxy to "inner-input"
+	},
+	vnode
 )
 ```
 
@@ -177,14 +181,16 @@ Custom constructs can accept and pass through children:
 
 ```typescript
 function Card(props: { title: string }, ...children: VChild[]) {
-  return Box(
-    { border: true, padding: 1, flexDirection: "column" },
-    Text({ content: props.title, fg: "#FFFF00" }),
-    Box({ flexDirection: "column" }, ...children),
-  )
+	return Box(
+		{ border: true, padding: 1, flexDirection: "column" },
+		Text({ content: props.title, fg: "#FFFF00" }),
+		Box({ flexDirection: "column" }, ...children)
+	)
 }
 
-renderer.root.add(Card({ title: "User Info" }, Text({ content: "Name: Alice" }), Text({ content: "Role: Admin" })))
+renderer.root.add(
+	Card({ title: "User Info" }, Text({ content: "Name: Alice" }), Text({ content: "Role: Admin" }))
+)
 ```
 
 ## Mixing Renderables and Constructs
@@ -196,8 +202,8 @@ import { BoxRenderable, Text, Input } from "@opentui/core"
 
 // Create a renderable directly
 const container = new BoxRenderable(renderer, {
-  id: "container",
-  flexDirection: "column",
+	id: "container",
+	flexDirection: "column"
 })
 
 // Add constructs to it
@@ -212,12 +218,12 @@ Or use constructs that contain renderables:
 const customRenderable = new CustomRenderable(renderer, { id: "custom" })
 
 renderer.root.add(
-  Box(
-    { padding: 1 },
-    Text({ content: "Header" }),
-    customRenderable, // Regular renderable mixed in
-    Text({ content: "Footer" }),
-  ),
+	Box(
+		{ padding: 1 },
+		Text({ content: "Header" }),
+		customRenderable, // Regular renderable mixed in
+		Text({ content: "Footer" })
+	)
 )
 ```
 

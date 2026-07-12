@@ -39,9 +39,9 @@ import { createCliRenderer } from "@opentui/core"
 const renderer = await createCliRenderer()
 
 try {
-  // ... your application code ...
+	// ... your application code ...
 } finally {
-  renderer.destroy()
+	renderer.destroy()
 }
 ```
 
@@ -65,12 +65,12 @@ You can customize which signals trigger cleanup:
 ```typescript
 // Only handle SIGINT and SIGTERM
 const renderer = await createCliRenderer({
-  exitSignals: ["SIGINT", "SIGTERM"],
+	exitSignals: ["SIGINT", "SIGTERM"]
 })
 
 // Disable all signal-based cleanup (handle it yourself)
 const renderer = await createCliRenderer({
-  exitSignals: [],
+	exitSignals: []
 })
 ```
 
@@ -80,15 +80,15 @@ By default, Ctrl+C calls `destroy()`. If you want to handle Ctrl+C yourself, dis
 
 ```typescript
 const renderer = await createCliRenderer({
-  exitOnCtrlC: false,
-  exitSignals: ["SIGTERM", "SIGQUIT", "SIGABRT", "SIGHUP", "SIGBREAK", "SIGPIPE", "SIGBUS"],
+	exitOnCtrlC: false,
+	exitSignals: ["SIGTERM", "SIGQUIT", "SIGABRT", "SIGHUP", "SIGBREAK", "SIGPIPE", "SIGBUS"]
 })
 
 renderer.keyInput.on("keypress", (key) => {
-  if (key.ctrl && key.name === "c") {
-    // Custom Ctrl+C handling
-    console.log("Ctrl+C pressed, but not exiting")
-  }
+	if (key.ctrl && key.name === "c") {
+		// Custom Ctrl+C handling
+		console.log("Ctrl+C pressed, but not exiting")
+	}
 })
 ```
 
@@ -98,9 +98,9 @@ Run custom logic when the renderer is destroyed:
 
 ```typescript
 const renderer = await createCliRenderer({
-  onDestroy: () => {
-    console.log("Renderer destroyed, performing additional cleanup...")
-  },
+	onDestroy: () => {
+		console.log("Renderer destroyed, performing additional cleanup...")
+	}
 })
 ```
 
@@ -124,31 +124,31 @@ For socket, SSH, or pty sessions, give each connection its own renderer. Destroy
 import { createCliRenderer, type CliRenderer } from "@opentui/core"
 
 interface TerminalSession {
-  renderer: CliRenderer
-  closeTransport: () => void
+	renderer: CliRenderer
+	closeTransport: () => void
 }
 
 async function startSession(
-  stdin: NodeJS.ReadStream,
-  stdout: NodeJS.WriteStream,
-  closeTransport: () => void,
+	stdin: NodeJS.ReadStream,
+	stdout: NodeJS.WriteStream,
+	closeTransport: () => void
 ): Promise<TerminalSession> {
-  const renderer = await createCliRenderer({
-    stdin,
-    stdout,
-    width: stdout.columns || 80,
-    height: stdout.rows || 24,
-    exitOnCtrlC: false,
-    exitSignals: [],
-  })
+	const renderer = await createCliRenderer({
+		stdin,
+		stdout,
+		width: stdout.columns || 80,
+		height: stdout.rows || 24,
+		exitOnCtrlC: false,
+		exitSignals: []
+	})
 
-  return { renderer, closeTransport }
+	return { renderer, closeTransport }
 }
 
 async function closeSession(session: TerminalSession): Promise<void> {
-  session.renderer.destroy()
-  await new Promise<void>((resolve) => queueMicrotask(resolve))
-  session.closeTransport()
+	session.renderer.destroy()
+	await new Promise<void>((resolve) => queueMicrotask(resolve))
+	session.closeTransport()
 }
 ```
 

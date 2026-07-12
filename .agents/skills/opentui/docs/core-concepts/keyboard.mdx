@@ -20,13 +20,13 @@ const renderer = await createCliRenderer()
 const keyHandler = renderer.keyInput
 
 keyHandler.on("keypress", (key: KeyEvent) => {
-  console.log("Key name:", key.name)
-  console.log("Input sequence:", key.sequence)
-  console.log("Raw input:", key.raw)
-  console.log("Ctrl pressed:", key.ctrl)
-  console.log("Shift pressed:", key.shift)
-  console.log("Alt pressed:", key.meta)
-  console.log("Option pressed:", key.option)
+	console.log("Key name:", key.name)
+	console.log("Input sequence:", key.sequence)
+	console.log("Raw input:", key.raw)
+	console.log("Ctrl pressed:", key.ctrl)
+	console.log("Shift pressed:", key.shift)
+	console.log("Alt pressed:", key.meta)
+	console.log("Option pressed:", key.option)
 })
 ```
 
@@ -82,11 +82,11 @@ Editable components that accept a `keyAliasMap` option (`InputRenderable`, `Text
 import { InputRenderable } from "@opentui/core"
 
 const input = new InputRenderable(renderer, {
-  id: "field",
-  keyAliasMap: {
-    // Treat the numpad decimal key as forward-delete
-    kpdecimal: "delete",
-  },
+	id: "field",
+	keyAliasMap: {
+		// Treat the numpad decimal key as forward-delete
+		kpdecimal: "delete"
+	}
 })
 ```
 
@@ -96,17 +96,17 @@ const input = new InputRenderable(renderer, {
 
 ```typescript
 keyHandler.on("keypress", (key: KeyEvent) => {
-  if (key.name === "escape") {
-    console.log("Escape pressed!")
-  }
+	if (key.name === "escape") {
+		console.log("Escape pressed!")
+	}
 
-  if (key.name === "return") {
-    console.log("Enter pressed!")
-  }
+	if (key.name === "return") {
+		console.log("Enter pressed!")
+	}
 
-  if (key.name === "space") {
-    console.log("Space pressed!")
-  }
+	if (key.name === "space") {
+		console.log("Space pressed!")
+	}
 })
 ```
 
@@ -114,25 +114,25 @@ keyHandler.on("keypress", (key: KeyEvent) => {
 
 ```typescript
 keyHandler.on("keypress", (key: KeyEvent) => {
-  // Ctrl+C
-  if (key.ctrl && key.name === "c") {
-    console.log("Ctrl+C pressed!")
-  }
+	// Ctrl+C
+	if (key.ctrl && key.name === "c") {
+		console.log("Ctrl+C pressed!")
+	}
 
-  // Ctrl+S
-  if (key.ctrl && key.name === "s") {
-    console.log("Save shortcut!")
-  }
+	// Ctrl+S
+	if (key.ctrl && key.name === "s") {
+		console.log("Save shortcut!")
+	}
 
-  // Shift+F1
-  if (key.shift && key.name === "f1") {
-    console.log("Shift+F1 pressed!")
-  }
+	// Shift+F1
+	if (key.shift && key.name === "f1") {
+		console.log("Shift+F1 pressed!")
+	}
 
-  // Alt+Enter
-  if (key.meta && key.name === "return") {
-    console.log("Alt+Enter pressed!")
-  }
+	// Alt+Enter
+	if (key.meta && key.name === "return") {
+		console.log("Alt+Enter pressed!")
+	}
 })
 ```
 
@@ -140,14 +140,14 @@ keyHandler.on("keypress", (key: KeyEvent) => {
 
 ```typescript
 keyHandler.on("keypress", (key: KeyEvent) => {
-  // F1-F12
-  if (key.name === "f1") {
-    showHelp()
-  }
+	// F1-F12
+	if (key.name === "f1") {
+		showHelp()
+	}
 
-  if (key.name === "f5") {
-    refresh()
-  }
+	if (key.name === "f5") {
+		refresh()
+	}
 })
 ```
 
@@ -155,20 +155,20 @@ keyHandler.on("keypress", (key: KeyEvent) => {
 
 ```typescript
 keyHandler.on("keypress", (key: KeyEvent) => {
-  switch (key.name) {
-    case "up":
-      moveCursorUp()
-      break
-    case "down":
-      moveCursorDown()
-      break
-    case "left":
-      moveCursorLeft()
-      break
-    case "right":
-      moveCursorRight()
-      break
-  }
+	switch (key.name) {
+		case "up":
+			moveCursorUp()
+			break
+		case "down":
+			moveCursorDown()
+			break
+		case "left":
+			moveCursorLeft()
+			break
+		case "right":
+			moveCursorRight()
+			break
+	}
 })
 ```
 
@@ -182,9 +182,9 @@ import { type PasteEvent } from "@opentui/core"
 const textDecoder = new TextDecoder()
 
 keyHandler.on("paste", (event: PasteEvent) => {
-  console.log("Pasted bytes:", event.bytes)
-  console.log("Decoded text:", textDecoder.decode(event.bytes))
-  console.log("Metadata:", event.metadata)
+	console.log("Pasted bytes:", event.bytes)
+	console.log("Decoded text:", textDecoder.decode(event.bytes))
+	console.log("Metadata:", event.metadata)
 })
 ```
 
@@ -194,20 +194,20 @@ Configure the renderer to automatically exit on Ctrl+C:
 
 ```typescript
 const renderer = await createCliRenderer({
-  exitOnCtrlC: true, // Default behavior
+	exitOnCtrlC: true // Default behavior
 })
 
 // Or handle it manually
 const renderer = await createCliRenderer({
-  exitOnCtrlC: false,
+	exitOnCtrlC: false
 })
 
 renderer.keyInput.on("keypress", (key: KeyEvent) => {
-  if (key.ctrl && key.name === "c") {
-    // Custom cleanup before shutdown
-    cleanup()
-    renderer.destroy()
-  }
+	if (key.ctrl && key.name === "c") {
+		// Custom cleanup before shutdown
+		cleanup()
+		renderer.destroy()
+	}
 })
 ```
 
@@ -217,13 +217,13 @@ OpenTUI opts into the [kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/
 
 ```typescript
 const renderer = await createCliRenderer({
-  useKittyKeyboard: {
-    disambiguate: true,
-    alternateKeys: true,
-    events: true, // press/repeat/release
-    allKeysAsEscapes: false,
-    reportText: false,
-  },
+	useKittyKeyboard: {
+		disambiguate: true,
+		alternateKeys: true,
+		events: true, // press/repeat/release
+		allKeysAsEscapes: false,
+		reportText: false
+	}
 })
 
 // Disable entirely:
@@ -252,8 +252,8 @@ Focus components to receive keyboard input. OpenTUI routes events to the focused
 import { InputRenderable } from "@opentui/core"
 
 const input = new InputRenderable(renderer, {
-  id: "my-input",
-  placeholder: "Type here...",
+	id: "my-input",
+	placeholder: "Type here..."
 })
 
 // Focus the input to receive key events
