@@ -1,20 +1,15 @@
 #!/usr/bin/env bun
 import { render } from "@opentui/solid"
-import { getDeviceInfo } from "./index.ts"
 import { createTuiStore } from "./tui/store.ts"
 import { App } from "./tui/App.tsx"
+import { buildTuiDeviceInfo, type TuiOptions } from "./tui/device.ts"
 
-export interface TuiOptions {
-	alias?: string
-	port?: number
-	saveDir?: string
-}
+export type { TuiOptions }
 
 /** Build the store and render the OpenTUI dashboard. Called by `localsend` (no
  *  subcommand) and `localsend --tui`; needs a runtime with FFI (Bun / Node ≥26.4). */
 export function runTui(opts: TuiOptions = {}): void {
-	const alias = opts.alias || `LocalSend TUI ${Math.floor(100 + Math.random() * 900)}`
-	const deviceInfo = getDeviceInfo({ alias, port: opts.port, enableDownloadApi: false })
+	const deviceInfo = buildTuiDeviceInfo(opts)
 	const store = createTuiStore(deviceInfo, undefined, { saveDir: opts.saveDir })
 	render(() => <App store={store} />, { exitOnCtrlC: true })
 }

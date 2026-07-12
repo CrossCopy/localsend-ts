@@ -35,6 +35,12 @@ const main = defineCommand({
 		saveDir: {
 			type: "string",
 			description: "Directory to save received files (TUI, default: ./received_files)"
+		},
+		https: {
+			type: "boolean",
+			description:
+				"Serve the TUI over HTTPS (default; matches the official app). Use --no-https for plain HTTP",
+			default: true
 		}
 	},
 	subCommands: {
@@ -804,7 +810,8 @@ const main = defineCommand({
 		runTui({
 			alias: args.alias as string | undefined,
 			port: portStr ? parseInt(portStr, 10) : undefined,
-			saveDir: args.saveDir as string | undefined
+			saveDir: args.saveDir as string | undefined,
+			https: args.https as boolean
 		})
 	}
 })
