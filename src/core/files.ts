@@ -33,6 +33,8 @@ export function resolveSavePath(saveDir: string, fileName: string): string {
  */
 export function uniqueSavePath(saveDir: string, fileName: string): string {
 	const resolved = resolveSavePath(saveDir, fileName)
+	const root = path.resolve(saveDir)
+	if (resolved === root) throw new Error(`Invalid file name: ${fileName}`)
 	if (!existsSync(resolved)) return resolved
 	const dir = path.dirname(resolved)
 	const ext = path.extname(resolved)

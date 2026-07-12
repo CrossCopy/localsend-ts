@@ -23,3 +23,38 @@ test("GET / lists shared files with download links", async () => {
 		await rmTemp(dir)
 	}
 })
+
+test("GET / does not bypass the PIN required for prepare-download", async () => {
+	const dir = await tempDir()
+	const src = await makeRandomFile(dir, "secret.bin", 32)
+	const port = await getFreePort()
+	const server = new LocalSendServer(getDeviceInfo({ alias: "Sharer", port }), {
+		sharedFiles: [src.path],
+		pin: "4242"
+	})
+	await server.start()
+	try {
+		const base = `http://127.0.0.1:${port}`
+		const res = await fetch(`${base}/`)
+		expect(res.status).toBe(401)
+		const body = await res.text()
+		expect(body).not.toContain("sessionId")
+
+		const noPin = await fetch(`${base}/api/localsend/v2/prepare-download`, { method: "POST" })
+		expect(noPin.status).toBe(401)
+
+		const withPin = await fetch(`${base}/api/localsend/v2/prepare-download?pin=4242`, {
+			method: "POST"
+		})
+		expect(withPin.status).toBe(200)
+		const { sessionId, files } = (await withPin.json()) as any
+		const fileId = Object.keys(files)[0]
+		const dl = await fetch(
+			`${base}/api/localsend/v2/download?sessionId=${sessionId}&fileId=${fileId}`
+		)
+		expect(dl.status).toBe(200)
+	} finally {
+		await server.stop()
+		await rmTemp(dir)
+	}
+})

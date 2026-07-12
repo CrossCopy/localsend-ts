@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { openAPIRouteHandler } from "hono-openapi"
 import { Scalar } from "@scalar/hono-api-reference"
 import type { DeviceInfo, PrepareUploadResponse, FileMetadata } from "../protocol/types.ts"
@@ -63,6 +64,9 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 		.use("*", middleware)
 		.get("/docs", Scalar({ url: "/openapi", theme: "elysiajs" }))
 		.get("/", (c) => {
+			if (ctx.requirePin) {
+				return c.json({ message: "PIN required" }, 401)
+			}
 			if (!ctx.sharedFiles || ctx.sharedFiles.length === 0) {
 				return c.json({ message: "No files shared" }, 404)
 			}
@@ -214,6 +218,12 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 							"application/json": { schema: resolver(messageResponseSchema) }
 						}
 					},
+					413: {
+						description: "Payload too large",
+						content: {
+							"application/json": { schema: resolver(messageResponseSchema) }
+						}
+					},
 					500: {
 						description: "Internal server error",
 						content: {
@@ -221,6 +231,10 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 						}
 					}
 				}
+			}),
+			bodyLimit({
+				maxSize: ctx.maxRequestBodySize,
+				onError: (c) => c.json({ message: "Payload too large" }, 413)
 			}),
 			validator(
 				"query",

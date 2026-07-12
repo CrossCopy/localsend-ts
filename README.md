@@ -87,7 +87,7 @@ if (prepared && prepared.files[fileId]) {
 
 `prepareUpload` sends metadata and waits for the receiver to accept (or reject) the transfer;
 `uploadFile` streams the whole file in a single request, exactly as the LocalSend protocol
-requires (there is no chunking). If you don't already know the target's port/protocol,
+requires (there is no chunking). If you don't already know the target's protocol,
 `client.getDeviceInfo(target)` (or discovery, below) will resolve it for you first.
 
 ### Share a link / let others download from you
