@@ -273,6 +273,54 @@ test("quickSave 'on' auto-accepts without a modal", async () => {
 	expect(store.state.incomingRequest).toBeNull()
 })
 
+test("a second incoming request is declined while the first consent is pending", async () => {
+	const { deps, fireRequest } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	const first = fireRequest(makeDevice("10.0.0.9", { alias: "First" }), {
+		a: fileMeta("a", "photo.png", 100)
+	})
+	expect(store.state.incomingRequest?.sender.alias).toBe("First")
+
+	// A second sender arrives before the first is answered: it must be declined
+	// outright, and the first request's pending promise must be preserved.
+	const second = await fireRequest(makeDevice("10.0.0.8", { alias: "Second" }), {
+		b: fileMeta("b", "doc.pdf", 200)
+	})
+	expect(second).toBe(false)
+	expect(store.state.incomingRequest?.sender.alias).toBe("First")
+
+	store.acceptIncoming()
+	await expect(first!).resolves.toBe(true)
+})
+
+test("an incoming request is declined while an outbound send is in flight", async () => {
+	const { deps, fireRequest } = makeDeps()
+	let release: () => void = () => {}
+	deps.sendPath = async () => {
+		await new Promise<void>((r) => {
+			release = r
+		})
+		return { ok: true, message: "sent" }
+	}
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	store.addDevice(makeDevice("10.0.0.5", { alias: "Peer" }))
+	await store.addPath(import.meta.path)
+	const sending = store.sendToDevice(store.selectedDevice()!)
+	expect(store.state.session?.status).toBe("sending")
+
+	// A receiver request that lands mid-send must not clobber the send session.
+	const accepted = await fireRequest(makeDevice("10.0.0.9", { alias: "Sender" }), {
+		a: fileMeta("a", "photo.png", 100)
+	})
+	expect(accepted).toBe(false)
+	expect(store.state.session?.direction).toBe("send")
+
+	release()
+	await sending
+})
+
 test("favorites toggle persists and sorts favorites first", async () => {
 	const mem = memoryPersist()
 	const { deps } = makeDeps({ persist: mem.persist })

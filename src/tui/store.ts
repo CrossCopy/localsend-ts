@@ -487,6 +487,18 @@ export function createTuiStore(
 		senderInfo: DeviceInfo,
 		files: Record<string, FileMetadata>
 	): Promise<boolean> => {
+		// Single-session model: decline a new request while another transfer is
+		// in flight or a consent prompt is still pending. Accepting would replace
+		// the live `session` (a running send queue would then mutate what is now a
+		// receive session) or overwrite `incomingRequest` and drop the first
+		// sender's unresolved consent promise, leaving it to hang until timeout.
+		// The sender gets a clean decline instead.
+		const busy =
+			state.incomingRequest != null ||
+			(state.session != null &&
+				(state.session.status === "sending" || state.session.status === "waiting"))
+		if (busy) return Promise.resolve(false)
+
 		const fingerprint = senderInfo.fingerprint
 		const senderIsFavorite = isFavorite(fingerprint)
 		if (state.quickSave === "on" || (state.quickSave === "favorites" && senderIsFavorite)) {
