@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.claude
+.github
+test
+examples
+docs
+tools
+*.log
+received_files

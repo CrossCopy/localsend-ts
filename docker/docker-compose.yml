@@ -1,0 +1,47 @@
+# Two LocalSend-TS peers on one user-defined bridge network. Each runs the CLI
+# receiver with --autoAccept so an incoming transfer is saved without a prompt,
+# and --verbose so it logs "Device discovered: <alias>" when multicast finds a
+# peer. The interop test (test/e2e-docker/interop.test.ts) drives transfers
+# between them by container DNS name and checks the bytes land.
+services:
+  peer-a:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: localsend-ts-peer
+    container_name: lspeer-a
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerA",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
+    networks: [lsnet]
+
+  peer-b:
+    image: localsend-ts-peer
+    container_name: lspeer-b
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerB",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
+    networks: [lsnet]
+    depends_on: [peer-a]
+
+networks:
+  lsnet:
+    driver: bridge
