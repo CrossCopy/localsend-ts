@@ -5,6 +5,7 @@ import { existsSync } from "node:fs"
 import { stat } from "node:fs/promises"
 import path from "node:path"
 import type { FileMetadata } from "../protocol/types.ts"
+import { safeJoinReceivePath } from "../utils/path-safety.ts"
 
 export type StagedFile = { fileId: string; metadata: FileMetadata; absolutePath: string }
 
@@ -16,15 +17,13 @@ export function sanitizeFilename(name: string): string {
 
 /**
  * Resolve a save path for an incoming file, preserving safe sub-folders but
- * rejecting any path that escapes saveDir (path traversal).
+ * rejecting any path that escapes saveDir (path traversal). Delegates to
+ * safeJoinReceivePath, the canonical guard, which additionally rejects
+ * absolute / Windows-drive / backslash / null-byte paths and empty/`.`/`..`
+ * segments.
  */
 export function resolveSavePath(saveDir: string, fileName: string): string {
-	const root = path.resolve(saveDir)
-	const candidate = path.resolve(root, fileName)
-	if (candidate !== root && !candidate.startsWith(root + path.sep)) {
-		throw new Error(`Unsafe file path rejected: ${fileName}`)
-	}
-	return candidate
+	return safeJoinReceivePath(saveDir, fileName)
 }
 
 /**
@@ -33,8 +32,6 @@ export function resolveSavePath(saveDir: string, fileName: string): string {
  */
 export function uniqueSavePath(saveDir: string, fileName: string): string {
 	const resolved = resolveSavePath(saveDir, fileName)
-	const root = path.resolve(saveDir)
-	if (resolved === root) throw new Error(`Invalid file name: ${fileName}`)
 	if (!existsSync(resolved)) return resolved
 	const dir = path.dirname(resolved)
 	const ext = path.extname(resolved)
