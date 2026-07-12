@@ -101,6 +101,34 @@ import {
 ## Development
 
 ```bash
-deno -A --unstable-sloppy-imports --unstable-net src/cli.ts receive -=alias deno-client
-bun run src/cli.ts receive
+# Run the CLI / TUI from source (Bun)
+bun run src/cli.ts receive --alias my-client
+bun run src/cli.ts                    # bare → TUI dashboard
+
+# Or under Deno
+deno -A --unstable-sloppy-imports --unstable-net src/cli.ts receive --alias deno-client
 ```
+
+## Testing
+
+```bash
+bun test              # unit tests — fast, no network or Docker
+bun run check-types   # tsc --noEmit
+```
+
+### End-to-end interop test (Docker)
+
+Stands up **two real peers in separate Docker containers**, proves they discover
+each other over multicast, and transfers a file and a text message **both
+directions** (verified by sha256 / content). It's opt-in so a plain `bun test`
+stays fast and Docker-free — enable it with the env var:
+
+```bash
+# needs Docker running
+LOCALSEND_E2E_DOCKER=1 bun test test/e2e-docker/interop.test.ts
+```
+
+The test does the whole lifecycle (build → up → assert → down) in one command.
+See [test/e2e-docker/README.md](test/e2e-docker/README.md) for the design and how
+to reuse it as a cross-language interop reference (e.g. testing a Rust/Go client
+against this TypeScript one).
