@@ -58,6 +58,12 @@ export const prepareUploadResponseSchema = v.object({
 	files: v.record(v.string(), v.string())
 })
 
+export const prepareDownloadResponseSchema = v.object({
+	info: deviceInfoSchema,
+	sessionId: v.string(),
+	files: v.record(v.string(), fileMetadataSchema)
+})
+
 export const messageResponseSchema = v.object({
 	message: v.string()
 })

@@ -8,6 +8,7 @@ import {
 	deviceInfoSchema,
 	prepareUploadRequestSchema,
 	prepareUploadResponseSchema,
+	prepareDownloadResponseSchema,
 	messageResponseSchema
 } from "../protocol/types.ts"
 import { Buffer } from "node:buffer"
@@ -326,6 +327,13 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 					}
 
 					await closeFileStream()
+
+					if (received !== fileMetadata.size) {
+						await unlink(filePath).catch(() => {})
+						ctx.uploads.delete(sessionId)
+						return c.json({ message: "Incomplete upload: size mismatch" }, 400)
+					}
+
 					ctx.uploads.markReceived(sessionId, fileId)
 					const totalTime = (Date.now() - start) / 1000
 					if (ctx.transferProgressHandler) {
@@ -392,7 +400,7 @@ export function createLocalSendRoutes(ctx: LocalSendContext) {
 					200: {
 						description: "Download metadata",
 						content: {
-							"application/json": { schema: resolver(messageResponseSchema) }
+							"application/json": { schema: resolver(prepareDownloadResponseSchema) }
 						}
 					},
 					401: {

@@ -54,3 +54,43 @@ test("fresh download sessions survive purge", () => {
 	store.purgeExpired(Date.now())
 	expect(store.get(sessionId)).toBeTruthy()
 })
+
+test("DownloadSessionStore.get enforces TTL on access, not just on create", async () => {
+	const store = new DownloadSessionStore(5)
+	const staged: StagedFile = {
+		fileId: "f1",
+		metadata: { id: "f1", fileName: "a", size: 1, fileType: "x" },
+		absolutePath: "/tmp/a"
+	}
+	const sessionId = store.create([staged])
+	await Bun.sleep(40)
+	expect(store.get(sessionId)).toBeUndefined()
+	expect(store.getFile(sessionId, "f1")).toBeUndefined()
+})
+
+test("DownloadSessionStore.get still returns unexpired sessions", async () => {
+	const store = new DownloadSessionStore(10_000)
+	const staged: StagedFile = {
+		fileId: "f1",
+		metadata: { id: "f1", fileName: "a", size: 1, fileType: "x" },
+		absolutePath: "/tmp/a"
+	}
+	const sessionId = store.create([staged])
+	await Bun.sleep(40)
+	expect(store.get(sessionId)).toBeTruthy()
+	expect(store.getFile(sessionId, "f1")).toBeTruthy()
+})
+
+test("UploadSessionStore.get enforces TTL on access, not just on create", async () => {
+	const store = new UploadSessionStore(5)
+	const { sessionId } = store.create(info, files)
+	await Bun.sleep(40)
+	expect(store.get(sessionId)).toBeUndefined()
+})
+
+test("UploadSessionStore.get still returns unexpired sessions", async () => {
+	const store = new UploadSessionStore(10_000)
+	const { sessionId } = store.create(info, files)
+	await Bun.sleep(40)
+	expect(store.get(sessionId)).toBeTruthy()
+})

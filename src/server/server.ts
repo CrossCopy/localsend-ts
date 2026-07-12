@@ -61,7 +61,8 @@ export class LocalSendServer {
 			tls?: { cert: string; key: string }
 		} = {}
 	) {
-		this._deviceInfo = options.protocol ? { ...deviceInfo, protocol: options.protocol } : deviceInfo
+		this._deviceInfo = deviceInfo
+		if (options.protocol) this._deviceInfo.protocol = options.protocol
 		this.saveDirectory = options.saveDirectory || "./received_files"
 		this.pin = options.pin || ""
 		this.requirePin = !!this.pin

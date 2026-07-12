@@ -39,7 +39,13 @@ export class UploadSessionStore {
 	}
 
 	get(sessionId: string): UploadSession | undefined {
-		return this.sessions.get(sessionId)
+		const s = this.sessions.get(sessionId)
+		if (!s) return undefined
+		if (Date.now() - s.createdAt > this.ttlMs) {
+			this.sessions.delete(sessionId)
+			return undefined
+		}
+		return s
 	}
 
 	has(sessionId: string): boolean {
@@ -88,11 +94,17 @@ export class DownloadSessionStore {
 	}
 
 	get(sessionId: string): DownloadSession | undefined {
-		return this.sessions.get(sessionId)
+		const s = this.sessions.get(sessionId)
+		if (!s) return undefined
+		if (Date.now() - s.createdAt > this.ttlMs) {
+			this.sessions.delete(sessionId)
+			return undefined
+		}
+		return s
 	}
 
 	getFile(sessionId: string, fileId: string): StagedFile | undefined {
-		return this.sessions.get(sessionId)?.files[fileId]
+		return this.get(sessionId)?.files[fileId]
 	}
 
 	delete(sessionId: string): void {
