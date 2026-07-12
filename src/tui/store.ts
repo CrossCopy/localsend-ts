@@ -682,8 +682,20 @@ export function createTuiStore(
 	}
 
 	const cancelSession = () => {
-		if (state.session?.direction === "send" && state.session.status === "sending") {
+		if (!state.session) return
+		if (state.session.direction === "send" && state.session.status === "sending") {
 			cancelRequested = true
+		} else if (
+			state.session.direction === "receive" &&
+			(state.session.status === "sending" || state.session.status === "waiting")
+		) {
+			// A receive has no sender-side abort and no error callback, so an
+			// upload that errors or disconnects mid-flight would otherwise pin the
+			// session in "sending" forever — and the busy-guard in `handleIncoming`
+			// would then reject every future transfer until restart. Let the user
+			// settle a stuck receive so its overlay is dismissible and the receiver
+			// is no longer treated as busy.
+			setState("session", { status: "canceledByReceiver", doneAt: deps.now() })
 		}
 	}
 

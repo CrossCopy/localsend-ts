@@ -321,6 +321,36 @@ test("an incoming request is declined while an outbound send is in flight", asyn
 	await sending
 })
 
+test("a stalled receive can be canceled so it stops blocking new transfers", async () => {
+	const { deps, fireRequest } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	store.cycleQuickSave() // off -> favorites
+	store.cycleQuickSave() // favorites -> on (auto-accept)
+
+	// First receive auto-accepts and sits in "sending" — a real upload that
+	// errored/disconnected never fires a finished progress event.
+	await fireRequest(makeDevice("10.0.0.9", { alias: "A" }), { a: fileMeta("a", "x.bin", 100) })
+	expect(store.state.session?.direction).toBe("receive")
+	expect(store.state.session?.status).toBe("sending")
+
+	// While it is stuck, a new incoming is declined as busy.
+	const blocked = await fireRequest(makeDevice("10.0.0.8", { alias: "B" }), {
+		b: fileMeta("b", "y.bin", 100)
+	})
+	expect(blocked).toBe(false)
+
+	// The user cancels the stalled receive, settling it.
+	store.cancelSession()
+	expect(store.state.session?.status).toBe("canceledByReceiver")
+
+	// A new incoming is now accepted again instead of being permanently rejected.
+	const accepted = await fireRequest(makeDevice("10.0.0.7", { alias: "C" }), {
+		c: fileMeta("c", "z.bin", 100)
+	})
+	expect(accepted).toBe(true)
+})
+
 test("favorites toggle persists and sorts favorites first", async () => {
 	const mem = memoryPersist()
 	const { deps } = makeDeps({ persist: mem.persist })
