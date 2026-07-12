@@ -102,15 +102,24 @@ bun run cli            # Menu-driven interactive CLI
 ```
 ./
 ├── src/
-│   ├── api/          # HTTP server/client, OpenAPI integration
+│   ├── protocol/     # Constants + Valibot schemas (source of truth for wire types)
+│   ├── crypto/       # Fingerprint derivation
+│   ├── core/         # files.ts, send.ts (LocalSendClient), sessions.ts (UploadSessionStore)
+│   ├── server/       # server.ts (LocalSendServer), routes.ts, adapters/ (Bun/Node/Deno)
+│   ├── api/          # Thin re-export shims over core/ + server/ (back-compat import paths)
 │   ├── discovery/    # Device discovery (multicast UDP, HTTP)
 │   ├── sdk/          # Auto-generated OpenAPI SDK (DO NOT EDIT)
 │   ├── utils/        # Device info, file operations
-│   ├── types.ts       # Protocol types via Valibot schemas (source of truth)
+│   ├── types.ts      # Re-exports src/protocol/types.ts
 │   ├── cli.ts        # Traditional CLI (send/receive/discover)
 │   ├── cli-interactive.ts  # Menu-driven CLI
 │   ├── cli-tui.tsx   # React Ink TUI (recommended)
 │   └── hono-rpc.ts   # Type-safe Hono RPC client
+├── test/
+│   ├── unit/         # Pure logic (files, sessions, collisions)
+│   ├── conformance/  # Protocol/schema/wire-format checks against the spec
+│   ├── interop/      # End-to-end checks against a running server (path traversal, upload smoke)
+│   └── helpers/      # Shared test harness + utilities
 ├── examples/         # Functional examples (serve as integration tests)
 ├── build.ts          # Custom build: spawns hono-receiver to generate SDK
 └── dist/             # Build output (generated, never commit)
@@ -118,16 +127,21 @@ bun run cli            # Menu-driven interactive CLI
 
 ## WHERE TO LOOK
 
-| Task             | Location                 | Notes                              |
-| ---------------- | ------------------------ | ---------------------------------- |
-| Send file        | `src/api/client.ts`      | LocalSendClient.sendFile()         |
-| Receive file     | `src/api/server.ts`      | LocalSendServer (vanilla)          |
-| Hono server      | `src/api/hono-server.ts` | OpenAPI integration                |
-| RPC client       | `src/hono-rpc.ts`        | Type-safe Hono client              |
-| Discover devices | `src/discovery/*.ts`     | Multicast + HTTP fallback          |
-| Build process    | `build.ts`               | Spawns hono-receiver on port 53317 |
-| Protocol types   | `src/types.ts`           | Valibot schemas (source of truth)  |
-| CLI entry        | `src/cli.ts`             | Citty framework                    |
+| Task             | Location                 | Notes                                   |
+| ---------------- | ------------------------ | --------------------------------------- |
+| Send file        | `src/api/client.ts`      | LocalSendClient.sendFile()              |
+| Receive file     | `src/api/server.ts`      | LocalSendServer (vanilla)               |
+| Download file    | `src/core/send.ts`       | Client: prepareDownload/download()      |
+| Download API     | `src/server/routes.ts`   | prepare-download / download endpoints   |
+| Download UI      | `src/server/web.ts`      | GET / (browser page & file streaming)   |
+| Share files      | `src/server/server.ts`   | LocalSendServer({ sharedFiles: [...] }) |
+| HTTPS mode       | `src/crypto/cert.ts`     | Self-signed cert + fingerprint          |
+| Hono server      | `src/api/hono-server.ts` | OpenAPI integration                     |
+| RPC client       | `src/hono-rpc.ts`        | Type-safe Hono client                   |
+| Discover devices | `src/discovery/*.ts`     | Multicast + HTTP fallback               |
+| Build process    | `build.ts`               | Spawns hono-receiver on port 53317      |
+| Protocol types   | `src/types.ts`           | Valibot schemas (source of truth)       |
+| CLI entry        | `src/cli.ts`             | Citty framework                         |
 
 ## RUNTIME SUPPORT
 
@@ -136,16 +150,42 @@ bun run cli            # Menu-driven interactive CLI
 - **Deno** - Full support via @hono/node-server adapter
 - **Server adapters** - Auto-detect or explicitly: BunServerAdapter, NodeServerAdapter, DenoServerAdapter
 
-## TESTING STRATEGY
+## TESTING
 
-**No formal test suite** - Examples serve as functional integration tests. To test a feature:
+Tests live under `test/{unit,conformance,interop}/` and run with `bun test`. `test/unit/` covers
+pure logic, `test/conformance/` checks protocol/schema/wire-format behavior, and `test/interop/`
+spins up a real server (via `test/helpers/harness.ts`) for end-to-end checks. Examples in
+`examples/` remain useful for manual, runnable demonstrations of a feature. Always run
+`bun run check-types` and `bun test` after changes.
 
-1. **Create an example** in `examples/` directory
-2. **Run directly with Bun** - `bun examples/your-feature.ts [args]`
-3. **Manual verification** - Check output/log for expected behavior
-4. **Type checking** - Always run `bun run check-types` after changes
+### Docker E2E (opt-in)
 
-For formal tests, Bun test is recommended (project currently uses examples instead).
+`bun run test:e2e:docker` runs multicast discovery tests in Docker containers. Requires Docker to
+be running; validates real multicast discovery between separate containers on a user-defined bridge
+network. Skipped by default (`bun test` does NOT run these tests) — enable only when Docker is
+available and you need to verify cross-container discovery.
+
+### Oracle (real-peer interop)
+
+`bun run test:oracle` drives the **official LocalSend Rust `core` v2 client** (`tools/oracle-rs`) against
+our TypeScript server to prove real-implementation interop. First build the oracle with
+`bun run oracle:build` (requires Rust/cargo and the `http` feature-enabled localsend/core crate in
+`references/localsend/core`). Oracle tests confirm byte-identical upload/download across HTTP and HTTPS,
+and surface any residual wire-format mismatches. Skipped by default (`bun test` does NOT run oracle tests)
+— enable only when the Rust crate builds and you need final verification against the reference implementation.
+
+## HTTPS MODE
+
+`new LocalSendServer(info, { protocol: "https" })` auto-generates a self-signed
+certificate (RSA, CN "LocalSend User") on `start()` and sets
+`fingerprint = SHA-256(DER cert bytes) uppercase hex` on the device info — this matches
+the official app's `calculateHashOfCertificate` (see
+`references/localsend/app/lib/util/security_helper.dart`). Cert generation and
+fingerprinting live in `src/crypto/cert.ts` (`generateSelfSignedCert`,
+`certFingerprintSha256`); adapter-level TLS wiring lives in `src/server/adapters/*`.
+The adapter only receives `tls` when HTTPS is actually requested (device protocol or
+`options.protocol === "https"`), so plain HTTP servers never get a mismatched
+advertise/actual protocol.
 
 ## PROTOCOL REFERENCE
 
@@ -153,4 +193,4 @@ For formal tests, Bun test is recommended (project currently uses examples inste
 - **Multicast**: 224.0.0.167:53317
 - **Default port**: 53317
 - **Authentication**: PIN-based (optional, server-configured)
-- **Chunked uploads**: Files >50MB split into 10MB chunks with Content-Range header
+- **Uploads**: Whole-file POST in one request (no Content-Range chunking)

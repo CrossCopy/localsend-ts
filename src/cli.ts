@@ -181,7 +181,7 @@ const main = defineCommand({
 					const now = Date.now()
 					const timeDiff = (now - lastTime) / 1000 // seconds
 					const bytesDiff = bytesUploaded - lastBytes
-					const speed = bytesDiff / timeDiff // bytes per second
+					const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0 // bytes per second
 
 					// Format speed
 					const speedText = `${prettyBytes(speed)}/s`

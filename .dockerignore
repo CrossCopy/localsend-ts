@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+received_files
+downloads
+.superpowers
+docs
+references
+*.jpeg

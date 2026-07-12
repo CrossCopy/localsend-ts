@@ -1,0 +1,40 @@
+services:
+  peer-a:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: localsend-ts-peer
+    container_name: lspeer-a
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerA",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
+    networks: [lsnet]
+  peer-b:
+    image: localsend-ts-peer
+    container_name: lspeer-b
+    command:
+      [
+        "bun",
+        "src/cli.ts",
+        "receive",
+        "--alias",
+        "PeerB",
+        "--autoAccept",
+        "--saveDir",
+        "/received",
+        "--verbose"
+      ]
+    networks: [lsnet]
+    depends_on: [peer-a]
+networks:
+  lsnet:
+    driver: bridge
