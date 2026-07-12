@@ -578,13 +578,20 @@ export function createTuiStore(
 		finished: boolean
 	) => {
 		if (!state.session || state.session.direction !== "receive") return
+		// Ignore progress once the receive is settled: if the user canceled a
+		// stuck receive (marking it canceledByReceiver), an upload that keeps
+		// streaming must not revive that overlay — and must not leak into a
+		// later session accepted after the cancel.
+		if (state.session.status !== "sending" && state.session.status !== "waiting") return
 		const idx = state.session.files.findIndex((f) => f.id === fileId)
-		if (idx >= 0) {
-			setState("session", "files", idx, {
-				received,
-				status: finished ? "done" : "sending"
-			})
-		}
+		// Progress for a file that isn't part of the current session (a stale
+		// event from a prior/canceled upload) must not touch this session's
+		// speed, recent-receives, or completion accounting.
+		if (idx < 0) return
+		setState("session", "files", idx, {
+			received,
+			status: finished ? "done" : "sending"
+		})
 		setState("session", "speed", speed)
 		if (finished) {
 			setState("recentReceives", (list) => [

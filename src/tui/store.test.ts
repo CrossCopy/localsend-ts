@@ -53,6 +53,16 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 	let requestHandler:
 		| ((info: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>)
 		| null = null
+	let progressHandler:
+		| ((
+				fileId: string,
+				fileName: string,
+				received: number,
+				total: number,
+				speed: number,
+				finished: boolean
+		  ) => void | Promise<void>)
+		| null = null
 	const deps: TuiDeps = {
 		createDiscovery: () => ({
 			onDeviceDiscovered: (cb) => {
@@ -66,6 +76,7 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 		createServer: (_info, options) => {
 			serverOptions = options as Record<string, unknown> | undefined
 			requestHandler = options?.onTransferRequest ?? null
+			progressHandler = options?.onTransferProgress ?? null
 			return {
 				start: async () => {
 					calls.serverStart++
@@ -92,6 +103,14 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 		clock,
 		emitDevice: (d: DeviceInfo) => discoveredCb?.(d),
 		fireRequest: (i: DeviceInfo, files: Record<string, FileMetadata>) => requestHandler?.(i, files),
+		fireProgress: (
+			fileId: string,
+			fileName: string,
+			received: number,
+			total: number,
+			speed: number,
+			finished: boolean
+		) => progressHandler?.(fileId, fileName, received, total, speed, finished),
 		serverOptions: () => serverOptions
 	}
 }
@@ -349,6 +368,37 @@ test("a stalled receive can be canceled so it stops blocking new transfers", asy
 		c: fileMeta("c", "z.bin", 100)
 	})
 	expect(accepted).toBe(true)
+})
+
+test("progress from a canceled receive does not leak into the next session", async () => {
+	const { deps, fireRequest, fireProgress } = makeDeps()
+	const store = createTuiStore(info, deps)
+	await store.boot()
+	store.cycleQuickSave() // off -> favorites
+	store.cycleQuickSave() // favorites -> on
+
+	// Receive A starts, then the user cancels it while its upload is still live.
+	await fireRequest(makeDevice("10.0.0.9", { alias: "A" }), { a: fileMeta("a", "x.bin", 100) })
+	store.cancelSession()
+	expect(store.state.session?.status).toBe("canceledByReceiver")
+
+	// A's upload keeps streaming and even reports finished — a settled session
+	// must not be revived, and nothing should be recorded.
+	await fireProgress("a", "x.bin", 100, 100, 0, true)
+	expect(store.state.session?.status).toBe("canceledByReceiver")
+	expect(store.state.recentReceives.length).toBe(0)
+
+	// A new receive B is accepted; A's stale progress must not touch B.
+	await fireRequest(makeDevice("10.0.0.8", { alias: "B" }), { b: fileMeta("b", "y.bin", 200) })
+	expect(store.state.session?.status).toBe("sending")
+	await fireProgress("a", "x.bin", 100, 100, 0, true)
+	expect(store.state.recentReceives.length).toBe(0)
+	expect(store.state.session?.files[0]?.status).toBe("sending")
+
+	// Legit progress for B still completes it.
+	await fireProgress("b", "y.bin", 200, 200, 0, true)
+	expect(store.state.session?.status).toBe("finished")
+	expect(store.state.recentReceives[0]?.fileName).toBe("y.bin")
 })
 
 test("favorites toggle persists and sorts favorites first", async () => {
