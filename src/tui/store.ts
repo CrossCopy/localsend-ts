@@ -105,10 +105,6 @@ export interface TuiState {
 export interface PersistedConfig {
 	favorites?: Favorite[]
 	quickSave?: QuickSaveMode
-	alias?: string
-	port?: number
-	saveDir?: string
-	protocol?: "http" | "https"
 }
 
 export interface Persist {
@@ -211,11 +207,14 @@ export function visualId(fingerprint: string): string {
 export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps) {
 	const persisted = deps.persist.load()
 
+	// Identity comes from CLI args / getDeviceInfo, never from persisted config —
+	// persisting alias/port would override explicit `--alias`/`--port` and let two
+	// instances collide on the same saved port. Only favorites and quickSave persist.
 	const settings: TuiSettings = {
-		alias: persisted.alias ?? baseInfo.alias,
-		port: persisted.port ?? baseInfo.port,
-		saveDir: persisted.saveDir ?? "./received_files",
-		protocol: persisted.protocol ?? baseInfo.protocol
+		alias: baseInfo.alias,
+		port: baseInfo.port,
+		saveDir: "./received_files",
+		protocol: baseInfo.protocol
 	}
 
 	const [state, setState] = createStore<TuiState>({
@@ -248,11 +247,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 	const persistNow = () => {
 		deps.persist.save({
 			favorites: state.favorites,
-			quickSave: state.quickSave,
-			alias: state.settings.alias,
-			port: state.settings.port,
-			saveDir: state.settings.saveDir,
-			protocol: state.settings.protocol
+			quickSave: state.quickSave
 		})
 	}
 
@@ -643,7 +638,13 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 
 	// ── Inline input mode ──
 
-	const openInput = (mode: InputMode) => setState({ inputMode: mode })
+	const openInput = (mode: InputMode) => {
+		// Defer one tick so the keystroke that triggered opening (e.g. "t") is not
+		// captured by the input that focuses in the same key-dispatch pass.
+		setTimeout(() => setState({ inputMode: mode }), 0)
+	}
+	// Synchronous variant for unit tests that assert inputMode immediately.
+	const openInputNow = (mode: InputMode) => setState({ inputMode: mode })
 	const closeInput = () => setState({ inputMode: null })
 
 	const submitInput = async (value: string) => {
@@ -739,6 +740,7 @@ export function createTuiStore(baseInfo: DeviceInfo, deps: TuiDeps = defaultDeps
 		updateSettings,
 		// input
 		openInput,
+		openInputNow,
 		closeInput,
 		submitInput,
 		// status

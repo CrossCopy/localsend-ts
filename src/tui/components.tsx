@@ -318,7 +318,7 @@ export const SettingsTab = (props: { store: TuiStore }) => {
 			{row("Save dir:", s().saveDir)}
 			{row("Protocol:", s().protocol)}
 			<text fg={colors.dim}>
-				Settings editing lands in a later pass — values persist across runs.
+				Set alias and port with --alias / --port. Favorites and Quick Save persist.
 			</text>
 		</box>
 	)
@@ -416,8 +416,8 @@ export const TransferOverlay = (props: { store: TuiStore }) => {
 						{active()
 							? "c cancel · Esc close"
 							: status() === "finishedWithErrors"
-								? "r retry failed · Esc close"
-								: "Esc close"}
+								? "r retry failed · Enter/Esc close"
+								: "Enter/Esc close"}
 					</text>
 				</box>
 			</box>

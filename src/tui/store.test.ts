@@ -221,6 +221,16 @@ test("tab cycling wraps", () => {
 	expect(store.state.tab).toBe("send")
 })
 
+test("openInput defers so the trigger key is not captured by the input", async () => {
+	const { deps } = makeDeps()
+	const store = createTuiStore(info, deps)
+	store.openInput("compose-text")
+	// Not set synchronously — the triggering keystroke's dispatch must finish first.
+	expect(store.state.inputMode).toBeNull()
+	await new Promise((resolve) => setTimeout(resolve, 5))
+	expect(store.state.inputMode).toBe("compose-text")
+})
+
 test("manual address entry adds and focuses the device", async () => {
 	const { deps } = makeDeps()
 	const store = createTuiStore(info, deps)

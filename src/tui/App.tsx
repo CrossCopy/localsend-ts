@@ -17,7 +17,9 @@ import {
 const hintFor = (store: TuiStore): string => {
 	if (store.state.incomingRequest) return "Y accept · N decline"
 	if (store.state.session) {
-		return store.state.session.status === "sending" ? "c cancel" : "r retry · Esc close"
+		const settled =
+			store.state.session.status !== "sending" && store.state.session.status !== "waiting"
+		return settled ? "Enter/Esc close · r retry failed" : "c cancel"
 	}
 	if (store.state.inputMode) return "Enter confirm · Esc cancel"
 	if (store.state.tab === "send") {
@@ -55,11 +57,15 @@ export const App = (props: { store: TuiStore }) => {
 			return
 		}
 
-		// 2. Transfer overlay
+		// 2. Transfer overlay. A bare Escape lags ~1s in terminals without the kitty
+		// keyboard protocol, so once the transfer settles allow Enter/q to dismiss too.
 		if (store.state.session) {
+			const settled =
+				store.state.session.status !== "sending" && store.state.session.status !== "waiting"
 			if (key.name === "c") store.cancelSession()
 			else if (key.name === "r") void store.retryFailed()
-			else if (key.name === "escape") store.closeSession()
+			else if (key.name === "escape" || (settled && (key.name === "return" || key.name === "q")))
+				store.closeSession()
 			return
 		}
 
@@ -69,8 +75,9 @@ export const App = (props: { store: TuiStore }) => {
 			return
 		}
 
-		// 4. Global keys
-		if (key.name === "q") {
+		// 4. Global keys — plain `q` quits, but Shift+Q (sequence "Q") is reserved
+		// for the Receive tab's quick-save toggle, so let it fall through.
+		if (key.name === "q" && !key.shift && key.sequence !== "Q") {
 			exit()
 			return
 		}
