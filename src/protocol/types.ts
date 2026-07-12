@@ -9,12 +9,22 @@ export const deviceType = v.union([
 ])
 export type DeviceType = v.InferOutput<typeof deviceType>
 
+const KNOWN_DEVICE_TYPES = ["mobile", "desktop", "web", "headless", "server"] as const
+
+const lenientDeviceType = v.pipe(
+	v.string(),
+	v.transform((s): DeviceType => {
+		const l = s.toLowerCase()
+		return (KNOWN_DEVICE_TYPES as readonly string[]).includes(l) ? (l as DeviceType) : "desktop"
+	})
+)
+
 // Define schemas using Valibot
 export const deviceInfoSchema = v.object({
 	alias: v.string(),
 	version: v.string(),
 	deviceModel: v.optional(v.nullable(v.string())),
-	deviceType: v.optional(v.nullable(deviceType)),
+	deviceType: v.optional(v.nullable(lenientDeviceType)),
 	fingerprint: v.string(),
 	port: v.number(),
 	protocol: v.optional(v.union([v.literal("http"), v.literal("https")]), "http"),
