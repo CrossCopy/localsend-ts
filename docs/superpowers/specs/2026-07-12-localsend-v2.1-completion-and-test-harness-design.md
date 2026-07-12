@@ -361,7 +361,7 @@ honest way to test discovery.
       `crypto/cert.ts` (choose dep), fingerprint=SHA-256(cert) with **verified** format, TLS in all adapters.
       Exit: HTTP+HTTPS interop tests green; fingerprint format confirmed against `core` source.
 
-- [ ] **Phase 5 — Docker discovery e2e**
+- [x] **Phase 5 — Docker discovery e2e**
       Multicast-config seam (injectable group addr/port, default `224.0.0.167:53317`); headless
       discovery+receiver entrypoint over the built `dist/`; `docker compose` with 2+ containers on a
       user-defined bridge network; `test/e2e-docker/` asserting mutual discovery + real transfer.

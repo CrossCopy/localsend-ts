@@ -158,6 +158,13 @@ spins up a real server (via `test/helpers/harness.ts`) for end-to-end checks. Ex
 `examples/` remain useful for manual, runnable demonstrations of a feature. Always run
 `bun run check-types` and `bun test` after changes.
 
+### Docker E2E (opt-in)
+
+`bun run test:e2e:docker` runs multicast discovery tests in Docker containers. Requires Docker to
+be running; validates real multicast discovery between separate containers on a user-defined bridge
+network. Skipped by default (`bun test` does NOT run these tests) — enable only when Docker is
+available and you need to verify cross-container discovery.
+
 ## HTTPS MODE
 
 `new LocalSendServer(info, { protocol: "https" })` auto-generates a self-signed
