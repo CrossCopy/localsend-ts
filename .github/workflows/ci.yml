@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check-types
+
+      # Unit + conformance + interop suites. The Docker e2e and Rust-oracle
+      # suites self-skip unless LOCALSEND_E2E_DOCKER=1 / LOCALSEND_ORACLE=1, so
+      # this stays fast and needs no extra infrastructure.
+      - name: Test
+        run: bun test
