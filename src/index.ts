@@ -7,9 +7,22 @@ export * from "./config.ts"
 // Export discovery
 export { MulticastDiscovery } from "./discovery/multicast.ts"
 export { HttpDiscovery } from "./discovery/http-discovery.ts"
+export type { ScanOutcome } from "./discovery/http-discovery.ts"
 
 // Export API
 export { LocalSendServer, LocalSendServer as LocalSendHonoServer } from "./server/server.ts"
+export type {
+	TransferDecision,
+	TransferRequestHandler,
+	TransferProgressHandler
+} from "./server/server.ts"
+export { PinGate } from "./server/pin.ts"
+export type { PinVerdict } from "./server/pin.ts"
+export {
+	loadOrGenerateTlsCertificate,
+	generateSelfSignedCert,
+	certFingerprintSha256
+} from "./crypto/cert.ts"
 export { LocalSendClient } from "./api/client.ts"
 export type { StagedFile } from "./core/files.ts"
 export { LocalSendRpcClient } from "./hono-rpc.ts"

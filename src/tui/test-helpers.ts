@@ -1,4 +1,4 @@
-import type { DeviceInfo, FileMetadata } from "../index.ts"
+import type { DeviceInfo, FileMetadata, TransferDecision } from "../index.ts"
 import { createTuiStore, type Persist, type PersistedConfig, type TuiDeps } from "./store.ts"
 
 export { createTuiStore }
@@ -19,14 +19,14 @@ export interface MemoryControls {
 	fireRequest: (
 		info: DeviceInfo,
 		files: Record<string, FileMetadata>
-	) => Promise<boolean> | undefined
+	) => Promise<TransferDecision> | undefined
 }
 
 /** Fully stubbed deps with control handles for driving discovery/requests in tests. */
 export function memoryControls(persist: Persist = memoryPersist()): MemoryControls {
 	let discoveredCb: ((device: DeviceInfo) => void) | null = null
 	let requestHandler:
-		| ((info: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>)
+		| ((info: DeviceInfo, files: Record<string, FileMetadata>) => Promise<TransferDecision>)
 		| null = null
 	const deps: TuiDeps = {
 		createDiscovery: () => ({

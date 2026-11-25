@@ -9,6 +9,9 @@ export type UploadSession = {
 	acceptedFiles: string[]
 	receivedFiles: Set<string>
 	createdAt: number
+	abortController: AbortController
+	cancelled: boolean
+	activeUploads: number
 }
 
 export class UploadSessionStore {
@@ -18,22 +21,31 @@ export class UploadSessionStore {
 
 	purgeExpired(now: number = Date.now()): void {
 		for (const [id, s] of this.sessions) {
-			if (now - s.createdAt > this.ttlMs) this.sessions.delete(id)
+			if (now - s.createdAt > this.ttlMs && s.activeUploads === 0) {
+				s.abortController.abort()
+				this.sessions.delete(id)
+			}
 		}
 	}
 
-	create(info: DeviceInfo, files: Record<string, FileMetadata>) {
+	create(info: DeviceInfo, files: Record<string, FileMetadata>, acceptedFileIds?: string[]) {
 		this.purgeExpired()
 		const sessionId = randomBytes(16).toString("hex")
+		const accepted = acceptedFileIds ?? Object.keys(files)
 		const tokens: Record<string, string> = {}
-		for (const fileId of Object.keys(files)) tokens[fileId] = randomBytes(16).toString("hex")
+		for (const fileId of accepted) {
+			if (files[fileId]) tokens[fileId] = randomBytes(16).toString("hex")
+		}
 		this.sessions.set(sessionId, {
 			info,
 			files,
 			tokens,
-			acceptedFiles: Object.keys(files),
+			acceptedFiles: accepted.filter((id) => Boolean(files[id])),
 			receivedFiles: new Set(),
-			createdAt: Date.now()
+			createdAt: Date.now(),
+			abortController: new AbortController(),
+			cancelled: false,
+			activeUploads: 0
 		})
 		return { sessionId, tokens }
 	}
@@ -41,7 +53,8 @@ export class UploadSessionStore {
 	get(sessionId: string): UploadSession | undefined {
 		const s = this.sessions.get(sessionId)
 		if (!s) return undefined
-		if (Date.now() - s.createdAt > this.ttlMs) {
+		if (s.cancelled) return undefined
+		if (Date.now() - s.createdAt > this.ttlMs && s.activeUploads === 0) {
 			this.sessions.delete(sessionId)
 			return undefined
 		}
@@ -49,25 +62,66 @@ export class UploadSessionStore {
 	}
 
 	has(sessionId: string): boolean {
-		return this.sessions.has(sessionId)
+		const s = this.sessions.get(sessionId)
+		return !!s && !s.cancelled
 	}
 
 	validateToken(sessionId: string, fileId: string, token: string): boolean {
 		const s = this.sessions.get(sessionId)
-		return !!s && s.tokens[fileId] === token
+		return !!s && !s.cancelled && s.tokens[fileId] === token
+	}
+
+	beginUpload(sessionId: string): UploadSession | undefined {
+		const s = this.get(sessionId)
+		if (!s || s.cancelled) return undefined
+		s.activeUploads += 1
+		return s
+	}
+
+	endUpload(sessionId: string): void {
+		const s = this.sessions.get(sessionId)
+		if (!s) return
+		s.activeUploads = Math.max(0, s.activeUploads - 1)
+		if (s.cancelled && s.activeUploads === 0) {
+			this.sessions.delete(sessionId)
+		}
 	}
 
 	markReceived(sessionId: string, fileId: string): { allDone: boolean } {
 		const s = this.sessions.get(sessionId)
-		if (!s) return { allDone: false }
+		if (!s || s.cancelled) return { allDone: false }
 		s.receivedFiles.add(fileId)
 		const allDone = s.receivedFiles.size === s.acceptedFiles.length
 		if (allDone) this.sessions.delete(sessionId)
 		return { allDone }
 	}
 
+	cancel(sessionId: string): boolean {
+		const s = this.sessions.get(sessionId)
+		if (!s) return false
+		s.cancelled = true
+		s.abortController.abort()
+		if (s.activeUploads === 0) {
+			this.sessions.delete(sessionId)
+		}
+		return true
+	}
+
 	delete(sessionId: string): void {
+		const s = this.sessions.get(sessionId)
+		if (s) {
+			s.cancelled = true
+			s.abortController.abort()
+		}
 		this.sessions.delete(sessionId)
+	}
+
+	clear(): void {
+		for (const s of this.sessions.values()) {
+			s.cancelled = true
+			s.abortController.abort()
+		}
+		this.sessions.clear()
 	}
 }
 

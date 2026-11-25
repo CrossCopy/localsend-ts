@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto"
 import { Buffer } from "node:buffer"
+import fs from "node:fs"
+import path from "node:path"
 import forge from "node-forge"
 
 /**
@@ -47,4 +49,94 @@ export function certFingerprintSha256(certPem: string): string {
 		.join("")
 	const der = Buffer.from(body, "base64")
 	return createHash("sha256").update(der).digest("hex").toUpperCase()
+}
+
+export function isTlsIdentityConsistent(certPem: string, keyPem: string): boolean {
+	try {
+		const cert = forge.pki.certificateFromPem(certPem)
+		const privateKey = forge.pki.privateKeyFromPem(keyPem)
+		const certPub = cert.publicKey as forge.pki.rsa.PublicKey
+		return certPub.n.compareTo(privateKey.n) === 0 && certPub.e.compareTo(privateKey.e) === 0
+	} catch {
+		return false
+	}
+}
+
+function tryLoadValidIdentity(
+	certPath: string,
+	keyPath: string
+): { cert: string; key: string; fingerprint: string } | null {
+	try {
+		const cert = fs.readFileSync(certPath, "utf8")
+		const key = fs.readFileSync(keyPath, "utf8")
+		if (!isTlsIdentityConsistent(cert, key)) return null
+		return { cert, key, fingerprint: certFingerprintSha256(cert) }
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Load a persisted certificate/key pair, or generate and atomically persist
+ * one when missing or inconsistent. An existing valid identity loads without
+ * requiring write access to its directory.
+ */
+export function loadOrGenerateTlsCertificate(
+	certPath: string,
+	keyPath: string
+): { cert: string; key: string; fingerprint: string } {
+	const existing = tryLoadValidIdentity(certPath, keyPath)
+	if (existing) return existing
+
+	const dir = path.dirname(certPath)
+	fs.mkdirSync(dir, { recursive: true })
+	fs.mkdirSync(path.dirname(keyPath), { recursive: true })
+
+	const lockPath = path.join(dir, `.${path.basename(certPath)}.lock`)
+	let lockFd: number | null = null
+	for (let attempt = 0; attempt < 50; attempt++) {
+		try {
+			lockFd = fs.openSync(lockPath, "wx", 0o600)
+			break
+		} catch (err: any) {
+			if (err?.code !== "EEXIST") throw err
+			const loaded = tryLoadValidIdentity(certPath, keyPath)
+			if (loaded) return loaded
+			const until = Date.now() + 20
+			while (Date.now() < until) {
+				// brief spin wait for concurrent writer
+			}
+		}
+	}
+
+	try {
+		const rechecked = tryLoadValidIdentity(certPath, keyPath)
+		if (rechecked) return rechecked
+
+		const generated = generateSelfSignedCert()
+		const tmpCert = `${certPath}.tmp-${process.pid}-${Date.now()}`
+		const tmpKey = `${keyPath}.tmp-${process.pid}-${Date.now()}`
+		fs.writeFileSync(tmpCert, generated.cert, { mode: 0o644 })
+		fs.writeFileSync(tmpKey, generated.key, { mode: 0o600 })
+		fs.renameSync(tmpCert, certPath)
+		fs.renameSync(tmpKey, keyPath)
+		return {
+			cert: generated.cert,
+			key: generated.key,
+			fingerprint: certFingerprintSha256(generated.cert)
+		}
+	} finally {
+		if (lockFd !== null) {
+			try {
+				fs.closeSync(lockFd)
+			} catch {
+				// ignore
+			}
+			try {
+				fs.unlinkSync(lockPath)
+			} catch {
+				// ignore
+			}
+		}
+	}
 }

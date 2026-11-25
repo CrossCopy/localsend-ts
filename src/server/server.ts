@@ -1,17 +1,24 @@
 import { Hono } from "hono"
 import type { ServerAdapter } from "./adapters/index.ts"
 import { createServerAdapter } from "./adapters/index.ts"
-import { createLocalSendRoutes, type LocalSendContext } from "./routes.ts"
+import { createLocalSendRoutes, type LocalSendContext, type TransferDecision } from "./routes.ts"
 import type { DeviceInfo, FileMetadata } from "../protocol/types.ts"
 import { UploadSessionStore, DownloadSessionStore } from "../core/sessions.ts"
 import { stageFile, type StagedFile } from "../core/files.ts"
-import { generateSelfSignedCert, certFingerprintSha256 } from "../crypto/cert.ts"
+import {
+	generateSelfSignedCert,
+	certFingerprintSha256,
+	loadOrGenerateTlsCertificate
+} from "../crypto/cert.ts"
+import { PinGate } from "./pin.ts"
 import fs from "node:fs"
+
+export type { TransferDecision } from "./routes.ts"
 
 export type TransferRequestHandler = (
 	senderInfo: DeviceInfo,
 	files: Record<string, FileMetadata>
-) => Promise<boolean>
+) => Promise<TransferDecision>
 
 export type TransferProgressHandler = (
 	fileId: string,
@@ -34,8 +41,7 @@ export class LocalSendServer {
 	private uploads: UploadSessionStore = new UploadSessionStore()
 	private _deviceInfo: DeviceInfo
 	private saveDirectory: string
-	private requirePin: boolean = false
-	private pin: string = ""
+	private pinGate: PinGate
 	private transferRequestHandler: TransferRequestHandler | null = null
 	private transferProgressHandler: TransferProgressHandler | null = null
 	private onRegisterCallback: ((device: DeviceInfo) => void) | null = null
@@ -44,6 +50,8 @@ export class LocalSendServer {
 	private sharedFiles: StagedFile[] = []
 	private downloads = new DownloadSessionStore()
 	private tls?: { cert: string; key: string }
+	private tlsCertPath?: string
+	private tlsKeyPath?: string
 	private requestedProtocol?: "http" | "https"
 
 	constructor(
@@ -59,13 +67,14 @@ export class LocalSendServer {
 			protocol?: "http" | "https"
 			sharedFiles?: string[]
 			tls?: { cert: string; key: string }
+			tlsCertPath?: string
+			tlsKeyPath?: string
 		} = {}
 	) {
 		this._deviceInfo = deviceInfo
 		if (options.protocol) this._deviceInfo.protocol = options.protocol
 		this.saveDirectory = options.saveDirectory || "./received_files"
-		this.pin = options.pin || ""
-		this.requirePin = !!this.pin
+		this.pinGate = new PinGate(options.pin)
 		this.transferRequestHandler = options.onTransferRequest || null
 		this.transferProgressHandler = options.onTransferProgress || null
 		this.onRegisterCallback = options.onRegister || null
@@ -73,6 +82,8 @@ export class LocalSendServer {
 		this.sharedFilePaths = options.sharedFiles ?? []
 		this.requestedProtocol = options.protocol
 		this.tls = options.tls
+		this.tlsCertPath = options.tlsCertPath
+		this.tlsKeyPath = options.tlsKeyPath
 
 		this.serverAdapter = options.serverAdapter || createServerAdapter()
 
@@ -91,12 +102,23 @@ export class LocalSendServer {
 		return this.tls?.cert
 	}
 
+	get pinRequired(): boolean {
+		return this.pinGate.required
+	}
+
+	setPin(pin: string | null | undefined): void {
+		this.pinGate.setPin(pin)
+	}
+
+	cancelTransfer(sessionId: string): boolean {
+		return this.uploads.cancel(sessionId)
+	}
+
 	private registerRoutes() {
 		const ctx: LocalSendContext = {
 			deviceInfo: this._deviceInfo,
 			saveDirectory: this.saveDirectory,
-			requirePin: this.requirePin,
-			pin: this.pin,
+			pinGate: this.pinGate,
 			transferRequestHandler: this.transferRequestHandler || undefined,
 			transferProgressHandler: this.transferProgressHandler || undefined,
 			onRegisterCallback: this.onRegisterCallback || undefined,
@@ -156,7 +178,12 @@ export class LocalSendServer {
 			const wantsHttps = this._deviceInfo.protocol === "https" || this.requestedProtocol === "https"
 			if (wantsHttps) {
 				if (!this.tls) {
-					this.tls = generateSelfSignedCert()
+					if (this.tlsCertPath && this.tlsKeyPath) {
+						const loaded = loadOrGenerateTlsCertificate(this.tlsCertPath, this.tlsKeyPath)
+						this.tls = { cert: loaded.cert, key: loaded.key }
+					} else {
+						this.tls = generateSelfSignedCert()
+					}
 				}
 				this._deviceInfo.protocol = "https"
 				this._deviceInfo.fingerprint = certFingerprintSha256(this.tls.cert)
@@ -180,6 +207,7 @@ export class LocalSendServer {
 	}
 
 	async stop(): Promise<void> {
+		this.uploads.clear()
 		if (this.server) {
 			await this.serverAdapter.stop(this.server)
 			this.server = null

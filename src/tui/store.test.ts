@@ -51,7 +51,10 @@ function makeDeps(persistOverride?: { persist: Persist }) {
 	let serverOptions: Record<string, unknown> | undefined
 	let discoveredCb: ((device: DeviceInfo) => void) | null = null
 	let requestHandler:
-		| ((info: DeviceInfo, files: Record<string, FileMetadata>) => Promise<boolean>)
+		| ((
+				info: DeviceInfo,
+				files: Record<string, FileMetadata>
+		  ) => Promise<import("../index.ts").TransferDecision>)
 		| null = null
 	let progressHandler:
 		| ((

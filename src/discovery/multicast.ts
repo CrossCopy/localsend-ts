@@ -10,24 +10,37 @@ import { Buffer } from "node:buffer"
 const ANNOUNCE_DELAYS_MS = [100, 500, 2000]
 const DEBUG_DISCOVERY = process.env.LOCALSEND_DEBUG_DISCOVERY === "1"
 
-function getInterfaceAddresses(): string[] {
-	const interfaces = networkInterfaces()
-	const addresses: string[] = []
+export function isContainerBridgeInterface(name: string): boolean {
+	return (
+		name === "docker0" ||
+		name.startsWith("br-") ||
+		name.startsWith("veth") ||
+		name.startsWith("virbr") ||
+		name.startsWith("vmnet") ||
+		name.startsWith("vboxnet") ||
+		name.startsWith("podman")
+	)
+}
 
-	for (const networkInterface of Object.values(interfaces)) {
-		if (!networkInterface) {
-			continue
-		}
+export function selectMulticastInterfaces(interfaces = networkInterfaces()): string[] {
+	const all: Array<{ name: string; address: string }> = []
 
+	for (const [name, networkInterface] of Object.entries(interfaces)) {
+		if (!networkInterface) continue
 		for (const address of networkInterface) {
-			const isIpv4 = address.family === "IPv4"
-			if (isIpv4 && !address.internal) {
-				addresses.push(address.address)
+			if (address.family === "IPv4" && !address.internal) {
+				all.push({ name, address: address.address })
 			}
 		}
 	}
 
-	return addresses
+	const nonBridge = all.filter((entry) => !isContainerBridgeInterface(entry.name))
+	const chosen = nonBridge.length > 0 ? nonBridge : all
+	return chosen.map((entry) => entry.address)
+}
+
+function getInterfaceAddresses(): string[] {
+	return selectMulticastInterfaces()
 }
 export class MulticastDiscovery implements Discovery {
 	private socket

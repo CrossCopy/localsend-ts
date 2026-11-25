@@ -2,6 +2,12 @@ import type { DeviceInfo } from "../types.ts"
 import { networkInterfaces } from "node:os"
 import type { Discovery } from "./types.ts"
 import { Agent } from "undici"
+import { DEFAULT_CONFIG } from "../config.ts"
+
+export type ScanOutcome = {
+	devices: DeviceInfo[]
+	complete: boolean
+}
 
 /**
  * HttpDiscovery is used to discover devices in the network using the HTTP method
@@ -12,12 +18,18 @@ export class HttpDiscovery implements Discovery {
 	private onDeviceDiscoveredCallback?: (device: DeviceInfo) => void
 	private isScanning = false
 	private scanInterval?: NodeJS.Timeout
+	private scanPort: number
 	private allowInsecureTls =
 		process.env.LOCALSEND_INSECURE_TLS === undefined
 			? true
 			: process.env.LOCALSEND_INSECURE_TLS === "1"
 
-	constructor(private deviceInfo: DeviceInfo) {}
+	constructor(
+		private deviceInfo: DeviceInfo,
+		options: { scanPort?: number } = {}
+	) {
+		this.scanPort = options.scanPort ?? DEFAULT_CONFIG.MULTICAST_PORT
+	}
 
 	async start(): Promise<void> {
 		// Start periodic scanning
@@ -66,25 +78,73 @@ export class HttpDiscovery implements Discovery {
 	}
 
 	/**
+	 * Probe a single known peer at its own IP and port (liveness check).
+	 */
+	async probePeer(ip: string, port: number, signal?: AbortSignal): Promise<DeviceInfo | null> {
+		const device = await this.fetchDeviceInfo(ip, port, signal)
+		if (!device || device.fingerprint === this.deviceInfo.fingerprint) {
+			return null
+		}
+		return { ...device, ip, port }
+	}
+
+	/**
+	 * Scan a list of target IPs with an optional overall deadline.
+	 * Keeps any devices discovered before the deadline expires and reports
+	 * whether the full sweep completed.
+	 */
+	async scanWithin(targets: string[], withinMs?: number): Promise<ScanOutcome> {
+		const controller = new AbortController()
+		let complete = true
+		let timer: NodeJS.Timeout | undefined
+		if (withinMs !== undefined) {
+			timer = setTimeout(() => {
+				complete = false
+				controller.abort()
+			}, withinMs)
+		}
+
+		const discovered: DeviceInfo[] = []
+		try {
+			await this.runWithConcurrency(
+				targets.map((ip) => async () => {
+					if (controller.signal.aborted) return
+					const device = await this.probePeer(ip, this.scanPort, controller.signal)
+					if (device) {
+						discovered.push(device)
+						this.knownDevices.set(device.fingerprint, device)
+						this.onDeviceDiscoveredCallback?.(device)
+					}
+				}),
+				50
+			)
+		} finally {
+			if (timer) clearTimeout(timer)
+		}
+
+		const seen = new Set<string>()
+		const deduped: DeviceInfo[] = []
+		for (const d of discovered) {
+			if (!seen.has(d.fingerprint)) {
+				seen.add(d.fingerprint)
+				deduped.push(d)
+			}
+		}
+		return { devices: deduped, complete }
+	}
+
+	/**
 	 * Scan a single target IP address
 	 */
 	private async scanTarget(ip: string): Promise<void> {
 		try {
-			const device = await this.fetchDeviceInfo(ip)
-
-			if (!device) {
+			const discoveredDevice = await this.probePeer(ip, this.scanPort)
+			if (!discoveredDevice) {
 				return
 			}
-
-			// Ignore self
-			if (device.fingerprint === this.deviceInfo.fingerprint) {
-				return
-			}
-
-			const discoveredDevice = { ...device, ip }
 
 			// Add to known devices
-			this.knownDevices.set(device.fingerprint, discoveredDevice)
+			this.knownDevices.set(discoveredDevice.fingerprint, discoveredDevice)
 
 			// Notify new device
 			if (this.onDeviceDiscoveredCallback) {
@@ -143,10 +203,15 @@ export class HttpDiscovery implements Discovery {
 		return targets
 	}
 
-	private async fetchDeviceInfo(ip: string): Promise<DeviceInfo | null> {
+	private async fetchDeviceInfo(
+		ip: string,
+		port: number = this.scanPort,
+		signal?: AbortSignal
+	): Promise<DeviceInfo | null> {
 		const protocols = this.getProtocolCandidates()
 		for (const protocol of protocols) {
-			const result = await this.fetchDeviceInfoWithProtocol(ip, protocol)
+			if (signal?.aborted) return null
+			const result = await this.fetchDeviceInfoWithProtocol(ip, port, protocol, signal)
 			if (result) {
 				return {
 					...result,
@@ -186,12 +251,19 @@ export class HttpDiscovery implements Discovery {
 
 	private async fetchDeviceInfoWithProtocol(
 		ip: string,
-		protocol: "http" | "https"
+		port: number,
+		protocol: "http" | "https",
+		outerSignal?: AbortSignal
 	): Promise<DeviceInfo | null> {
 		try {
 			const controller = new AbortController()
+			const onOuterAbort = () => controller.abort()
+			if (outerSignal) {
+				if (outerSignal.aborted) return null
+				outerSignal.addEventListener("abort", onOuterAbort, { once: true })
+			}
 			const timeoutId = setTimeout(() => controller.abort(), 1000)
-			const url = `${protocol}://${ip}:${this.deviceInfo.port}/api/localsend/v2/info`
+			const url = `${protocol}://${ip}:${port}/api/localsend/v2/info`
 			const options: any = {
 				method: "GET",
 				signal: controller.signal
@@ -213,6 +285,7 @@ export class HttpDiscovery implements Discovery {
 			const response = await fetch(url, options)
 
 			clearTimeout(timeoutId)
+			outerSignal?.removeEventListener("abort", onOuterAbort)
 
 			if (!response.ok) {
 				return null
@@ -221,7 +294,7 @@ export class HttpDiscovery implements Discovery {
 			const data = (await response.json()) as DeviceInfo
 			return {
 				...data,
-				port: data.port ?? this.deviceInfo.port,
+				port: data.port ?? port,
 				protocol
 			}
 		} catch (err) {
